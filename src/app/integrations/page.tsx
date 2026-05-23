@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link as LinkIcon, UploadCloud, CheckCircle2, ChevronRight, X, AlertCircle } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 import { parseCSVFile, ParsedCSVResult } from "@/lib/integrations/csv-parser";
+import { mapTradovatePayloadToTrades } from "@/lib/integrations/tradovate-mapper";
 import { useTradeStore } from "@/stores";
 import { v4 as uuidv4 } from "uuid";
 import { cn } from "@/lib/utils";
@@ -21,6 +22,12 @@ export default function IntegrationsPage() {
   const [isApiModalOpen, setIsApiModalOpen] = useState(false);
   const [selectedBroker, setSelectedBroker] = useState<any>(null);
   const [connectionStep, setConnectionStep] = useState(0);
+
+  // Tradovate Auth State
+  const [trEnv, setTrEnv] = useState("Live");
+  const [trUsername, setTrUsername] = useState("");
+  const [trPassword, setTrPassword] = useState("");
+  const [trError, setTrError] = useState("");
 
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [parsedData, setParsedData] = useState<ParsedCSVResult | null>(null);
@@ -63,13 +70,57 @@ export default function IntegrationsPage() {
 
   const handleConnect = (broker: any) => {
     setSelectedBroker(broker);
-    setConnectionStep(1);
-    setIsApiModalOpen(true);
+    setTrError("");
+    if (broker.id === "tradovate") {
+      setConnectionStep(0); // Show form
+      setIsApiModalOpen(true);
+    } else {
+      setConnectionStep(1); // Show connecting
+      setIsApiModalOpen(true);
+      setTimeout(() => {
+        setConnectionStep(2);
+      }, 2500);
+    }
+  };
 
-    // Simulate API connection flow
-    setTimeout(() => {
-      setConnectionStep(2);
-    }, 2500);
+  const handleTradovateAuth = async () => {
+    if (!trUsername || !trPassword) {
+      setTrError("Username and password are required");
+      return;
+    }
+    setTrError("");
+    setConnectionStep(1); // Show connecting spinner
+    
+    try {
+      // 1. Authenticate
+      const authRes = await fetch("/api/tradovate/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: trUsername, password: trPassword, env: trEnv, appId: "EdgeVault", appVersion: "1.0", cid: 1, sec: "mock" })
+      });
+      const authData = await authRes.json();
+      
+      if (!authRes.ok) throw new Error(authData.error || "Authentication failed");
+
+      // 2. Sync Trades
+      const syncRes = await fetch("/api/tradovate/sync", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${authData.accessToken}` }
+      });
+      const syncData = await syncRes.json();
+      
+      if (!syncRes.ok) throw new Error(syncData.error || "Sync failed");
+
+      // 3. Map and Save
+      const newTrades = mapTradovatePayloadToTrades(syncData);
+      newTrades.forEach(t => addTrade({...t}));
+      
+      setConnectionStep(2); // Success UI
+      alert(`Successfully synced ${newTrades.length} trades from Tradovate!`);
+    } catch (err: any) {
+      setTrError(err.message);
+      setConnectionStep(0); // Go back to form
+    }
   };
 
   return (
@@ -183,7 +234,34 @@ export default function IntegrationsPage() {
 
                 {/* Body */}
                 <div className="p-8 text-center min-h-[300px] flex flex-col justify-center">
-                  {connectionStep === 1 ? (
+                  {connectionStep === 0 && selectedBroker?.id === "tradovate" ? (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-start text-left w-full">
+                      <h3 className="text-xl font-bold font-[family-name:var(--font-syne)] mb-4">Tradovate Credentials</h3>
+                      {trError && <div className="w-full p-3 mb-4 rounded-xl bg-accent-coral/10 border border-accent-coral/20 text-accent-coral text-sm">{trError}</div>}
+                      
+                      <div className="w-full space-y-3">
+                        <div>
+                          <label className="text-xs text-text-muted uppercase tracking-wider mb-1 block">Environment</label>
+                          <select value={trEnv} onChange={e => setTrEnv(e.target.value)} className="w-full bg-bg-secondary border border-border-subtle rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-accent-violet/40">
+                            <option value="Live">Live</option>
+                            <option value="Demo">Demo</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-xs text-text-muted uppercase tracking-wider mb-1 block">Username</label>
+                          <input type="text" value={trUsername} onChange={e => setTrUsername(e.target.value)} className="w-full bg-bg-secondary border border-border-subtle rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-accent-violet/40" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-text-muted uppercase tracking-wider mb-1 block">Password</label>
+                          <input type="password" value={trPassword} onChange={e => setTrPassword(e.target.value)} className="w-full bg-bg-secondary border border-border-subtle rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-accent-violet/40" />
+                        </div>
+                      </div>
+
+                      <button onClick={handleTradovateAuth} className="w-full py-3 mt-6 rounded-xl bg-accent-violet text-bg-base font-bold hover:shadow-[0_0_20px_rgba(123,97,255,0.4)] transition-all">
+                        Connect & Sync
+                      </button>
+                    </motion.div>
+                  ) : connectionStep === 1 ? (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center">
                       <div className="w-16 h-16 rounded-full border-4 border-accent-violet/20 border-t-accent-violet animate-spin mb-6" />
                       <h3 className="text-xl font-bold font-[family-name:var(--font-syne)] mb-2">Connecting to {selectedBroker?.name}</h3>
