@@ -10,6 +10,8 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay,
 import { DollarSign, TrendingUp, Target, Wallet, ArrowUpRight, ArrowDownRight, Plus, Calendar, Trophy, Shield, Zap, Sparkles, Brain, Award, AlertCircle, Clock } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { TiltmeterWidget } from "@/components/ui/tiltmeter";
+import { ProactiveAIWidget } from "@/components/ui/proactive-ai";
 import { useMemo, useEffect, useRef, useState } from "react";
 
 function EquityCurveChart({ data }: { data: { time: string; value: number }[] }) {
@@ -308,9 +310,9 @@ export default function DashboardPage() {
       </div>
 
       {/* Main Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         {/* Equity Curve */}
-        <GlassCard className="lg:col-span-2" transition={{ delay: 0.2 }}>
+        <GlassCard className="lg:col-span-3" transition={{ delay: 0.2 }}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-[family-name:var(--font-syne)] font-bold text-base">Equity Curve</h2>
             <div className="flex gap-1">
@@ -329,8 +331,19 @@ export default function DashboardPage() {
           </div>
         </GlassCard>
 
+        {/* Sidebar Widgets Stack */}
+        <div className="flex flex-col gap-4 lg:col-span-1">
+          <ProactiveAIWidget />
+          <TiltmeterWidget recentLosses={3} avgHoldTimeDeviation={1.5} volumeSpike={false} />
+        </div>
+
+        {/* Daily Report Card */}
+        <div className="lg:col-span-2">
+          <DailyReportCard trades={trades} />
+        </div>
+
         {/* Calendar Mini */}
-        <GlassCard transition={{ delay: 0.25 }}>
+        <GlassCard className="lg:col-span-2" transition={{ delay: 0.25 }}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-[family-name:var(--font-syne)] font-bold text-base">
               <Calendar size={16} className="inline mr-2 text-accent-violet" />
@@ -356,9 +369,6 @@ export default function DashboardPage() {
             </div>
           </div>
         </GlassCard>
-
-        {/* Daily Report Card */}
-        <DailyReportCard trades={trades} />
       </div>
 
       {/* Bottom Row: Recent Trades + Prop Firm */}

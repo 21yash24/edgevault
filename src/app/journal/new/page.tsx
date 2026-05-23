@@ -95,7 +95,7 @@ export default function NewTradePage() {
   const [commission, setCommission] = useState("4.50");
 
   // Shared fields
-  const [emotion, setEmotion] = useState(0);
+  const [emotion, setEmotion] = useState<number | null>(null);
   const [preNotes, setPreNotes] = useState("");
   const [postReview, setPostReview] = useState("");
   const [setupTags, setSetupTags] = useState<string[]>([]);
@@ -209,7 +209,7 @@ export default function NewTradePage() {
 
   const livePnl = mode === "quick" ? parseFloat(quickNetPnl) || 0 : detailedCalculations?.netPnl || 0;
   const isChecklistMet = !settings.trading.forceChecklist || checkedItems.length === checklistItems.length;
-  const isReady = symbol && (mode === "quick" ? quickNetPnl !== "" : (entryPrice && exitPrice && positionSize)) && isChecklistMet;
+  const isReady = symbol && (mode === "quick" ? quickNetPnl !== "" : (entryPrice && exitPrice && positionSize)) && isChecklistMet && emotion !== null;
 
   const handleSubmit = () => {
     if (!isReady) return;
@@ -231,7 +231,7 @@ export default function NewTradePage() {
       rMultiple: mode === "quick" ? 0 : parseFloat(detailedCalculations?.rMultiple.toFixed(2) || "0"),
       rr: mode === "quick" ? 0 : parseFloat(detailedCalculations?.rr.toFixed(2) || "0"),
       result: netPnl > 5 ? "win" : netPnl < -5 ? "loss" : "breakeven",
-      emotion,
+      emotion: emotion || 0,
       preTradeNotes: preNotes,
       postTradeReview: postReview,
       setupTags,
@@ -440,15 +440,36 @@ export default function NewTradePage() {
               </select>
             </div>
 
-            {/* Emotion Slider */}
+            {/* Emotion Selector */}
             <div>
               <label className="text-xs text-text-muted uppercase tracking-wider mb-2 block">
-                Emotion: <span className="text-accent-violet">{emotionLabels[emotion]?.emoji} {emotionLabels[emotion]?.label}</span>
+                How did you feel? <span className="text-accent-coral">*</span>
+                {emotion !== null && (
+                  <span className="ml-2 text-accent-violet">
+                    ({emotionLabels[emotion]?.emoji} {emotionLabels[emotion]?.label})
+                  </span>
+                )}
               </label>
-              <input type="range" min={-5} max={5} value={emotion} onChange={(e) => setEmotion(parseInt(e.target.value))}
-                className="w-full accent-accent-violet h-1.5 rounded-full appearance-none bg-bg-card cursor-pointer" />
-              <div className="flex justify-between text-[9px] text-text-muted mt-1">
-                <span>😰 Fearful</span><span>😶 Neutral</span><span>🤩 Euphoric</span>
+              <div className="grid grid-cols-6 sm:grid-cols-11 gap-1">
+                {Object.entries(emotionLabels).map(([val, { emoji, label }]) => {
+                  const numVal = parseInt(val);
+                  const isSelected = emotion === numVal;
+                  return (
+                    <button
+                      key={val}
+                      onClick={() => setEmotion(numVal)}
+                      title={label}
+                      className={cn(
+                        "aspect-square flex items-center justify-center text-xl rounded-lg transition-all hover:-translate-y-1",
+                        isSelected 
+                          ? "bg-accent-violet border border-accent-violet shadow-[0_0_15px_rgba(123,97,255,0.4)] transform scale-110 z-10" 
+                          : "bg-bg-card border border-border-subtle opacity-60 hover:opacity-100"
+                      )}
+                    >
+                      {emoji}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, BookOpen, BarChart3, Target, Copy,
   Shield, TrendingUp, Bell, Settings, ChevronLeft,
-  ChevronRight, Zap, Wallet, Trophy,
+  ChevronRight, Zap, Wallet, Trophy, PlugZap
 } from "lucide-react";
 
 const navItems = [
@@ -18,6 +18,7 @@ const navItems = [
   { href: "/accounts", label: "Accounts", icon: Wallet },
   { href: "/prop-tracker", label: "Prop Tracker", icon: Trophy },
   { href: "/risk", label: "Risk Manager", icon: Shield },
+  { href: "/integrations", label: "Integrations", icon: PlugZap },
   { href: "/alerts", label: "Alerts", icon: Bell },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
@@ -28,12 +29,12 @@ export function Sidebar() {
 
   return (
     <motion.aside
-      className="fixed left-0 top-0 h-full bg-bg-secondary border-r border-border-subtle z-40 flex flex-col"
+      className="fixed left-0 top-0 h-full glass border-y-0 border-l-0 border-r-border-subtle z-40 flex flex-col backdrop-blur-2xl bg-bg-card/40 shadow-[4px_0_24px_rgba(0,0,0,0.2)]"
       animate={{ width: sidebarCollapsed ? 72 : 240 }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
     >
       {/* Logo */}
-      <div className="h-16 flex items-center px-4 border-b border-border-subtle gap-3">
+      <div className="h-16 flex items-center px-4 border-b border-border-subtle/50 gap-3">
         <div className="w-8 h-8 rounded-lg bg-accent-green/20 flex items-center justify-center flex-shrink-0">
           <Zap size={18} className="text-accent-green" />
         </div>
