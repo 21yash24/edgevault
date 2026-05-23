@@ -25,6 +25,46 @@ const emotionLabels: Record<number, { label: string; emoji: string }> = {
   "5": { label: "Euphoric", emoji: "🤩" },
 };
 
+const compressImage = (file: File): Promise<string> => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const MAX_WIDTH = 1200;
+        const MAX_HEIGHT = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height = (height * MAX_WIDTH) / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width = (width * MAX_HEIGHT) / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL("image/jpeg", 0.7));
+        } else {
+          resolve(event.target?.result as string);
+        }
+      };
+    };
+  });
+};
+
 export default function EditTradePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
@@ -469,26 +509,11 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
                     
                     setIsUploading(true);
                     try {
-                      const user = auth?.currentUser;
-                      if (user && storage) {
-                        // Upload directly to Firebase Storage!
-                        const storageRef = ref(storage, `users/${user.uid}/screenshots/${Date.now()}_${file.name}`);
-                        const snapshot = await uploadBytes(storageRef, file);
-                        const downloadUrl = await getDownloadURL(snapshot.ref);
-                        setScreenshotUrls((prev) => [...prev, downloadUrl]);
-                      } else {
-                        // Fallback to local Base64 URL for demo/offline mode
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                          if (typeof reader.result === "string") {
-                            setScreenshotUrls((prev) => [...prev, reader.result as string]);
-                          }
-                        };
-                        reader.readAsDataURL(file);
-                      }
+                      const compressedDataUrl = await compressImage(file);
+                      setScreenshotUrls((prev) => [...prev, compressedDataUrl]);
                     } catch (error) {
-                      console.error("Upload error:", error);
-                      // Fallback
+                      console.error("Upload/Compression error:", error);
+                      // Absolute basic fallback in case of canvas issues
                       const reader = new FileReader();
                       reader.onloadend = () => {
                         if (typeof reader.result === "string") {
