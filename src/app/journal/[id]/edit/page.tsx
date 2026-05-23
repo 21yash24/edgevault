@@ -8,6 +8,8 @@ import { cn, formatCurrency } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowUpRight, ArrowDownRight, Save, Mic, MicOff, ChevronLeft, Upload, Zap, Settings2, Image as ImageIcon, X, Plus, Brain } from "lucide-react";
 import Link from "next/link";
+import { storage, auth } from "@/lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const emotionLabels: Record<number, { label: string; emoji: string }> = {
   "-5": { label: "Terrified", emoji: "😰" },
@@ -61,6 +63,7 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
   const [mindsetNotes, setMindsetNotes] = useState("");
   const [screenshotUrls, setScreenshotUrls] = useState<string[]>([]);
   const [newImageUrl, setNewImageUrl] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (trade) {
@@ -450,21 +453,52 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
                 className="bg-accent-violet text-white p-2.5 rounded-xl">
                 <Plus size={20} />
               </button>
-              <label className="flex items-center justify-center bg-bg-card border border-border-subtle hover:border-accent-violet/40 text-text-secondary hover:text-text-primary p-2.5 rounded-xl cursor-pointer transition-all" title="Upload Screenshot">
-                <Upload size={20} />
+              <label className={cn("flex items-center justify-center bg-bg-card border border-border-subtle hover:border-accent-violet/40 text-text-secondary hover:text-text-primary p-2.5 rounded-xl cursor-pointer transition-all", isUploading && "opacity-50 pointer-events-none")} title="Upload Screenshot">
+                {isUploading ? (
+                  <div className="w-5 h-5 border-2 border-accent-violet border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Upload size={20} />
+                )}
                 <input 
                   type="file" 
                   accept="image/*" 
-                  onChange={(e) => {
+                  disabled={isUploading}
+                  onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
-                      if (typeof reader.result === "string") {
-                        setScreenshotUrls([...screenshotUrls, reader.result]);
+                    
+                    setIsUploading(true);
+                    try {
+                      const user = auth?.currentUser;
+                      if (user && storage) {
+                        // Upload directly to Firebase Storage!
+                        const storageRef = ref(storage, `users/${user.uid}/screenshots/${Date.now()}_${file.name}`);
+                        const snapshot = await uploadBytes(storageRef, file);
+                        const downloadUrl = await getDownloadURL(snapshot.ref);
+                        setScreenshotUrls((prev) => [...prev, downloadUrl]);
+                      } else {
+                        // Fallback to local Base64 URL for demo/offline mode
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          if (typeof reader.result === "string") {
+                            setScreenshotUrls((prev) => [...prev, reader.result as string]);
+                          }
+                        };
+                        reader.readAsDataURL(file);
                       }
-                    };
-                    reader.readAsDataURL(file);
+                    } catch (error) {
+                      console.error("Upload error:", error);
+                      // Fallback
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        if (typeof reader.result === "string") {
+                          setScreenshotUrls((prev) => [...prev, reader.result as string]);
+                        }
+                      };
+                      reader.readAsDataURL(file);
+                    } finally {
+                      setIsUploading(false);
+                    }
                   }} 
                   className="hidden" 
                 />
