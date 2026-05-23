@@ -3,6 +3,10 @@ import { useState } from "react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link as LinkIcon, UploadCloud, CheckCircle2, ChevronRight, X, AlertCircle } from "lucide-react";
+import { useDropzone } from "react-dropzone";
+import { parseCSVFile, ParsedCSVResult } from "@/lib/integrations/csv-parser";
+import { useTradeStore } from "@/stores";
+import { v4 as uuidv4 } from "uuid";
 import { cn } from "@/lib/utils";
 
 const brokers = [
@@ -13,9 +17,49 @@ const brokers = [
 ];
 
 export default function IntegrationsPage() {
+  const { addTrade } = useTradeStore();
   const [isApiModalOpen, setIsApiModalOpen] = useState(false);
   const [selectedBroker, setSelectedBroker] = useState<any>(null);
-  const [connectionStep, setConnectionStep] = useState(0); // 0: select, 1: auth, 2: success
+  const [connectionStep, setConnectionStep] = useState(0);
+
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [parsedData, setParsedData] = useState<ParsedCSVResult | null>(null);
+  const [isParsing, setIsParsing] = useState(false);
+
+  const onDrop = async (acceptedFiles: File[]) => {
+    const file = acceptedFiles[0];
+    if (!file) return;
+
+    setIsParsing(true);
+    try {
+      const result = await parseCSVFile(file);
+      setParsedData(result);
+      setIsImportModalOpen(true);
+    } catch (error) {
+      alert(`Error parsing CSV: ${error}`);
+    } finally {
+      setIsParsing(false);
+    }
+  };
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: { "text/csv": [".csv"] },
+    multiple: false,
+  });
+
+  const handleImportConfirm = () => {
+    if (!parsedData) return;
+    
+    // Add trades to store
+    parsedData.trades.forEach(trade => {
+      addTrade({ ...trade });
+    });
+    
+    setIsImportModalOpen(false);
+    setParsedData(null);
+    alert(`Successfully imported ${parsedData.trades.length} trades!`);
+  };
 
   const handleConnect = (broker: any) => {
     setSelectedBroker(broker);
@@ -72,22 +116,37 @@ export default function IntegrationsPage() {
         {/* Universal CSV Importer */}
         <div className="space-y-4">
           <h2 className="text-sm font-bold text-text-muted uppercase tracking-widest">Manual Import</h2>
-          <GlassCard className="h-[calc(100%-2rem)] flex flex-col items-center justify-center border-dashed border-2 border-border-subtle/50 hover:border-accent-green hover:bg-accent-green/5 transition-all group cursor-pointer relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-accent-green/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-            
-            <div className="w-16 h-16 rounded-full bg-bg-secondary border border-border-subtle flex items-center justify-center mb-4 group-hover:scale-110 transition-transform group-hover:border-accent-green group-hover:shadow-[0_0_30px_rgba(0,255,178,0.2)]">
-              <UploadCloud size={24} className="text-text-muted group-hover:text-accent-green transition-colors" />
-            </div>
-            
-            <h3 className="font-[family-name:var(--font-syne)] font-bold text-lg mb-1">Universal CSV Importer</h3>
-            <p className="text-sm text-text-muted text-center max-w-[250px] mb-6">
-              Drag and drop exports from NinjaTrader, MetaTrader, or Sierra Chart.
-            </p>
+          <div {...getRootProps()} className="h-[calc(100%-2rem)]">
+            <input {...getInputProps()} />
+            <GlassCard className={cn(
+              "h-full flex flex-col items-center justify-center border-dashed border-2 transition-all group cursor-pointer relative overflow-hidden",
+              isDragActive ? "border-accent-green bg-accent-green/10" : "border-border-subtle/50 hover:border-accent-green hover:bg-accent-green/5"
+            )}>
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-accent-green/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+              
+              <div className={cn(
+                "w-16 h-16 rounded-full bg-bg-secondary border border-border-subtle flex items-center justify-center mb-4 transition-transform group-hover:scale-110 group-hover:border-accent-green group-hover:shadow-[0_0_30px_rgba(0,255,178,0.2)]",
+                isDragActive && "scale-110 border-accent-green shadow-[0_0_30px_rgba(0,255,178,0.2)]"
+              )}>
+                {isParsing ? (
+                  <div className="w-8 h-8 border-2 border-accent-green border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <UploadCloud size={24} className={cn("text-text-muted transition-colors", (isDragActive || "group-hover:text-accent-green"))} />
+                )}
+              </div>
+              
+              <h3 className="font-[family-name:var(--font-syne)] font-bold text-lg mb-1">
+                {isDragActive ? "Drop CSV Here" : "Universal CSV Importer"}
+              </h3>
+              <p className="text-sm text-text-muted text-center max-w-[250px] mb-6">
+                Drag and drop exports from NinjaTrader, MetaTrader, or Sierra Chart.
+              </p>
 
-            <button className="px-6 py-2.5 rounded-xl bg-bg-secondary border border-border-subtle text-sm font-bold group-hover:bg-accent-green group-hover:text-bg-base transition-all">
-              Select File
-            </button>
-          </GlassCard>
+              <button className="px-6 py-2.5 rounded-xl bg-bg-secondary border border-border-subtle text-sm font-bold group-hover:bg-accent-green group-hover:text-bg-base transition-all">
+                Select File
+              </button>
+            </GlassCard>
+          </div>
         </div>
       </div>
 
@@ -156,6 +215,95 @@ export default function IntegrationsPage() {
               </motion.div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* CSV Import Preview Modal */}
+      <AnimatePresence>
+        {isImportModalOpen && parsedData && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setIsImportModalOpen(false)}
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-2xl bg-bg-card border border-border-subtle rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 border-b border-border-subtle flex items-center justify-between">
+                <div>
+                  <h2 className="font-[family-name:var(--font-syne)] font-bold text-xl">Import Summary</h2>
+                  <p className="text-sm text-text-muted">Detected Format: <span className="text-accent-green">{parsedData.broker}</span></p>
+                </div>
+                <button onClick={() => setIsImportModalOpen(false)} className="p-2 text-text-muted hover:text-white rounded-lg hover:bg-bg-secondary transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+              
+              <div className="p-6 overflow-y-auto flex-1">
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="glass-static p-4 rounded-xl text-center">
+                    <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">Trades Found</div>
+                    <div className="font-[family-name:var(--font-space-mono)] font-bold text-2xl">{parsedData.trades.length}</div>
+                  </div>
+                  <div className="glass-static p-4 rounded-xl text-center">
+                    <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">Total P&L</div>
+                    <div className={cn("font-[family-name:var(--font-space-mono)] font-bold text-2xl", parsedData.trades.reduce((s, t) => s + t.netPnl, 0) >= 0 ? "text-accent-green" : "text-accent-coral")}>
+                      ${parsedData.trades.reduce((s, t) => s + t.netPnl, 0).toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+
+                {parsedData.errors.length > 0 && (
+                  <div className="mb-6 p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
+                    <h4 className="text-sm font-bold text-yellow-500 flex items-center gap-2 mb-2">
+                      <AlertCircle size={16} /> Parsing Warnings
+                    </h4>
+                    <ul className="text-xs text-text-secondary list-disc pl-5 space-y-1">
+                      {parsedData.errors.slice(0, 5).map((err, i) => <li key={i}>{err}</li>)}
+                      {parsedData.errors.length > 5 && <li>...and {parsedData.errors.length - 5} more</li>}
+                    </ul>
+                  </div>
+                )}
+                
+                <h4 className="text-sm font-bold mb-3">Preview First 5 Trades</h4>
+                <div className="bg-bg-secondary rounded-xl overflow-hidden border border-border-subtle">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-bg-card border-b border-border-subtle text-xs text-text-muted uppercase tracking-wider">
+                      <tr>
+                        <th className="p-3">Symbol</th>
+                        <th className="p-3">Side</th>
+                        <th className="p-3">Date</th>
+                        <th className="p-3 text-right">P&L</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border-subtle">
+                      {parsedData.trades.slice(0, 5).map((t, i) => (
+                        <tr key={i} className="hover:bg-bg-card transition-colors">
+                          <td className="p-3 font-[family-name:var(--font-space-mono)]">{t.symbol}</td>
+                          <td className="p-3"><span className={cn("text-[10px] uppercase px-1.5 py-0.5 rounded", t.direction === 'long' ? "bg-accent-green/10 text-accent-green" : "bg-accent-coral/10 text-accent-coral")}>{t.direction}</span></td>
+                          <td className="p-3 text-text-muted">{new Date(t.entryDate).toLocaleDateString()}</td>
+                          <td className={cn("p-3 text-right font-[family-name:var(--font-space-mono)] font-bold", t.netPnl >= 0 ? "text-accent-green" : "text-accent-coral")}>
+                            {t.netPnl >= 0 ? '+' : ''}{t.netPnl.toFixed(2)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-border-subtle bg-bg-secondary flex justify-end gap-3">
+                <button onClick={() => setIsImportModalOpen(false)} className="px-6 py-2.5 rounded-xl text-sm font-medium text-text-muted hover:text-white transition-colors">
+                  Cancel
+                </button>
+                <button onClick={handleImportConfirm} className="px-6 py-2.5 rounded-xl text-sm font-bold bg-accent-green text-bg-base hover:shadow-[0_0_20px_rgba(0,255,178,0.4)] transition-all flex items-center gap-2">
+                  <CheckCircle2 size={18} /> Confirm Import
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
