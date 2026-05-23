@@ -431,10 +431,44 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
               <input type="text" value={newImageUrl} onChange={(e) => setNewImageUrl(e.target.value)}
                 placeholder="Paste chart URL..."
                 className="flex-1 bg-bg-card border border-border-subtle rounded-xl px-4 py-2.5 text-sm" />
-              <button onClick={() => { if (newImageUrl) { setScreenshotUrls([...screenshotUrls, newImageUrl]); setNewImageUrl(""); } }}
+              <button 
+                type="button"
+                onClick={() => { 
+                  if (newImageUrl) { 
+                    const cleanUrl = (url: string) => {
+                      let cleaned = url.trim();
+                      const tvMatch = cleaned.match(/https?:\/\/(?:\w+\.)?tradingview\.com\/x\/(\w+)\/?/);
+                      if (tvMatch) {
+                        return `https://s3.tradingview.com/x/${tvMatch[1]}.png`;
+                      }
+                      return cleaned;
+                    };
+                    setScreenshotUrls([...screenshotUrls, cleanUrl(newImageUrl)]); 
+                    setNewImageUrl(""); 
+                  } 
+                }}
                 className="bg-accent-violet text-white p-2.5 rounded-xl">
                 <Plus size={20} />
               </button>
+              <label className="flex items-center justify-center bg-bg-card border border-border-subtle hover:border-accent-violet/40 text-text-secondary hover:text-text-primary p-2.5 rounded-xl cursor-pointer transition-all" title="Upload Screenshot">
+                <Upload size={20} />
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                      if (typeof reader.result === "string") {
+                        setScreenshotUrls([...screenshotUrls, reader.result]);
+                      }
+                    };
+                    reader.readAsDataURL(file);
+                  }} 
+                  className="hidden" 
+                />
+              </label>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
