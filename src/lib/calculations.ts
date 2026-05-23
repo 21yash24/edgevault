@@ -1,0 +1,215 @@
+import { Trade, DailyStats, PerformanceMetrics } from "./types";
+import { format } from "date-fns";
+
+export function calculateMetrics(trades: Trade[]): PerformanceMetrics {
+  if (trades.length === 0) {
+    return {
+      totalNetPnl: 0, winRate: 0, profitFactor: 0, avgWin: 0, avgLoss: 0,
+      maxDrawdown: 0, maxConsecutiveWins: 0, maxConsecutiveLosses: 0,
+      avgRR: 0, avgHoldTime: 0, totalTrades: 0, totalCommissions: 0,
+      sharpeRatio: 0, sortinoRatio: 0, expectancy: 0,
+      bestDay: { date: "", pnl: 0 }, worstDay: { date: "", pnl: 0 },
+      currentWinStreak: 0, currentLossStreak: 0, maxWinStreak: 0, maxLossStreak: 0,
+    };
+  }
+
+  const wins = trades.filter(t => t.result === "win");
+  const losses = trades.filter(t => t.result === "loss");
+  const totalPnl = trades.reduce((s, t) => s + t.netPnl, 0);
+  const totalComm = trades.reduce((s, t) => s + t.commission, 0);
+  const grossWins = wins.reduce((s, t) => s + t.netPnl, 0);
+  const grossLosses = Math.abs(losses.reduce((s, t) => s + t.netPnl, 0));
+
+  // Streaks
+  let curWin = 0, curLoss = 0, maxWin = 0, maxLoss = 0;
+  let tempWin = 0, tempLoss = 0;
+  for (const t of trades) {
+    if (t.result === "win") { tempWin++; tempLoss = 0; }
+    else if (t.result === "loss") { tempLoss++; tempWin = 0; }
+    maxWin = Math.max(maxWin, tempWin);
+    maxLoss = Math.max(maxLoss, tempLoss);
+  }
+  // Current streaks from end
+  for (let i = trades.length - 1; i >= 0; i--) {
+    if (trades[i].result === "win" && curLoss === 0) curWin++;
+    else if (trades[i].result === "loss" && curWin === 0) curLoss++;
+    else break;
+  }
+
+  // Max drawdown
+  let peak = trades[0]?.accountEquityAfter ?? 0;
+  let maxDD = 0;
+  for (const t of trades) {
+    peak = Math.max(peak, t.accountEquityAfter);
+    const dd = ((peak - t.accountEquityAfter) / peak) * 100;
+    maxDD = Math.max(maxDD, dd);
+  }
+
+  // Daily stats
+  const dailyMap = getDailyStats(trades);
+  const dailyPnls = dailyMap.map(d => d.pnl);
+  const best = dailyMap.reduce((b, d) => d.pnl > b.pnl ? d : b, dailyMap[0]);
+  const worst = dailyMap.reduce((w, d) => d.pnl < w.pnl ? d : w, dailyMap[0]);
+
+  // Sharpe & Sortino (annualized, assuming 252 trading days)
+  const meanDaily = dailyPnls.reduce((s, v) => s + v, 0) / dailyPnls.length;
+  const variance = dailyPnls.reduce((s, v) => s + (v - meanDaily) ** 2, 0) / dailyPnls.length;
+  const stdDev = Math.sqrt(variance);
+  const downside = dailyPnls.filter(v => v < 0);
+  const downsideVar = downside.length > 0
+    ? downside.reduce((s, v) => s + v ** 2, 0) / downside.length
+    : 0;
+  const downsideDev = Math.sqrt(downsideVar);
+
+  const sharpe = stdDev > 0 ? (meanDaily / stdDev) * Math.sqrt(252) : 0;
+  const sortino = downsideDev > 0 ? (meanDaily / downsideDev) * Math.sqrt(252) : 0;
+
+  const winRate = (wins.length / trades.length) * 100;
+  const avgWin = wins.length > 0 ? grossWins / wins.length : 0;
+  const avgLoss = losses.length > 0 ? grossLosses / losses.length : 0;
+  const expectancy = (winRate / 100) * avgWin - ((100 - winRate) / 100) * avgLoss;
+
+  return {
+    totalNetPnl: parseFloat(totalPnl.toFixed(2)),
+    winRate: parseFloat(winRate.toFixed(1)),
+    profitFactor: grossLosses > 0 ? parseFloat((grossWins / grossLosses).toFixed(2)) : grossWins > 0 ? 999 : 0,
+    avgWin: parseFloat(avgWin.toFixed(2)),
+    avgLoss: parseFloat(avgLoss.toFixed(2)),
+    maxDrawdown: parseFloat(maxDD.toFixed(2)),
+    maxConsecutiveWins: maxWin,
+    maxConsecutiveLosses: maxLoss,
+    avgRR: parseFloat((trades.reduce((s, t) => s + t.rr, 0) / trades.length).toFixed(2)),
+    avgHoldTime: Math.round(trades.reduce((s, t) => s + t.durationMinutes, 0) / trades.length),
+    totalTrades: trades.length,
+    totalCommissions: parseFloat(totalComm.toFixed(2)),
+    sharpeRatio: parseFloat(sharpe.toFixed(2)),
+    sortinoRatio: parseFloat(sortino.toFixed(2)),
+    expectancy: parseFloat(expectancy.toFixed(2)),
+    bestDay: { date: best?.date ?? "", pnl: best?.pnl ?? 0 },
+    worstDay: { date: worst?.date ?? "", pnl: worst?.pnl ?? 0 },
+    currentWinStreak: curWin,
+    currentLossStreak: curLoss,
+    maxWinStreak: maxWin,
+    maxLossStreak: maxLoss,
+  };
+}
+
+export function getDailyStats(trades: Trade[]): DailyStats[] {
+  const map = new Map<string, DailyStats>();
+  for (const t of trades) {
+    const d = format(new Date(t.entryDate), "yyyy-MM-dd");
+    const existing = map.get(d) ?? { date: d, pnl: 0, trades: 0, wins: 0, losses: 0 };
+    existing.pnl += t.netPnl;
+    existing.trades++;
+    if (t.result === "win") existing.wins++;
+    if (t.result === "loss") existing.losses++;
+    map.set(d, existing);
+  }
+  return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+export function getEquityCurve(trades: Trade[]): { time: string; value: number }[] {
+  const startEquity = trades.length > 0 ? trades[0].accountEquityAfter - trades[0].netPnl : 50000;
+  const points = [{ time: "2025-03-31", value: startEquity }];
+  for (const t of trades) {
+    points.push({ time: format(new Date(t.exitDate), "yyyy-MM-dd"), value: t.accountEquityAfter });
+  }
+  return points;
+}
+
+export function getWinRateByField(trades: Trade[], field: "symbol" | "sessionTag" | "marketCondition"): { name: string; winRate: number; total: number }[] {
+  const map = new Map<string, { wins: number; total: number }>();
+  for (const t of trades) {
+    const key = t[field];
+    const existing = map.get(key) ?? { wins: 0, total: 0 };
+    existing.total++;
+    if (t.result === "win") existing.wins++;
+    map.set(key, existing);
+  }
+  return Array.from(map.entries())
+    .map(([name, { wins, total }]) => ({ name, winRate: parseFloat(((wins / total) * 100).toFixed(1)), total }))
+    .sort((a, b) => b.total - a.total);
+}
+
+export function getPnlBySymbol(trades: Trade[]): { symbol: string; pnl: number; trades: number }[] {
+  const map = new Map<string, { pnl: number; trades: number }>();
+  for (const t of trades) {
+    const existing = map.get(t.symbol) ?? { pnl: 0, trades: 0 };
+    existing.pnl += t.netPnl;
+    existing.trades++;
+    map.set(t.symbol, existing);
+  }
+  return Array.from(map.entries())
+    .map(([symbol, data]) => ({ symbol, ...data }))
+    .sort((a, b) => b.pnl - a.pnl);
+}
+
+export function getRMultipleDistribution(trades: Trade[]): { range: string; count: number }[] {
+  const buckets: Record<string, number> = {
+    "< -3R": 0, "-3R to -2R": 0, "-2R to -1R": 0, "-1R to 0R": 0,
+    "0R to 1R": 0, "1R to 2R": 0, "2R to 3R": 0, "> 3R": 0,
+  };
+  for (const t of trades) {
+    const r = t.rMultiple || 0;
+    if (r < -3) buckets["< -3R"]++;
+    else if (r < -2) buckets["-3R to -2R"]++;
+    else if (r < -1) buckets["-2R to -1R"]++;
+    else if (r < 0) buckets["-1R to 0R"]++;
+    else if (r < 1) buckets["0R to 1R"]++;
+    else if (r < 2) buckets["1R to 2R"]++;
+    else if (r < 3) buckets["2R to 3R"]++;
+    else buckets["> 3R"]++;
+  }
+  return Object.entries(buckets).map(([range, count]) => ({ range, count }));
+}
+
+export function getHourlyHeatmap(trades: Trade[]): { day: number; hour: number; avgPnl: number; count: number }[] {
+  const map = new Map<string, { total: number; count: number }>();
+  for (const t of trades) {
+    const d = new Date(t.entryDate);
+    const day = d.getDay();
+    const hour = d.getHours();
+    const key = `${day}-${hour}`;
+    const existing = map.get(key) ?? { total: 0, count: 0 };
+    existing.total += t.netPnl;
+    existing.count++;
+    map.set(key, existing);
+  }
+  const result: { day: number; hour: number; avgPnl: number; count: number }[] = [];
+  for (let day = 1; day <= 5; day++) {
+    for (let hour = 0; hour < 24; hour++) {
+      const data = map.get(`${day}-${hour}`);
+      result.push({
+        day, hour,
+        avgPnl: data ? parseFloat((data.total / data.count).toFixed(2)) : 0,
+        count: data?.count ?? 0,
+      });
+    }
+  }
+  return result;
+}
+export function getWinRateByMindset(trades: Trade[]): { name: string; winRate: number; total: number; pnl: number }[] {
+  const map = new Map<string, { wins: number; total: number; pnl: number }>();
+  for (const t of trades) {
+    const tags = t.mindsetTags || [];
+    if (tags.length === 0) {
+      const key = "Untagged";
+      const existing = map.get(key) ?? { wins: 0, total: 0, pnl: 0 };
+      existing.total++;
+      existing.pnl += t.netPnl;
+      if (t.result === "win") existing.wins++;
+      map.set(key, existing);
+    } else {
+      for (const tag of tags) {
+        const existing = map.get(tag) ?? { wins: 0, total: 0, pnl: 0 };
+        existing.total++;
+        existing.pnl += t.netPnl;
+        if (t.result === "win") existing.wins++;
+        map.set(tag, existing);
+      }
+    }
+  }
+  return Array.from(map.entries())
+    .map(([name, { wins, total, pnl }]) => ({ name, winRate: parseFloat(((wins / total) * 100).toFixed(1)), total, pnl }))
+    .sort((a, b) => b.pnl - a.pnl);
+}

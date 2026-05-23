@@ -1,26 +1,305 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+:root, .dark {
+  --bg-base: #07080D;
+  --bg-secondary: #0D0F18;
+  --bg-card: #111420;
+  --bg-card-hover: #161A2A;
+  --accent-green: #00FFB2;
+  --accent-violet: #7B61FF;
+  --accent-coral: #FF2D55;
+  --text-primary: #FFFFFF;
+  --text-secondary: #8B8FA3;
+  --text-muted: #4A4E63;
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-glow: rgba(0, 255, 178, 0.12);
+  --border-violet: rgba(123, 97, 255, 0.2);
+
+  --glass-bg: rgba(17, 20, 32, 0.6);
+  --glass-bg-hover: rgba(17, 20, 32, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.06);
+  
+  --shimmer-1: rgba(17, 20, 32, 0.4);
+  --shimmer-2: rgba(30, 35, 50, 0.6);
+
+  --hero-mid: #0a0c15;
+  --hero-end: #0d0a18;
+  
+  --mesh-green: rgba(0, 255, 178, 0.08);
+  --mesh-violet: rgba(123, 97, 255, 0.06);
+  --mesh-coral: rgba(255, 45, 85, 0.03);
+
+  --font-display: var(--font-syne);
+  --font-data: var(--font-space-mono);
+  --font-body: var(--font-inter);
+}
+
+.light {
+  --bg-base: #F0F4F8; /* Soft, premium cool-gray */
+  --bg-secondary: #E2E8F0;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #F8FAFC;
+  --accent-green: #00A676; /* Deeper emerald for readability */
+  --accent-violet: #5E3BFF;
+  --accent-coral: #E61E45;
+  --text-primary: #0F172A; /* Slate 900 */
+  --text-secondary: #475569; /* Slate 600 */
+  --text-muted: #94A3B8; /* Slate 400 */
+  --border-subtle: rgba(255, 255, 255, 0.8);
+  --border-glow: rgba(0, 166, 118, 0.25);
+  --border-violet: rgba(94, 59, 255, 0.25);
+
+  --glass-bg: rgba(255, 255, 255, 0.65); /* Beautiful frosted white */
+  --glass-bg-hover: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(255, 255, 255, 1);
+  
+  --shimmer-1: rgba(255, 255, 255, 0.4);
+  --shimmer-2: rgba(240, 244, 248, 0.8);
+
+  --hero-mid: #E2E8F0;
+  --hero-end: #CBD5E1;
+  
+  --mesh-green: rgba(0, 166, 118, 0.08);
+  --mesh-violet: rgba(94, 59, 255, 0.06);
+  --mesh-coral: rgba(230, 30, 69, 0.04);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-bg-base: var(--bg-base);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-bg-card: var(--bg-card);
+  --color-bg-card-hover: var(--bg-card-hover);
+  --color-accent-green: var(--accent-green);
+  --color-accent-violet: var(--accent-violet);
+  --color-accent-coral: var(--accent-coral);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-glow: var(--border-glow);
+  --color-border-violet: var(--border-violet);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  --font-display: var(--font-syne);
+  --font-data: var(--font-space-mono);
+  --font-body: var(--font-inter);
+
+  --animate-glow-pulse: glow-pulse 2s ease-in-out infinite;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-slide-up: slide-up 0.5s ease-out;
+  --animate-fade-in: fade-in 0.6s ease-out;
+  --animate-shimmer: shimmer 2s infinite linear;
+  --animate-ticker: ticker 0.3s ease-out;
+  --animate-border-glow: border-glow 3s ease-in-out infinite;
+
+  @keyframes glow-pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-12px); }
+  }
+
+  @keyframes slide-up {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  @keyframes ticker {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes border-glow {
+    0%, 100% { border-color: rgba(0, 255, 178, 0.08); }
+    50% { border-color: rgba(0, 255, 178, 0.2); }
   }
 }
 
+/* ===== BASE ===== */
+html {
+  background: var(--bg-base);
+  /* color-scheme will be handled by next-themes */
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-body), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ===== CUSTOM SCROLLBAR ===== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--text-muted);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* ===== GLASSMORPHISM ===== */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -2px rgba(0, 0, 0, 0.02);
+}
+
+.light .glass {
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.04), inset 0 0 0 1px rgba(255,255,255,0.5);
+}
+
+.dark .glass {
+  border-color: var(--border-glow);
+}
+
+.glass:hover {
+  background: var(--glass-bg-hover);
+  border-color: var(--border-glow);
+  box-shadow: 0 0 30px var(--border-glow), 0 0 60px rgba(0, 255, 178, 0.03);
+}
+
+.light .glass:hover {
+  box-shadow: 0 12px 40px rgba(0, 166, 118, 0.08), inset 0 0 0 1px rgba(255,255,255,0.8);
+}
+
+.glass-static {
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+}
+
+.light .glass-static {
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.03), inset 0 0 0 1px rgba(255,255,255,0.5);
+}
+
+.dark .glass-static {
+  border-color: var(--border-glow);
+}
+
+.glass-violet {
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  transition: all 0.3s ease;
+}
+
+.light .glass-violet {
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 8px 32px rgba(94, 59, 255, 0.04), inset 0 0 0 1px rgba(255,255,255,0.5);
+}
+
+.dark .glass-violet {
+  border-color: var(--border-violet);
+}
+
+.glass-violet:hover {
+  border-color: rgba(123, 97, 255, 0.35);
+  box-shadow: 0 0 30px rgba(123, 97, 255, 0.08);
+}
+
+/* ===== GLOW EFFECTS ===== */
+.glow-green {
+  box-shadow: 0 0 20px rgba(0, 255, 178, 0.15), 0 0 60px rgba(0, 255, 178, 0.05);
+}
+
+.glow-violet {
+  box-shadow: 0 0 20px rgba(123, 97, 255, 0.15), 0 0 60px rgba(123, 97, 255, 0.05);
+}
+
+.glow-coral {
+  box-shadow: 0 0 20px rgba(255, 45, 85, 0.15), 0 0 60px rgba(255, 45, 85, 0.05);
+}
+
+.text-glow-green {
+  text-shadow: 0 0 20px rgba(0, 255, 178, 0.5);
+}
+
+.text-glow-violet {
+  text-shadow: 0 0 20px rgba(123, 97, 255, 0.5);
+}
+
+/* ===== GRADIENT BACKGROUNDS ===== */
+.gradient-mesh {
+  background-image:
+    radial-gradient(at 20% 20%, var(--mesh-green) 0px, transparent 50%),
+    radial-gradient(at 80% 80%, var(--mesh-violet) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, var(--mesh-coral) 0px, transparent 50%);
+}
+
+.gradient-hero {
+  background: linear-gradient(135deg, var(--bg-base) 0%, var(--hero-mid) 50%, var(--hero-end) 100%);
+}
+
+/* ===== SHIMMER LOADING ===== */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--shimmer-1) 0%,
+    var(--shimmer-2) 50%,
+    var(--shimmer-1) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite linear;
+}
+
+/* ===== NUMBER FONT ===== */
+.font-data {
+  font-family: var(--font-data), 'Courier New', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.font-display {
+  font-family: var(--font-display), system-ui, sans-serif;
+}
+
+/* ===== UTILITY ===== */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Green/red row highlights */
+.row-win {
+  background: linear-gradient(90deg, rgba(0, 255, 178, 0.04) 0%, transparent 100%);
+  border-left: 2px solid var(--accent-green);
+}
+
+.row-loss {
+  background: linear-gradient(90deg, rgba(255, 45, 85, 0.04) 0%, transparent 100%);
+  border-left: 2px solid var(--accent-coral);
 }

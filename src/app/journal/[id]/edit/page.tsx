@@ -1,0 +1,467 @@
+"use client";
+import { useState, useMemo, useEffect, useRef, use } from "react";
+import { useRouter } from "next/navigation";
+import { useTradeStore } from "@/stores";
+import { GlassCard } from "@/components/ui/glass-card";
+import { SYMBOLS, SETUP_TAGS, SESSION_TAGS, MARKET_CONDITIONS, MISTAKE_TAGS, PLAYBOOKS, MINDSET_TAGS, Trade, SessionTag, MarketCondition, MistakeTag } from "@/lib/types";
+import { cn, formatCurrency } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowUpRight, ArrowDownRight, Save, Mic, MicOff, ChevronLeft, Upload, Zap, Settings2, Image as ImageIcon, X, Plus, Brain } from "lucide-react";
+import Link from "next/link";
+
+const emotionLabels: Record<number, { label: string; emoji: string }> = {
+  "-5": { label: "Terrified", emoji: "😰" },
+  "-4": { label: "Very Fearful", emoji: "😨" },
+  "-3": { label: "Fearful", emoji: "😟" },
+  "-2": { label: "Anxious", emoji: "😕" },
+  "-1": { label: "Uneasy", emoji: "😐" },
+  "0": { label: "Neutral", emoji: "😶" },
+  "1": { label: "Confident", emoji: "🙂" },
+  "2": { label: "Very Confident", emoji: "😊" },
+  "3": { label: "Aggressive", emoji: "😤" },
+  "4": { label: "Overconfident", emoji: "😎" },
+  "5": { label: "Euphoric", emoji: "🤩" },
+};
+
+export default function EditTradePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const router = useRouter();
+  const { trades, updateTrade } = useTradeStore();
+  const trade = useMemo(() => trades.find((t) => t.id === id), [trades, id]);
+
+  const [mode, setMode] = useState<"quick" | "detailed">("detailed");
+  const [symbol, setSymbol] = useState("");
+  const [symbolSearch, setSymbolSearch] = useState("");
+  const [showSymbols, setShowSymbols] = useState(false);
+  const [direction, setDirection] = useState<"long" | "short">("long");
+  
+  // Quick Mode fields
+  const [quickNetPnl, setQuickNetPnl] = useState("");
+
+  // Detailed Mode fields
+  const [entryPrice, setEntryPrice] = useState("");
+  const [exitPrice, setExitPrice] = useState("");
+  const [stopLoss, setStopLoss] = useState("");
+  const [takeProfit, setTakeProfit] = useState("");
+  const [positionSize, setPositionSize] = useState("");
+  const [entryDate, setEntryDate] = useState("");
+  const [exitDate, setExitDate] = useState("");
+  const [commission, setCommission] = useState("4.50");
+
+  // Shared fields
+  const [emotion, setEmotion] = useState(0);
+  const [preNotes, setPreNotes] = useState("");
+  const [postReview, setPostReview] = useState("");
+  const [setupTags, setSetupTags] = useState<string[]>([]);
+  const [sessionTag, setSessionTag] = useState<SessionTag>("NY AM");
+  const [marketCondition, setMarketCondition] = useState<MarketCondition>("Trending");
+  const [mistakeTags, setMistakeTags] = useState<MistakeTag[]>([]);
+  const [playbook, setPlaybook] = useState("");
+  const [mindsetTags, setMindsetTags] = useState<string[]>([]);
+  const [mindsetNotes, setMindsetNotes] = useState("");
+  const [screenshotUrls, setScreenshotUrls] = useState<string[]>([]);
+  const [newImageUrl, setNewImageUrl] = useState("");
+
+  useEffect(() => {
+    if (trade) {
+      setSymbol(trade.symbol);
+      setDirection(trade.direction);
+      setEmotion(trade.emotion);
+      setPreNotes(trade.preTradeNotes);
+      setPostReview(trade.postTradeReview);
+      setSetupTags(trade.setupTags);
+      setSessionTag(trade.sessionTag);
+      setMarketCondition(trade.marketCondition);
+      setMistakeTags(trade.mistakeTags);
+      setPlaybook(trade.playbook || "");
+      setMindsetTags(trade.mindsetTags || []);
+      setMindsetNotes(trade.mindsetNotes || "");
+      setScreenshotUrls(trade.screenshotUrls || []);
+      
+      if (trade.entryPrice) {
+        setMode("detailed");
+        setEntryPrice(trade.entryPrice.toString());
+        setExitPrice(trade.exitPrice?.toString() || "");
+        setStopLoss(trade.stopLoss?.toString() || "");
+        setTakeProfit(trade.takeProfit?.toString() || "");
+        setPositionSize(trade.positionSize?.toString() || "");
+        setCommission(trade.commission.toString());
+      } else {
+        setMode("quick");
+        setQuickNetPnl(trade.netPnl.toString());
+      }
+
+      // Format dates for datetime-local input (YYYY-MM-DDThh:mm)
+      if (trade.entryDate) {
+        const d = new Date(trade.entryDate);
+        setEntryDate(d.toISOString().slice(0, 16));
+      }
+      if (trade.exitDate) {
+        const d = new Date(trade.exitDate);
+        setExitDate(d.toISOString().slice(0, 16));
+      }
+    }
+  }, [trade]);
+
+  const filteredSymbols = useMemo(() =>
+    SYMBOLS.filter((s) => s.toLowerCase().includes(symbolSearch.toLowerCase())).slice(0, 8),
+    [symbolSearch]
+  );
+
+  const detailedCalculations = useMemo(() => {
+    if (mode === "quick") return null;
+    const entry = parseFloat(entryPrice);
+    const exit = parseFloat(exitPrice);
+    const sl = parseFloat(stopLoss);
+    const tp = parseFloat(takeProfit);
+    const size = parseFloat(positionSize);
+    const comm = parseFloat(commission) || 0;
+    if (isNaN(entry) || isNaN(exit) || isNaN(size)) return null;
+
+    const rawPnl = direction === "long" ? (exit - entry) * size : (entry - exit) * size;
+    const netPnl = rawPnl - comm;
+    const risk = !isNaN(sl) ? Math.abs(entry - sl) * size : 0;
+    const rMultiple = risk > 0 ? netPnl / risk : 0;
+    const rr = !isNaN(sl) && !isNaN(tp) ? Math.abs(tp - entry) / Math.abs(entry - sl) : 0;
+    const pctChange = ((exit - entry) / entry) * 100 * (direction === "long" ? 1 : -1);
+
+    return { netPnl, rMultiple, rr, pctChange };
+  }, [mode, entryPrice, exitPrice, stopLoss, takeProfit, positionSize, commission, direction]);
+
+  const livePnl = mode === "quick" ? parseFloat(quickNetPnl) || 0 : detailedCalculations?.netPnl || 0;
+  const isReady = symbol && (mode === "quick" ? quickNetPnl !== "" : (entryPrice && exitPrice && positionSize));
+
+  const handleSubmit = () => {
+    if (!isReady || !trade) return;
+
+    const entryD = new Date(entryDate || Date.now());
+    const exitD = new Date(exitDate || Date.now());
+    const durationMinutes = Math.round((exitD.getTime() - entryD.getTime()) / 60000);
+
+    const netPnl = mode === "quick" ? parseFloat(quickNetPnl) : detailedCalculations?.netPnl || 0;
+
+    const updates: Partial<Trade> = {
+      symbol,
+      direction,
+      entryDate: entryD.toISOString(),
+      exitDate: exitD.toISOString(),
+      commission: mode === "quick" ? 0 : parseFloat(commission) || 0,
+      netPnl: parseFloat(netPnl.toFixed(2)),
+      rMultiple: mode === "quick" ? 0 : parseFloat(detailedCalculations?.rMultiple.toFixed(2) || "0"),
+      rr: mode === "quick" ? 0 : parseFloat(detailedCalculations?.rr.toFixed(2) || "0"),
+      result: netPnl > 5 ? "win" : netPnl < -5 ? "loss" : "breakeven",
+      emotion,
+      preTradeNotes: preNotes,
+      postTradeReview: postReview,
+      setupTags,
+      sessionTag,
+      marketCondition,
+      mistakeTags,
+      playbook: playbook || undefined,
+      durationMinutes: Math.max(durationMinutes, 1),
+      screenshotUrls,
+      mindsetTags,
+      mindsetNotes,
+    };
+
+    if (mode === "detailed") {
+      updates.entryPrice = parseFloat(entryPrice);
+      updates.exitPrice = parseFloat(exitPrice);
+      updates.stopLoss = parseFloat(stopLoss) || 0;
+      updates.takeProfit = parseFloat(takeProfit) || 0;
+      updates.positionSize = parseFloat(positionSize);
+    }
+
+    updateTrade(trade.id, updates);
+    router.push(`/journal/${trade.id}`);
+  };
+
+  const toggleTag = (tag: string, list: string[], setter: (v: string[]) => void) => {
+    setter(list.includes(tag) ? list.filter((t) => t !== tag) : [...list, tag]);
+  };
+
+  if (!trade) return <div className="p-20 text-center">Trade not found...</div>;
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-6 pb-20">
+      {/* Header & Mode Toggle */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link href={`/journal/${trade.id}`} className="p-2 rounded-xl bg-bg-card border border-border-subtle text-text-secondary hover:text-text-primary transition-colors">
+            <ChevronLeft size={18} />
+          </Link>
+          <div>
+            <h1 className="font-[family-name:var(--font-syne)] font-bold text-2xl">Edit Trade</h1>
+            <p className="text-sm text-text-secondary mt-0.5">Modify your trade details and analysis</p>
+          </div>
+        </div>
+
+        <div className="flex p-1 bg-bg-card border border-border-subtle rounded-xl">
+          <button onClick={() => setMode("quick")}
+            className={cn("flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+              mode === "quick" ? "bg-accent-violet text-white shadow-md" : "text-text-muted hover:text-text-primary")}>
+            <Zap size={16} /> Quick Mode
+          </button>
+          <button onClick={() => setMode("detailed")}
+            className={cn("flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+              mode === "detailed" ? "bg-accent-violet text-white shadow-md" : "text-text-muted hover:text-text-primary")}>
+            <Settings2 size={16} /> Detailed Mode
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Section 1: Trade Setup */}
+        <GlassCard>
+          <h2 className="font-[family-name:var(--font-syne)] font-bold text-base mb-4">Trade Setup</h2>
+          <div className="space-y-4">
+            
+            {(livePnl !== 0 || isReady) && (
+              <div className={cn("p-3 rounded-xl border flex items-center justify-between", livePnl >= 0 ? "bg-accent-green/10 border-accent-green/20" : "bg-accent-coral/10 border-accent-coral/20")}>
+                <span className="text-sm font-medium uppercase tracking-wider">Net P&L</span>
+                <span className={cn("font-[family-name:var(--font-space-mono)] font-bold text-xl", livePnl >= 0 ? "text-accent-green" : "text-accent-coral")}>
+                  {formatCurrency(livePnl)}
+                </span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="relative">
+                <label className="text-xs text-text-muted uppercase tracking-wider mb-1.5 block">Symbol</label>
+                <input
+                  type="text"
+                  value={symbolSearch || symbol}
+                  onChange={(e) => { setSymbolSearch(e.target.value); setShowSymbols(true); setSymbol(""); }}
+                  onFocus={() => setShowSymbols(true)}
+                  className="w-full bg-bg-card border border-border-subtle rounded-xl px-4 py-2.5 text-sm font-[family-name:var(--font-space-mono)] uppercase focus:outline-none focus:border-accent-violet/40 transition-colors"
+                />
+                {showSymbols && filteredSymbols.length > 0 && !symbol && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-bg-card border border-border-subtle rounded-xl overflow-hidden z-10 shadow-xl">
+                    {filteredSymbols.map((s) => (
+                      <button key={s} onClick={() => { setSymbol(s); setSymbolSearch(""); setShowSymbols(false); }}
+                        className="w-full text-left px-4 py-2 text-sm font-[family-name:var(--font-space-mono)] hover:bg-accent-violet/10 transition-colors"
+                      >{s}</button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {mode === "quick" && (
+                <div>
+                  <label className="text-xs text-text-muted uppercase tracking-wider mb-1.5 block">Net P&L ($)</label>
+                  <input type="number" step="any" value={quickNetPnl} onChange={(e) => setQuickNetPnl(e.target.value)}
+                    className="w-full bg-bg-card border border-border-subtle rounded-xl px-4 py-2.5 text-sm font-[family-name:var(--font-space-mono)] focus:outline-none focus:border-accent-violet/40 transition-colors" />
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="text-xs text-text-muted uppercase tracking-wider mb-1.5 block">Direction</label>
+              <div className="flex gap-2">
+                <button onClick={() => setDirection("long")}
+                  className={cn("flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all",
+                    direction === "long" ? "bg-accent-green/15 text-accent-green border border-accent-green/30" : "bg-bg-card text-text-muted border border-border-subtle")}>
+                  <ArrowUpRight size={16} /> Long
+                </button>
+                <button onClick={() => setDirection("short")}
+                  className={cn("flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all",
+                    direction === "short" ? "bg-accent-coral/15 text-accent-coral border border-accent-coral/30" : "bg-bg-card text-text-muted border border-border-subtle")}>
+                  <ArrowDownRight size={16} /> Short
+                </button>
+              </div>
+            </div>
+
+            <AnimatePresence>
+              {mode === "detailed" && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                  <div className="pt-4 border-t border-border-subtle mt-4">
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      {[
+                        { label: "Entry Price", value: entryPrice, setter: setEntryPrice },
+                        { label: "Exit Price", value: exitPrice, setter: setExitPrice },
+                        { label: "Stop Loss", value: stopLoss, setter: setStopLoss },
+                        { label: "Take Profit", value: takeProfit, setter: setTakeProfit },
+                        { label: "Position Size", value: positionSize, setter: setPositionSize },
+                        { label: "Commission", value: commission, setter: setCommission },
+                      ].map((field) => (
+                        <div key={field.label}>
+                          <label className="text-[10px] text-text-muted uppercase tracking-wider mb-1 block">{field.label}</label>
+                          <input type="number" step="any" value={field.value} onChange={(e) => field.setter(e.target.value)}
+                            className="w-full bg-bg-card border border-border-subtle rounded-xl px-3 py-2 text-sm font-[family-name:var(--font-space-mono)] focus:outline-none" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className="grid grid-cols-2 gap-3 pt-4 border-t border-border-subtle">
+              <div>
+                <label className="text-xs text-text-muted uppercase tracking-wider mb-1.5 block">Entry Time</label>
+                <input type="datetime-local" value={entryDate} onChange={(e) => setEntryDate(e.target.value)}
+                  className="w-full bg-bg-card border border-border-subtle rounded-xl px-3 py-2 text-xs focus:outline-none" />
+              </div>
+              <div>
+                <label className="text-xs text-text-muted uppercase tracking-wider mb-1.5 block">Exit Time</label>
+                <input type="datetime-local" value={exitDate} onChange={(e) => setExitDate(e.target.value)}
+                  className="w-full bg-bg-card border border-border-subtle rounded-xl px-3 py-2 text-xs focus:outline-none" />
+              </div>
+            </div>
+          </div>
+        </GlassCard>
+
+        {/* Section 3: Psychology */}
+        <GlassCard>
+          <h2 className="font-[family-name:var(--font-syne)] font-bold text-base mb-4">Psychology & Tags</h2>
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs text-text-muted uppercase tracking-wider mb-1.5 block">Playbook</label>
+              <select value={playbook} onChange={(e) => setPlaybook(e.target.value)}
+                className="w-full bg-bg-card border border-border-subtle rounded-xl px-4 py-2.5 text-sm appearance-none">
+                <option value="">Select playbook...</option>
+                {PLAYBOOKS.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs text-text-muted uppercase tracking-wider mb-2 block">
+                Emotion: <span className="text-accent-violet">{emotionLabels[emotion]?.emoji} {emotionLabels[emotion]?.label}</span>
+              </label>
+              <input type="range" min={-5} max={5} value={emotion} onChange={(e) => setEmotion(parseInt(e.target.value))}
+                className="w-full accent-accent-violet h-1.5 rounded-full appearance-none bg-bg-card cursor-pointer" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-[10px] text-text-muted uppercase tracking-wider mb-1.5 block">Session</label>
+                <select value={sessionTag} onChange={(e) => setSessionTag(e.target.value as SessionTag)}
+                  className="w-full bg-bg-card border border-border-subtle rounded-lg px-3 py-2 text-xs">
+                  {SESSION_TAGS.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] text-text-muted uppercase tracking-wider mb-1.5 block">Condition</label>
+                <select value={marketCondition} onChange={(e) => setMarketCondition(e.target.value as MarketCondition)}
+                  className="w-full bg-bg-card border border-border-subtle rounded-lg px-3 py-2 text-xs">
+                  {MARKET_CONDITIONS.map((m) => <option key={m} value={m}>{m}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[10px] text-text-muted uppercase tracking-wider mb-1.5 block">Setup Tags</label>
+              <div className="flex flex-wrap gap-1">
+                {SETUP_TAGS.map((tag) => (
+                  <button key={tag} onClick={() => toggleTag(tag, setupTags, setSetupTags)}
+                    className={cn("px-2 py-1 rounded border text-[10px] transition-all",
+                      setupTags.includes(tag) ? "bg-accent-violet/15 text-accent-violet border-accent-violet/30" : "bg-bg-card text-text-muted border-border-subtle")}>
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[10px] text-text-muted uppercase tracking-wider mb-1.5 block">Mistakes</label>
+              <div className="flex flex-wrap gap-1">
+                {MISTAKE_TAGS.map((tag) => (
+                  <button key={tag} onClick={() => toggleTag(tag, mistakeTags as string[], setMistakeTags as (v: string[]) => void)}
+                    className={cn("px-2 py-1 rounded border text-[10px] transition-all",
+                      mistakeTags.includes(tag) ? "bg-accent-coral/15 text-accent-coral border-accent-coral/30" : "bg-bg-card text-text-muted border-border-subtle")}>
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </GlassCard>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Section 4: Mindset & Notes */}
+        <GlassCard>
+          <div className="flex items-center gap-2 mb-4">
+            <Brain size={18} className="text-accent-violet" />
+            <h2 className="font-[family-name:var(--font-syne)] font-bold text-base">Mindset & Analysis</h2>
+          </div>
+          <div className="space-y-5">
+            <div>
+              <label className="text-xs text-text-muted uppercase tracking-wider mb-2 block">Mindset State</label>
+              <div className="flex flex-wrap gap-1.5">
+                {MINDSET_TAGS.map((tag) => (
+                  <button key={tag} onClick={() => toggleTag(tag, mindsetTags, setMindsetTags)}
+                    className={cn("px-3 py-1.5 rounded-xl border text-xs transition-all",
+                      mindsetTags.includes(tag) ? "bg-accent-violet/15 text-accent-violet border-accent-violet/30" : "bg-bg-card text-text-muted border-border-subtle")}>
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-text-muted uppercase tracking-wider mb-2 block">Mindset Notes</label>
+              <textarea value={mindsetNotes} onChange={(e) => setMindsetNotes(e.target.value)}
+                className="w-full bg-bg-card border border-border-subtle rounded-xl px-4 py-3 text-sm min-h-[100px] resize-none" />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-text-muted uppercase tracking-wider mb-2 block">Pre-Trade Notes</label>
+                <textarea value={preNotes} onChange={(e) => setPreNotes(e.target.value)}
+                  className="w-full bg-bg-card border border-border-subtle rounded-xl px-4 py-2 text-sm min-h-[80px] resize-none" />
+              </div>
+              <div>
+                <label className="text-xs text-text-muted uppercase tracking-wider mb-2 block">Post-Trade Review</label>
+                <textarea value={postReview} onChange={(e) => setPostReview(e.target.value)}
+                  className="w-full bg-bg-card border border-border-subtle rounded-xl px-4 py-2 text-sm min-h-[80px] resize-none" />
+              </div>
+            </div>
+          </div>
+        </GlassCard>
+
+        {/* Section 5: Media & Screenshots */}
+        <GlassCard>
+          <div className="flex items-center gap-2 mb-4">
+            <ImageIcon size={18} className="text-accent-violet" />
+            <h2 className="font-[family-name:var(--font-syne)] font-bold text-base">Media & Screenshots</h2>
+          </div>
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <input type="text" value={newImageUrl} onChange={(e) => setNewImageUrl(e.target.value)}
+                placeholder="Paste chart URL..."
+                className="flex-1 bg-bg-card border border-border-subtle rounded-xl px-4 py-2.5 text-sm" />
+              <button onClick={() => { if (newImageUrl) { setScreenshotUrls([...screenshotUrls, newImageUrl]); setNewImageUrl(""); } }}
+                className="bg-accent-violet text-white p-2.5 rounded-xl">
+                <Plus size={20} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {screenshotUrls.map((url, i) => (
+                <div key={i} className="relative group aspect-video rounded-lg overflow-hidden border border-border-subtle">
+                  <img src={url} alt="" className="w-full h-full object-cover" />
+                  <button onClick={() => setScreenshotUrls(screenshotUrls.filter((_, idx) => idx !== i))}
+                    className="absolute top-1 right-1 p-1 bg-accent-coral text-white rounded-md opacity-0 group-hover:opacity-100">
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </GlassCard>
+      </div>
+
+      <div className="flex items-center justify-end gap-3 pt-4 border-t border-border-subtle">
+        <Link href={`/journal/${trade.id}`} className="px-6 py-2.5 rounded-xl text-sm text-text-secondary bg-bg-card border border-border-subtle">
+          Cancel
+        </Link>
+        <button onClick={handleSubmit}
+          className="flex items-center gap-2 bg-accent-violet text-white px-8 py-2.5 rounded-xl text-sm font-semibold hover:shadow-[0_0_30px_rgba(123,97,255,0.3)] transition-all disabled:opacity-40"
+          disabled={!isReady}>
+          <Save size={16} /> Update Trade
+        </button>
+      </div>
+    </div>
+  );
+}
