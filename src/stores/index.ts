@@ -466,3 +466,31 @@ export const useSettingsStore = create<SettingsStore>()(
   )
 );
 
+// ═══════════════════════════════
+// Risk Store (Daily Transient)
+// ═══════════════════════════════
+
+interface RiskStore {
+  lastChecklistDate: string;
+  checkedItems: string[];
+  setCheckedItems: (items: string[]) => void;
+  resetIfNewDay: () => void;
+}
+
+export const useRiskStore = create<RiskStore>()(
+  persist(
+    (set, get) => ({
+      lastChecklistDate: new Date().toISOString().split("T")[0],
+      checkedItems: [],
+      setCheckedItems: (items) => set({ checkedItems: items }),
+      resetIfNewDay: () => {
+        const today = new Date().toISOString().split("T")[0];
+        if (get().lastChecklistDate !== today) {
+          set({ lastChecklistDate: today, checkedItems: [] });
+        }
+      }
+    }),
+    { name: "edgevault-risk" }
+  )
+);
+

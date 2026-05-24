@@ -4,14 +4,19 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { cn, formatCurrency } from "@/lib/utils";
 import { MARKET_CONDITIONS, SESSION_TAGS, MarketCondition, SessionTag } from "@/lib/types";
 import { motion, AnimatePresence } from "framer-motion";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Plus, BookOpen, Target, Clock, TrendingUp, ChevronRight, X, Check, BarChart3, Zap, Shield } from "lucide-react";
 
 export default function PlaybookPage() {
   const { playbooks, addPlaybook, deletePlaybook } = usePlaybookStore();
   const { trades } = useTradeStore();
+  const [mounted, setMounted] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Form state
   const [name, setName] = useState("");
@@ -57,6 +62,8 @@ export default function PlaybookPage() {
     updated[idx] = val;
     setter(updated);
   };
+
+  if (!mounted) return null;
 
   return (
     <div className="space-y-6">

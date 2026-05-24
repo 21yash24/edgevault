@@ -4,7 +4,8 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { NumberTicker } from "@/components/ui/number-ticker";
 import { calculateMetrics, getDailyStats, getWinRateByField, getPnlBySymbol, getRMultipleDistribution, getHourlyHeatmap, getWinRateByMindset } from "@/lib/calculations";
 import { formatCurrency, formatDuration, cn, getHeatmapColor } from "@/lib/utils";
-import { useMemo, useEffect, useRef } from "react";
+import { useMemo, useEffect, useRef, useState } from "react";
+import { subDays, subMonths, isAfter, startOfYear } from "date-fns";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
   AreaChart, Area, CartesianGrid, PieChart, Pie,
@@ -319,7 +320,22 @@ function MonteCarloChart({ trades }: { trades: ReturnType<typeof useTradeStore.g
 
 export default function AnalyticsPage() {
   const { trades } = useTradeStore();
-  const metrics = useMemo(() => calculateMetrics(trades), [trades]);
+  const [timeRange, setTimeRange] = useState("ALL");
+  
+  const filteredTrades = useMemo(() => {
+    if (timeRange === "ALL") return trades;
+    const now = new Date();
+    let cutoff = now;
+    if (timeRange === "1W") cutoff = subDays(now, 7);
+    if (timeRange === "1M") cutoff = subMonths(now, 1);
+    if (timeRange === "3M") cutoff = subMonths(now, 3);
+    if (timeRange === "6M") cutoff = subMonths(now, 6);
+    if (timeRange === "YTD") cutoff = startOfYear(now);
+    
+    return trades.filter((t) => isAfter(new Date(t.entryDate), cutoff));
+  }, [trades, timeRange]);
+
+  const metrics = useMemo(() => calculateMetrics(filteredTrades), [filteredTrades]);
 
   return (
     <div className="space-y-6">
@@ -332,9 +348,10 @@ export default function AnalyticsPage() {
         <div className="flex gap-1">
           {["1W", "1M", "3M", "6M", "YTD", "ALL"].map((range) => (
             <button key={range}
+              onClick={() => setTimeRange(range)}
               className={cn(
                 "px-3 py-1.5 text-xs rounded-lg transition-all",
-                range === "ALL" ? "bg-accent-green/10 text-accent-green border border-accent-green/20" : "bg-bg-card text-text-muted border border-border-subtle hover:border-accent-violet/20 hover:text-text-secondary"
+                timeRange === range ? "bg-accent-green/10 text-accent-green border border-accent-green/20" : "bg-bg-card text-text-muted border border-border-subtle hover:border-accent-violet/20 hover:text-text-secondary"
               )}>
               {range}
             </button>
@@ -361,14 +378,14 @@ export default function AnalyticsPage() {
         <GlassCard transition={{ delay: 0.3 }}>
           <h3 className="font-[family-name:var(--font-syne)] font-bold text-base mb-4">Equity Curve</h3>
           <div className="h-64">
-            <EquityCurveChart trades={trades} />
+            <EquityCurveChart trades={filteredTrades} />
           </div>
         </GlassCard>
 
         <GlassCard transition={{ delay: 0.35 }}>
           <h3 className="font-[family-name:var(--font-syne)] font-bold text-base mb-4">Daily P&L</h3>
           <div className="h-64">
-            <DailyPnlChart trades={trades} />
+            <DailyPnlChart trades={filteredTrades} />
           </div>
         </GlassCard>
       </div>
@@ -378,14 +395,14 @@ export default function AnalyticsPage() {
         <GlassCard transition={{ delay: 0.4 }}>
           <h3 className="font-[family-name:var(--font-syne)] font-bold text-base mb-4">Win Rate by Session</h3>
           <div className="h-64">
-            <WinRateChart trades={trades} />
+            <WinRateChart trades={filteredTrades} />
           </div>
         </GlassCard>
 
         <GlassCard transition={{ delay: 0.45 }}>
           <h3 className="font-[family-name:var(--font-syne)] font-bold text-base mb-4">P&L by Symbol</h3>
           <div className="h-64">
-            <PnlBySymbolChart trades={trades} />
+            <PnlBySymbolChart trades={filteredTrades} />
           </div>
         </GlassCard>
       </div>
@@ -395,14 +412,14 @@ export default function AnalyticsPage() {
         <GlassCard transition={{ delay: 0.5 }}>
           <h3 className="font-[family-name:var(--font-syne)] font-bold text-base mb-4">R-Multiple Distribution</h3>
           <div className="h-64">
-            <RDistributionChart trades={trades} />
+            <RDistributionChart trades={filteredTrades} />
           </div>
         </GlassCard>
 
         <GlassCard transition={{ delay: 0.55 }}>
           <h3 className="font-[family-name:var(--font-syne)] font-bold text-base mb-4">Hourly Performance Heatmap</h3>
           <div className="h-64 flex flex-col justify-center">
-            <HourlyHeatmap trades={trades} />
+            <HourlyHeatmap trades={filteredTrades} />
           </div>
           <div className="flex items-center justify-center gap-4 mt-3 text-[9px] text-text-muted">
             <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm" style={{ backgroundColor: "rgba(255,45,85,0.5)" }} />Loss</div>
@@ -422,7 +439,7 @@ export default function AnalyticsPage() {
           <span className="text-xs text-text-muted">Impact of emotional state on profitability</span>
         </div>
         <div className="h-64">
-          <MindsetPerformanceChart trades={trades} />
+          <MindsetPerformanceChart trades={filteredTrades} />
         </div>
       </GlassCard>
 
@@ -433,7 +450,7 @@ export default function AnalyticsPage() {
           <span className="text-xs text-text-muted">50 simulations, 50 trades forward</span>
         </div>
         <div className="h-64">
-          <MonteCarloChart trades={trades} />
+          <MonteCarloChart trades={filteredTrades} />
         </div>
       </GlassCard>
 

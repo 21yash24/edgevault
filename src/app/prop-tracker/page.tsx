@@ -4,7 +4,7 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { PROP_FIRM_RULES, PropFirmPhase } from "@/lib/types";
 import { cn, formatCurrency } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Plus, Trophy, AlertTriangle, Shield, Clock, Calendar, TrendingUp, Flame, Target, CheckCircle, XCircle, Zap, ChevronDown, DollarSign } from "lucide-react";
 import { format, differenceInDays, addDays } from "date-fns";
 
@@ -138,11 +138,16 @@ function ChallengeCard({ challenge }: { challenge: ReturnType<typeof usePropFirm
 
 export default function PropTrackerPage() {
   const { challenges, addChallenge } = usePropFirmStore();
+  const [mounted, setMounted] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [selectedFirm, setSelectedFirm] = useState("");
   const [selectedPhase, setSelectedPhase] = useState<string>("");
   const [accountSize, setAccountSize] = useState("100000");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const firmNames = Object.keys(PROP_FIRM_RULES);
   const phases = selectedFirm ? Object.keys(PROP_FIRM_RULES[selectedFirm].phases) : [];
@@ -160,6 +165,8 @@ export default function PropTrackerPage() {
     setShowAdd(false);
     setSelectedFirm(""); setSelectedPhase(""); setAccountSize("100000");
   };
+
+  if (!mounted) return null;
 
   return (
     <div className="space-y-6">

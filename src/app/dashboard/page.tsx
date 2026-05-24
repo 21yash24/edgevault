@@ -13,6 +13,7 @@ import { motion } from "framer-motion";
 import { TiltmeterWidget } from "@/components/ui/tiltmeter";
 import { ProactiveAIWidget } from "@/components/ui/proactive-ai";
 import { useMemo, useEffect, useRef, useState } from "react";
+import { subDays, subMonths, isAfter, startOfYear } from "date-fns";
 
 function EquityCurveChart({ data }: { data: { time: string; value: number }[] }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -241,11 +242,24 @@ function DailyReportCard({ trades }: { trades: ReturnType<typeof useTradeStore.g
 export default function DashboardPage() {
   const { trades } = useTradeStore();
   const { challenges } = usePropFirmStore();
-  const metrics = useMemo(() => calculateMetrics(trades), [trades]);
-  const equityData = useMemo(() => getEquityCurve(trades), [trades]);
+  const [timeRange, setTimeRange] = useState("1M");
+  
+  const filteredTrades = useMemo(() => {
+    if (timeRange === "ALL") return trades;
+    const now = new Date();
+    let cutoff = now;
+    if (timeRange === "1W") cutoff = subDays(now, 7);
+    if (timeRange === "1M") cutoff = subMonths(now, 1);
+    if (timeRange === "3M") cutoff = subMonths(now, 3);
+    
+    return trades.filter((t) => isAfter(new Date(t.entryDate), cutoff));
+  }, [trades, timeRange]);
+
+  const metrics = useMemo(() => calculateMetrics(filteredTrades), [filteredTrades]);
+  const equityData = useMemo(() => getEquityCurve(filteredTrades), [filteredTrades]);
   const recentTrades = useMemo(() => [...trades].reverse().slice(0, 5), [trades]);
   const todayStr = format(new Date(), "yyyy-MM-dd");
-  const todayTrades = useMemo(() => trades.filter((t) => t.entryDate.startsWith("2025-04-30")), [trades]);
+  const todayTrades = useMemo(() => trades.filter((t) => t.entryDate.startsWith(todayStr)), [trades, todayStr]);
   const todayPnl = todayTrades.reduce((s, t) => s + t.netPnl, 0);
   const activeChallenges = challenges.filter((c) => c.status === "active");
   const currentBalance = trades.length > 0 ? trades[trades.length - 1].accountEquityAfter : 50000;
@@ -319,7 +333,13 @@ export default function DashboardPage() {
               {["1W", "1M", "3M", "ALL"].map((range) => (
                 <button
                   key={range}
-                  className="px-3 py-1 text-xs rounded-lg bg-bg-card text-text-secondary hover:text-text-primary hover:bg-bg-card-hover transition-colors border border-transparent hover:border-border-subtle"
+                  onClick={() => setTimeRange(range)}
+                  className={cn(
+                    "px-3 py-1 text-xs rounded-lg transition-colors border",
+                    timeRange === range
+                      ? "bg-accent-green/10 text-accent-green border-accent-green/20"
+                      : "bg-bg-card text-text-secondary hover:text-text-primary hover:bg-bg-card-hover border-transparent hover:border-border-subtle"
+                  )}
                 >
                   {range}
                 </button>
