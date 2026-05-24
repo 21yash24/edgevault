@@ -3,22 +3,58 @@ import React, { useEffect, useRef, useMemo } from "react";
 import { createChart, ColorType, CrosshairMode, CandlestickSeries, createSeriesMarkers } from "lightweight-charts";
 import { Trade } from "@/lib/types";
 
-// Helper to generate realistic-looking 1-minute candles around the trade
+// Helper to generate realistic-looking candles dynamically scaled based on trade duration
 function generateTradeCandles(trade: Trade) {
+  const entryTime = isNaN(new Date(trade.entryDate).getTime()) ? Date.now() : new Date(trade.entryDate).getTime();
+  const exitTime = isNaN(new Date(trade.exitDate).getTime()) ? (entryTime + 60000) : new Date(trade.exitDate).getTime();
+  const duration = Math.max(exitTime - entryTime, 1000); // minimum 1s duration
+
+  // Select dynamic interval and padding based on trade duration
+  let intervalMs = 60 * 1000;      // default: 1 minute
+  let paddingMs = 30 * 60 * 1000;  // default: 30 minutes
+
+  if (duration < 5 * 60 * 1000) {
+    // Under 5 minutes: use 5-second candles, 5 minutes padding
+    intervalMs = 5 * 1000;
+    paddingMs = 5 * 60 * 1000;
+  } else if (duration < 20 * 60 * 1000) {
+    // Under 20 minutes: use 15-second candles, 15 minutes padding
+    intervalMs = 15 * 1000;
+    paddingMs = 15 * 60 * 1000;
+  } else if (duration < 2 * 60 * 60 * 1000) {
+    // Under 2 hours: use 1-minute candles, 30 minutes padding
+    intervalMs = 60 * 1000;
+    paddingMs = 30 * 60 * 1000;
+  } else if (duration < 12 * 60 * 60 * 1000) {
+    // Under 12 hours: use 5-minute candles, 2 hours padding
+    intervalMs = 5 * 60 * 1000;
+    paddingMs = 2 * 60 * 60 * 1000;
+  } else if (duration < 48 * 60 * 60 * 1000) {
+    // Under 2 days: use 15-minute candles, 6 hours padding
+    intervalMs = 15 * 60 * 1000;
+    paddingMs = 6 * 60 * 60 * 1000;
+  } else {
+    // 2 days or more: use 1-hour candles, 24 hours padding
+    intervalMs = 60 * 60 * 1000;
+    paddingMs = 24 * 60 * 60 * 1000;
+  }
+
+  // startTime must be aligned with intervalMs
+  const startTime = entryTime - paddingMs;
+  const endTime = exitTime + paddingMs;
+
   const candles: any[] = [];
-  const entryTime = new Date(trade.entryDate).getTime();
-  const exitTime = new Date(trade.exitDate).getTime();
+  let currentPrice = trade.entryPrice ? trade.entryPrice * 0.998 : 100;
   
-  // Pad the chart with 30 mins before and 30 mins after
-  const startTime = entryTime - 30 * 60 * 1000;
-  const endTime = exitTime + 30 * 60 * 1000;
-  
-  let currentPrice = trade.entryPrice ? trade.entryPrice * 0.998 : 100; // Start slightly below/above
-  
-  for (let t = startTime; t <= endTime; t += 60 * 1000) {
-    const isEntry = t >= entryTime && t < entryTime + 60000;
-    const isExit = t >= exitTime && t < exitTime + 60000;
-    
+  // Scale volatility based on candle interval (square root of time rule)
+  const timeFactor = Math.sqrt(intervalMs / (60 * 1000));
+  const candleVolatility = (trade.entryPrice ? trade.entryPrice * 0.0005 : 0.5) * timeFactor;
+  const totalSteps = (exitTime - entryTime) / intervalMs;
+
+  for (let t = startTime; t <= endTime; t += intervalMs) {
+    const isEntry = Math.abs(t - entryTime) < intervalMs / 2;
+    const isExit = Math.abs(t - exitTime) < intervalMs / 2;
+
     // Force the price to hit entry and exit precisely at the right time
     if (isEntry && trade.entryPrice) {
       currentPrice = trade.entryPrice;
@@ -26,37 +62,60 @@ function generateTradeCandles(trade: Trade) {
       currentPrice = trade.exitPrice;
     } else {
       // Random walk with a slight drift towards exit if we are in the trade
-      const drift = (t >= entryTime && t <= exitTime) 
-        ? ((trade.exitPrice || currentPrice) - (trade.entryPrice || currentPrice)) / ((exitTime - entryTime) / 60000 || 1)
+      const drift = (t >= entryTime && t <= exitTime)
+        ? ((trade.exitPrice || currentPrice) - (trade.entryPrice || currentPrice)) / (totalSteps || 1)
         : 0;
-      const volatility = trade.entryPrice ? trade.entryPrice * 0.0005 : 0.5; // 0.05% volatility
-      currentPrice += drift + (Math.random() - 0.5) * volatility;
+      currentPrice += drift + (Math.random() - 0.5) * candleVolatility;
     }
 
     const open = currentPrice;
-    const close = currentPrice + (Math.random() - 0.5) * (trade.entryPrice ? trade.entryPrice * 0.0005 : 0.5);
-    const high = Math.max(open, close) + Math.random() * (trade.entryPrice ? trade.entryPrice * 0.0002 : 0.2);
-    const low = Math.min(open, close) - Math.random() * (trade.entryPrice ? trade.entryPrice * 0.0002 : 0.2);
+    const close = currentPrice + (Math.random() - 0.5) * candleVolatility;
+    const high = Math.max(open, close) + Math.random() * candleVolatility * 0.4;
+    const low = Math.min(open, close) - Math.random() * candleVolatility * 0.4;
 
     candles.push({
-      time: Math.floor(t / 1000), // lightweight-charts expects UNIX timestamp in seconds
+      time: Math.floor(t / 1000), // UNIX timestamp in seconds
       open,
       high,
       low,
       close
     });
-    
+
     currentPrice = close;
   }
-  
-  return candles;
+
+  // Snap markers to exact candle timestamps so they display properly
+  const entryCandleIndex = Math.round((entryTime - startTime) / intervalMs);
+  let exitCandleIndex = Math.round((exitTime - startTime) / intervalMs);
+
+  // Guarantee exit is at least 1 candle after entry
+  if (exitCandleIndex <= entryCandleIndex) {
+    exitCandleIndex = entryCandleIndex + 1;
+  }
+
+  // Keep within boundaries of the candles array
+  const finalEntryIndex = Math.max(0, Math.min(entryCandleIndex, candles.length - 1));
+  const finalExitIndex = Math.max(0, Math.min(exitCandleIndex, candles.length - 1));
+
+  const entryCandleTime = candles[finalEntryIndex].time;
+  const exitCandleTime = candles[finalExitIndex].time;
+
+  return {
+    candles,
+    entryCandleTime,
+    exitCandleTime,
+    intervalMs
+  };
 }
 
 export function InteractiveChart({ trade }: { trade: Trade }) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
 
-  // Generate data once
-  const data = useMemo(() => generateTradeCandles(trade), [trade]);
+  // Generate dynamic candles and marker times once
+  const { candles, entryCandleTime, exitCandleTime, intervalMs } = useMemo(
+    () => generateTradeCandles(trade),
+    [trade]
+  );
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -79,7 +138,7 @@ export function InteractiveChart({ trade }: { trade: Trade }) {
       timeScale: {
         borderColor: "rgba(255, 255, 255, 0.1)",
         timeVisible: true,
-        secondsVisible: false,
+        secondsVisible: intervalMs < 60000, // show seconds for sub-minute candlestick durations
       },
       autoSize: true,
     });
@@ -92,14 +151,14 @@ export function InteractiveChart({ trade }: { trade: Trade }) {
       wickDownColor: "#FF2D55",
     });
 
-    candlestickSeries.setData(data);
+    candlestickSeries.setData(candles);
 
-    // Add Markers for Entry and Exit
+    // Add Markers for Entry and Exit using snapped timestamps
     const markers: any[] = [];
     
     if (trade.entryPrice) {
       markers.push({
-        time: Math.floor(new Date(trade.entryDate).getTime() / 1000),
+        time: entryCandleTime,
         position: trade.direction === "long" ? "belowBar" : "aboveBar",
         color: trade.direction === "long" ? "#00FFB2" : "#FF2D55",
         shape: trade.direction === "long" ? "arrowUp" : "arrowDown",
@@ -109,7 +168,7 @@ export function InteractiveChart({ trade }: { trade: Trade }) {
 
     if (trade.exitPrice) {
       markers.push({
-        time: Math.floor(new Date(trade.exitDate).getTime() / 1000),
+        time: exitCandleTime,
         position: trade.direction === "long" ? "aboveBar" : "belowBar",
         color: trade.netPnl >= 0 ? "#00FFB2" : "#FF2D55",
         shape: trade.direction === "long" ? "arrowDown" : "arrowUp",
@@ -150,7 +209,7 @@ export function InteractiveChart({ trade }: { trade: Trade }) {
     return () => {
       chart.remove();
     };
-  }, [data, trade]);
+  }, [candles, entryCandleTime, exitCandleTime, intervalMs, trade]);
 
   return (
     <div className="w-full h-full relative" ref={chartContainerRef}>
