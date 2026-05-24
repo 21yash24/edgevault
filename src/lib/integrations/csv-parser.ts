@@ -34,26 +34,35 @@ function processCSVData(data: any[]): ParsedCSVResult {
   }
 
   const headers = Object.keys(data[0]);
+  const lowercaseHeaders = headers.map(h => h.toLowerCase().trim());
   let broker = "Unknown";
   let trades: Omit<Trade, "id">[] = [];
   let errors: string[] = [];
 
-  // 1. Detect Broker Format
-  if (headers.includes("Instrument") && headers.includes("Market pos.") && headers.includes("Entry time")) {
-    // NinjaTrader Format (approximate)
+  // 1. Detect Broker Format (using case-insensitive matches)
+  if (lowercaseHeaders.includes("instrument") && 
+      (lowercaseHeaders.includes("market pos.") || lowercaseHeaders.includes("direction")) && 
+      lowercaseHeaders.includes("entry time")) {
     broker = "NinjaTrader";
     trades = parseNinjaTrader(data, errors);
-  } else if (headers.includes("Symbol") && headers.includes("Side") && headers.includes("P/L") && headers.includes("CloseTime")) {
-    // TopstepX / TradeStation Format (approximate)
+  } else if (lowercaseHeaders.includes("symbol") && 
+             lowercaseHeaders.includes("side") && 
+             (lowercaseHeaders.includes("p/l") || lowercaseHeaders.includes("net pnl") || lowercaseHeaders.includes("pnl")) && 
+             lowercaseHeaders.includes("closetime")) {
     broker = "TopstepX";
     trades = parseTopstep(data, errors);
-  } else if (headers.includes("symbol") && headers.includes("netPnl") && headers.includes("direction")) {
-    // EdgeVault Native Export Format
+  } else if (lowercaseHeaders.includes("symbol") && 
+             lowercaseHeaders.includes("boughttimestamp") && 
+             lowercaseHeaders.includes("soldtimestamp")) {
+    broker = "Tradovate";
+    trades = parseTradovate(data, errors);
+  } else if (lowercaseHeaders.includes("symbol") && 
+             lowercaseHeaders.includes("netpnl") && 
+             lowercaseHeaders.includes("direction")) {
     broker = "EdgeVault Native";
     trades = parseEdgeVaultNative(data, errors);
   } else {
-    // Fallback or Unknown
-    throw new Error("Could not detect broker format from CSV headers. Supported: NinjaTrader, TopstepX, EdgeVault Export.");
+    throw new Error("Could not detect broker format from CSV headers. Supported: Tradovate, NinjaTrader, TopstepX, EdgeVault Export.");
   }
 
   return { trades, broker, errors };
@@ -224,4 +233,143 @@ function parseEdgeVaultNative(data: any[], errors: string[]): Omit<Trade, "id">[
   });
 
   return trades;
+}
+
+// ------------------------------------------------------------------
+// Tradovate Parser (Example: symbol, buyFillId, sellFillId, qty, buyPrice, sellPrice, pnl, boughtTimestamp, soldTimestamp, duration)
+// ------------------------------------------------------------------
+function parseTradovate(data: any[], errors: string[]): Omit<Trade, "id">[] {
+  const trades: Omit<Trade, "id">[] = [];
+
+  data.forEach((row, index) => {
+    try {
+      const symbol = getRowValueCaseInsensitive(row, "symbol");
+      if (!symbol) return; // Skip empty rows or title rows
+
+      const boughtTimeStr = getRowValueCaseInsensitive(row, "boughtTimestamp");
+      const soldTimeStr = getRowValueCaseInsensitive(row, "soldTimestamp");
+      
+      const boughtDate = parseDateString(boughtTimeStr);
+      const soldDate = parseDateString(soldTimeStr);
+      
+      const isLong = boughtDate.getTime() < soldDate.getTime();
+      const direction = isLong ? "long" : "short";
+      
+      const entryDate = isLong ? boughtDate : soldDate;
+      const exitDate = isLong ? soldDate : boughtDate;
+      
+      const buyPrice = parseFloat(getRowValueCaseInsensitive(row, "buyPrice") || "0");
+      const sellPrice = parseFloat(getRowValueCaseInsensitive(row, "sellPrice") || "0");
+      
+      const entryPrice = isLong ? buyPrice : sellPrice;
+      const exitPrice = isLong ? sellPrice : buyPrice;
+      
+      const qty = parseFloat(getRowValueCaseInsensitive(row, "qty") || "1");
+      
+      // Clean and parse P&L (supports standard and parenthesized format like ($21.00))
+      const rawPnl = getRowValueCaseInsensitive(row, "pnl") || "0";
+      let cleanPnl = rawPnl.trim();
+      let isNegative = false;
+      if (cleanPnl.startsWith("(") && cleanPnl.endsWith(")")) {
+        isNegative = true;
+        cleanPnl = cleanPnl.substring(1, cleanPnl.length - 1);
+      }
+      cleanPnl = cleanPnl.replace(/[^0-9.-]/g, "");
+      let profit = parseFloat(cleanPnl);
+      if (isNegative) profit = -profit;
+
+      const durationMins = Math.max(1, Math.round(Math.abs(soldDate.getTime() - boughtDate.getTime()) / 60000));
+
+      trades.push({
+        symbol,
+        direction,
+        entryDate: entryDate.toISOString(),
+        exitDate: exitDate.toISOString(),
+        entryPrice,
+        exitPrice,
+        stopLoss: 0,
+        takeProfit: 0,
+        positionSize: qty,
+        commission: 0,
+        netPnl: profit,
+        result: profit > 0 ? "win" : profit < 0 ? "loss" : "breakeven",
+        rMultiple: 0,
+        rr: 0,
+        durationMinutes: durationMins,
+        emotion: 0,
+        preTradeNotes: "Imported from Tradovate (Lucid Prop Firm)",
+        postTradeReview: "",
+        setupTags: ["Imported"],
+        sessionTag: "NY AM",
+        marketCondition: "Trending",
+        mistakeTags: [],
+        screenshotUrls: [],
+        mindsetTags: [],
+        mindsetNotes: "",
+        accountEquityAfter: 0,
+      });
+    } catch (e) {
+      errors.push(`Row ${index + 1}: Failed to parse Tradovate row.`);
+    }
+  });
+
+  return trades;
+}
+
+// Helper: Safely parse MM/DD/YYYY HH:mm:ss dates across all systems
+function parseDateString(dateStr: string): Date {
+  if (!dateStr) return new Date();
+  
+  const parsed = new Date(dateStr);
+  if (!isNaN(parsed.getTime())) {
+    return parsed;
+  }
+  
+  try {
+    const parts = dateStr.trim().split(/\s+/);
+    if (parts.length >= 1) {
+      const dateParts = parts[0].split("/");
+      if (dateParts.length === 3) {
+        const month = parseInt(dateParts[0]) - 1;
+        const day = parseInt(dateParts[1]);
+        const year = parseInt(dateParts[2]);
+        
+        let hours = 0;
+        let minutes = 0;
+        let seconds = 0;
+        
+        if (parts.length >= 2) {
+          const timeParts = parts[1].split(":");
+          if (timeParts.length >= 2) {
+            hours = parseInt(timeParts[0]);
+            minutes = parseInt(timeParts[1]);
+            if (timeParts.length >= 3) {
+              seconds = parseInt(timeParts[2]);
+            }
+          }
+        }
+        
+        const dateObj = new Date(year, month, day, hours, minutes, seconds);
+        if (!isNaN(dateObj.getTime())) {
+          return dateObj;
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Error manually parsing date:", dateStr, e);
+  }
+  
+  return new Date();
+}
+
+// Helper: Case-insensitive value extraction from a parsed CSV row
+function getRowValueCaseInsensitive(row: any, keyName: string): string {
+  const keys = Object.keys(row);
+  const targetKey = keyName.toLowerCase();
+  for (const k of keys) {
+    if (k.toLowerCase().trim() === targetKey) {
+      return (row[k] || "").toString().trim();
+    }
+  }
+  return "";
 }

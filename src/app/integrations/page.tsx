@@ -18,7 +18,7 @@ const brokers = [
 ];
 
 export default function IntegrationsPage() {
-  const { addTrade } = useTradeStore();
+  const { addTrade, importTrades } = useTradeStore();
   const [isApiModalOpen, setIsApiModalOpen] = useState(false);
   const [selectedBroker, setSelectedBroker] = useState<any>(null);
   const [connectionStep, setConnectionStep] = useState(0);
@@ -58,10 +58,8 @@ export default function IntegrationsPage() {
   const handleImportConfirm = () => {
     if (!parsedData) return;
     
-    // Add trades to store
-    parsedData.trades.forEach(trade => {
-      addTrade({ ...trade });
-    });
+    // Import all trades as a single optimized batch
+    importTrades(parsedData.trades);
     
     setIsImportModalOpen(false);
     setParsedData(null);

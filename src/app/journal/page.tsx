@@ -8,13 +8,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, subMonths, addMonths } from "date-fns";
-import { ArrowUpRight, ArrowDownRight, List, CalendarDays, Plus, Download, Filter, ChevronLeft, ChevronRight, Flame, Trophy, Skull } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, List, CalendarDays, Plus, Download, Filter, ChevronLeft, ChevronRight, Flame, Trophy, Skull, Trash2, CheckSquare } from "lucide-react";
 import Link from "next/link";
 
 function TradeListView({ trades }: { trades: Trade[] }) {
   const router = useRouter();
+  const { deleteTrades } = useTradeStore();
   const [sortField, setSortField] = useState<keyof Trade>("entryDate");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const sorted = useMemo(() => {
     return [...trades].sort((a, b) => {
@@ -31,6 +33,28 @@ function TradeListView({ trades }: { trades: Trade[] }) {
     else { setSortField(field); setSortDir("desc"); }
   };
 
+  const toggleSelect = (e: React.MouseEvent, tradeId: string) => {
+    e.stopPropagation();
+    setSelectedIds((prev) => 
+      prev.includes(tradeId) ? prev.filter(id => id !== tradeId) : [...prev, tradeId]
+    );
+  };
+
+  const toggleAll = () => {
+    if (selectedIds.length === sorted.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(sorted.map(t => t.id));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (confirm(`Are you sure you want to delete the ${selectedIds.length} selected trades? This cannot be undone.`)) {
+      await deleteTrades(selectedIds);
+      setSelectedIds([]);
+    }
+  };
+
   const headers: { label: string; field: keyof Trade; width: string }[] = [
     { label: "Date", field: "entryDate", width: "w-28" },
     { label: "Symbol", field: "symbol", width: "w-20" },
@@ -45,74 +69,130 @@ function TradeListView({ trades }: { trades: Trade[] }) {
   ];
 
   return (
-    <div className="overflow-x-auto no-scrollbar">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-border-subtle">
-            {headers.map((h) => (
-              <th
-                key={h.field}
-                onClick={() => handleSort(h.field)}
-                className={cn(
-                  "text-left py-3 px-3 text-xs uppercase tracking-wider text-text-muted font-medium cursor-pointer hover:text-text-primary transition-colors",
-                  h.width
-                )}
-              >
-                {h.label}
-                {sortField === h.field && (
-                  <span className="ml-1 text-accent-violet">{sortDir === "asc" ? "↑" : "↓"}</span>
-                )}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {sorted.map((trade, i) => (
-            <motion.tr
-              key={trade.id}
-              onClick={() => router.push(`/journal/${trade.id}`)}
-              className={cn(
-                "border-b border-border-subtle/50 hover:bg-bg-card-hover transition-colors cursor-pointer group",
-                trade.result === "win" ? "row-win" : trade.result === "loss" ? "row-loss" : ""
-              )}
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.02 }}
-            >
-              <td className="py-3 px-3 font-[family-name:var(--font-space-mono)] text-xs text-text-secondary">
-                {format(new Date(trade.entryDate), "MMM dd HH:mm")}
-              </td>
-              <td className="py-3 px-3 font-[family-name:var(--font-space-mono)] font-bold">{trade.symbol}</td>
-              <td className="py-3 px-3">
-                <span className={cn(
-                  "inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-medium uppercase",
-                  trade.direction === "long" ? "bg-accent-green/10 text-accent-green" : "bg-accent-coral/10 text-accent-coral"
-                )}>
-                  {trade.direction === "long" ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
-                  {trade.direction}
+    <div className="space-y-4">
+      {/* Bulk Action Bar */}
+      <AnimatePresence>
+        {selectedIds.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0, y: -10 }}
+            animate={{ opacity: 1, height: "auto", y: 0 }}
+            exit={{ opacity: 0, height: 0, y: -10 }}
+            className="overflow-hidden mb-4"
+          >
+            <div className="flex items-center justify-between bg-accent-coral/10 border border-accent-coral/20 px-5 py-3.5 rounded-2xl shadow-[0_4px_30px_rgba(255,107,107,0.05)]">
+              <div className="flex items-center gap-2.5">
+                <CheckSquare size={16} className="text-accent-coral" />
+                <span className="text-sm font-semibold text-text-primary">
+                  {selectedIds.length} trade{selectedIds.length > 1 ? "s" : ""} selected
                 </span>
-              </td>
-              <td className="py-3 px-3 font-[family-name:var(--font-space-mono)] text-xs">{trade.entryPrice ? trade.entryPrice.toLocaleString() : "N/A"}</td>
-              <td className="py-3 px-3 font-[family-name:var(--font-space-mono)] text-xs">{trade.exitPrice ? trade.exitPrice.toLocaleString() : "N/A"}</td>
-              <td className={cn("py-3 px-3 font-[family-name:var(--font-space-mono)] font-bold text-xs", trade.netPnl >= 0 ? "text-accent-green" : "text-accent-coral")}>
-                {formatCurrency(trade.netPnl)}
-              </td>
-              <td className={cn("py-3 px-3 font-[family-name:var(--font-space-mono)] text-xs", (trade.rMultiple || 0) >= 0 ? "text-accent-green" : "text-accent-coral")}>
-                {(trade.rMultiple || 0) >= 0 ? "+" : ""}{(trade.rMultiple || 0).toFixed(2)}R
-              </td>
-              <td className="py-3 px-3">
-                <div className="flex flex-wrap gap-1">
-                  {(trade.setupTags || []).slice(0, 2).map((tag) => (
-                    <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-accent-violet/10 text-accent-violet">{tag}</span>
-                  ))}
-                </div>
-              </td>
-              <td className="py-3 px-3 text-xs text-text-secondary">{trade.sessionTag}</td>
-              <td className="py-3 px-3 font-[family-name:var(--font-space-mono)] text-xs text-text-muted">{formatDuration(trade.durationMinutes)}</td>
-            </motion.tr>
-          ))}
-        </tbody>
-      </table>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setSelectedIds([])}
+                  className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-text-secondary hover:text-text-primary transition-colors hover:bg-bg-secondary"
+                >
+                  Clear Selection
+                </button>
+                <button
+                  onClick={handleBulkDelete}
+                  className="flex items-center gap-1.5 bg-accent-coral hover:bg-accent-coral/90 text-bg-base px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-[0_0_15px_rgba(255,107,107,0.2)] hover:shadow-[0_0_20px_rgba(255,107,107,0.4)]"
+                >
+                  <Trash2 size={13} />
+                  Delete Selected
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="overflow-x-auto no-scrollbar">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border-subtle">
+              <th className="py-3 px-3 w-10 text-center">
+                <input
+                  type="checkbox"
+                  checked={sorted.length > 0 && selectedIds.length === sorted.length}
+                  onChange={toggleAll}
+                  className="rounded border-border-subtle bg-bg-secondary text-accent-green focus:ring-accent-green focus:ring-offset-0 cursor-pointer h-4 w-4 accent-accent-green"
+                />
+              </th>
+              {headers.map((h) => (
+                <th
+                  key={h.field}
+                  onClick={() => handleSort(h.field)}
+                  className={cn(
+                    "text-left py-3 px-3 text-xs uppercase tracking-wider text-text-muted font-medium cursor-pointer hover:text-text-primary transition-colors",
+                    h.width
+                  )}
+                >
+                  {h.label}
+                  {sortField === h.field && (
+                    <span className="ml-1 text-accent-violet">{sortDir === "asc" ? "↑" : "↓"}</span>
+                  )}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((trade, i) => (
+              <motion.tr
+                key={trade.id}
+                onClick={() => router.push(`/journal/${trade.id}`)}
+                className={cn(
+                  "border-b border-border-subtle/50 hover:bg-bg-card-hover transition-colors cursor-pointer group",
+                  trade.result === "win" ? "row-win" : trade.result === "loss" ? "row-loss" : "",
+                  selectedIds.includes(trade.id) ? "bg-accent-green/5 hover:bg-accent-green/10" : ""
+                )}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.02 }}
+              >
+                <td className="py-3 px-3 w-10 text-center" onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(trade.id)}
+                    onChange={(e) => {}}
+                    onClick={(e) => toggleSelect(e, trade.id)}
+                    className="rounded border-border-subtle bg-bg-secondary text-accent-green focus:ring-accent-green focus:ring-offset-0 cursor-pointer h-4 w-4 accent-accent-green"
+                  />
+                </td>
+                <td className="py-3 px-3 font-[family-name:var(--font-space-mono)] text-xs text-text-secondary">
+                  {format(new Date(trade.entryDate), "MMM dd HH:mm")}
+                </td>
+                <td className="py-3 px-3 font-[family-name:var(--font-space-mono)] font-bold">{trade.symbol}</td>
+                <td className="py-3 px-3">
+                  <span className={cn(
+                    "inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-medium uppercase",
+                    trade.direction === "long" ? "bg-accent-green/10 text-accent-green" : "bg-accent-coral/10 text-accent-coral"
+                  )}>
+                    {trade.direction === "long" ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
+                    {trade.direction}
+                  </span>
+                </td>
+                <td className="py-3 px-3 font-[family-name:var(--font-space-mono)] text-xs">{trade.entryPrice ? trade.entryPrice.toLocaleString() : "N/A"}</td>
+                <td className="py-3 px-3 font-[family-name:var(--font-space-mono)] text-xs">{trade.exitPrice ? trade.exitPrice.toLocaleString() : "N/A"}</td>
+                <td className={cn("py-3 px-3 font-[family-name:var(--font-space-mono)] font-bold text-xs", trade.netPnl >= 0 ? "text-accent-green" : "text-accent-coral")}>
+                  {formatCurrency(trade.netPnl)}
+                </td>
+                <td className={cn("py-3 px-3 font-[family-name:var(--font-space-mono)] text-xs", (trade.rMultiple || 0) >= 0 ? "text-accent-green" : "text-accent-coral")}>
+                  {(trade.rMultiple || 0) >= 0 ? "+" : ""}{(trade.rMultiple || 0).toFixed(2)}R
+                </td>
+                <td className="py-3 px-3">
+                  <div className="flex flex-wrap gap-1">
+                    {(trade.setupTags || []).slice(0, 2).map((tag) => (
+                      <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-accent-violet/10 text-accent-violet">{tag}</span>
+                    ))}
+                  </div>
+                </td>
+                <td className="py-3 px-3 text-xs text-text-secondary">{trade.sessionTag}</td>
+                <td className="py-3 px-3 font-[family-name:var(--font-space-mono)] text-xs text-text-muted">{formatDuration(trade.durationMinutes)}</td>
+              </motion.tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
