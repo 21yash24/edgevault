@@ -11,7 +11,10 @@ import {
   AreaChart, Area, CartesianGrid, PieChart, Pie,
 } from "recharts";
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, Target, DollarSign, Clock, Activity, Zap, BarChart3, Award, AlertTriangle, Brain } from "lucide-react";
+import { TrendingUp, TrendingDown, Target, DollarSign, Clock, Activity, Zap, BarChart3, Award, AlertTriangle, Brain, Crosshair } from "lucide-react";
+import { MaeMfeChart } from "@/components/ui/mae-mfe-chart";
+import { AiCoach } from "@/components/ui/ai-coach";
+import { useSettingsStore } from "@/stores";
 
 const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number }>; label?: string }) => {
   if (!active || !payload?.length) return null;
@@ -320,7 +323,9 @@ function MonteCarloChart({ trades }: { trades: ReturnType<typeof useTradeStore.g
 
 export default function AnalyticsPage() {
   const { trades } = useTradeStore();
+  const { settings } = useSettingsStore();
   const [timeRange, setTimeRange] = useState("ALL");
+  const [activeTab, setActiveTab] = useState<"Overview" | "AI Coach">("Overview");
   
   const filteredTrades = useMemo(() => {
     if (timeRange === "ALL") return trades;
@@ -345,22 +350,41 @@ export default function AnalyticsPage() {
           <h1 className="font-[family-name:var(--font-syne)] font-bold text-2xl">Analytics</h1>
           <p className="text-sm text-text-secondary mt-1">Performance insights from {metrics.totalTrades} trades</p>
         </div>
-        <div className="flex gap-1">
-          {["1W", "1M", "3M", "6M", "YTD", "ALL"].map((range) => (
-            <button key={range}
-              onClick={() => setTimeRange(range)}
-              className={cn(
-                "px-3 py-1.5 text-xs rounded-lg transition-all",
-                timeRange === range ? "bg-accent-green/10 text-accent-green border border-accent-green/20" : "bg-bg-card text-text-muted border border-border-subtle hover:border-accent-violet/20 hover:text-text-secondary"
-              )}>
-              {range}
-            </button>
-          ))}
+        <div className="flex gap-4 items-center">
+          <div className="flex gap-1 bg-bg-card p-1 rounded-lg border border-border-subtle">
+            {["Overview", "AI Coach"].map((tab) => (
+              <button key={tab}
+                onClick={() => setActiveTab(tab as any)}
+                className={cn(
+                  "px-4 py-1.5 text-xs rounded-md transition-all font-semibold",
+                  activeTab === tab ? "bg-accent-violet/20 text-accent-violet" : "text-text-muted hover:text-text-secondary"
+                )}>
+                {tab}
+              </button>
+            ))}
+          </div>
+          <div className="w-[1px] h-6 bg-border-subtle" />
+          <div className="flex gap-1">
+            {["1W", "1M", "3M", "6M", "YTD", "ALL"].map((range) => (
+              <button key={range}
+                onClick={() => setTimeRange(range)}
+                className={cn(
+                  "px-3 py-1.5 text-xs rounded-lg transition-all",
+                  timeRange === range ? "bg-accent-green/10 text-accent-green border border-accent-green/20" : "bg-bg-card text-text-muted border border-border-subtle hover:border-accent-violet/20 hover:text-text-secondary"
+                )}>
+                {range}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Metrics Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      {activeTab === "AI Coach" ? (
+        <AiCoach trades={filteredTrades} geminiKey={settings.api.geminiKey} />
+      ) : (
+        <>
+          {/* Metrics Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <MetricCard label="Net P&L" value={metrics.totalNetPnl} format={(v) => formatCurrency(v)} icon={DollarSign} color={metrics.totalNetPnl >= 0 ? "text-accent-green" : "text-accent-coral"} delay={0} />
         <MetricCard label="Win Rate" value={metrics.winRate} format={(v) => `${v.toFixed(1)}%`} icon={Target} color={metrics.winRate >= 50 ? "text-accent-green" : "text-accent-coral"} delay={0.03} />
         <MetricCard label="Profit Factor" value={metrics.profitFactor} format={(v) => v.toFixed(2)} icon={TrendingUp} color="text-accent-violet" delay={0.06} />
@@ -443,7 +467,21 @@ export default function AnalyticsPage() {
         </div>
       </GlassCard>
 
-      {/* Charts Row 4: Monte Carlo */}
+      {/* Charts Row 4: MAE / MFE */}
+      <GlassCard transition={{ delay: 0.59 }}>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Crosshair size={18} className="text-accent-violet" />
+            <h3 className="font-[family-name:var(--font-syne)] font-bold text-base">Trade Execution (MAE / MFE)</h3>
+          </div>
+          <span className="text-xs text-text-muted">Analyze your stop-losses and take-profits</span>
+        </div>
+        <div className="h-64 mt-4">
+          <MaeMfeChart trades={filteredTrades} />
+        </div>
+      </GlassCard>
+
+      {/* Charts Row 5: Monte Carlo */}
       <GlassCard transition={{ delay: 0.6 }}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-[family-name:var(--font-syne)] font-bold text-base">Monte Carlo Simulation</h3>
@@ -478,8 +516,10 @@ export default function AnalyticsPage() {
             <div className="text-xs text-text-muted mb-0.5">Worst Day</div>
             <div className="font-[family-name:var(--font-space-mono)] font-bold text-lg text-accent-coral">{formatCurrency(metrics.worstDay.pnl)}</div>
           </div>
-        </div>
-      </GlassCard>
+          </div>
+        </GlassCard>
+      </>
+      )}
     </div>
   );
 }

@@ -33,6 +33,10 @@ export interface Trade {
   mindsetNotes?: string;
   durationMinutes: number;
   accountEquityAfter: number;
+  mae?: number;
+  mfe?: number;
+  isPublic?: boolean;
+  publicUrl?: string;
 }
 
 export interface DailyStats {

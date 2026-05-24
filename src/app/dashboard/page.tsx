@@ -12,6 +12,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { TiltmeterWidget } from "@/components/ui/tiltmeter";
 import { ProactiveAIWidget } from "@/components/ui/proactive-ai";
+import { CalendarHeatmap } from "@/components/ui/calendar-heatmap";
 import { useMemo, useEffect, useRef, useState } from "react";
 import { subDays, subMonths, isAfter, startOfYear } from "date-fns";
 
@@ -123,42 +124,6 @@ function EquityCurveChart({ data }: { data: { time: string; value: number }[] })
   return <canvas ref={canvasRef} className="w-full h-full" style={{ width: "100%", height: "100%" }} />;
 }
 
-function MiniCalendarHeatmap({ trades }: { trades: ReturnType<typeof useTradeStore.getState>["trades"] }) {
-  const today = new Date();
-  const monthStart = startOfMonth(today);
-  const monthEnd = endOfMonth(today);
-  const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
-  const dailyStats = useMemo(() => getDailyStats(trades), [trades]);
-  const maxPnl = Math.max(...dailyStats.map((d) => Math.abs(d.pnl)), 1);
-  const startDay = getDay(monthStart);
-
-  return (
-    <div>
-      <div className="grid grid-cols-7 gap-1 mb-2">
-        {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
-          <div key={i} className="text-[9px] text-text-muted text-center">{d}</div>
-        ))}
-      </div>
-      <div className="grid grid-cols-7 gap-1">
-        {Array.from({ length: startDay }).map((_, i) => (
-          <div key={`empty-${i}`} className="w-full aspect-square" />
-        ))}
-        {days.map((day) => {
-          const stat = dailyStats.find((d) => isSameDay(new Date(d.date), day));
-          const bg = stat ? getHeatmapColor(stat.pnl, maxPnl) : "rgba(75,80,100,0.15)";
-          return (
-            <div
-              key={day.toISOString()}
-              className="w-full aspect-square rounded-sm cursor-pointer hover:ring-1 hover:ring-accent-green/30 transition-all"
-              style={{ backgroundColor: bg }}
-              title={`${format(day, "MMM d")}: ${stat ? formatCurrency(stat.pnl) : "No trades"}`}
-            />
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 function DailyReportCard({ trades }: { trades: ReturnType<typeof useTradeStore.getState>["trades"] }) {
   const [report, setReport] = useState<DailyReport | null>(null);
   const todayTrades = useMemo(() => trades.filter(t => isToday(new Date(t.entryDate))), [trades]);
@@ -300,7 +265,20 @@ export default function DashboardPage() {
         </motion.div>
       </motion.div>
 
-      {/* Stat Cards */}
+      {/* GitHub-Style Calendar Heatmap */}
+      <motion.div variants={itemVariants}>
+        <GlassCard>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Calendar size={18} className="text-accent-violet" />
+              <h2 className="font-[family-name:var(--font-syne)] font-bold text-base">Consistency Calendar</h2>
+            </div>
+          </div>
+          <CalendarHeatmap trades={trades} />
+        </GlassCard>
+      </motion.div>
+
+      {/* Stats Grid */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Today's P&L"
@@ -376,37 +354,9 @@ export default function DashboardPage() {
         </div>
 
         {/* Daily Report Card */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-4">
           <DailyReportCard trades={trades} />
         </div>
-
-        {/* Calendar Mini */}
-        <GlassCard className="lg:col-span-2" transition={{ delay: 0.25 }}>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-[family-name:var(--font-syne)] font-bold text-base">
-              <Calendar size={16} className="inline mr-2 text-accent-violet" />
-              {format(new Date(), "MMMM yyyy")}
-            </h2>
-            <Link href="/journal" className="text-xs text-accent-violet hover:text-accent-green transition-colors">
-              View All →
-            </Link>
-          </div>
-          <MiniCalendarHeatmap trades={trades} />
-
-          {/* Streaks */}
-          <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-border-subtle">
-            <div>
-              <div className="text-xs text-text-muted mb-0.5">Win Streak</div>
-              <div className="font-[family-name:var(--font-space-mono)] font-bold text-accent-green">{metrics.currentWinStreak}</div>
-            </div>
-            <div>
-              <div className="text-xs text-text-muted mb-0.5">Best Day</div>
-              <div className="font-[family-name:var(--font-space-mono)] font-bold text-accent-green text-sm">
-                {formatCurrency(metrics.bestDay.pnl)}
-              </div>
-            </div>
-          </div>
-        </GlassCard>
       </motion.div>
 
       {/* Bottom Row: Recent Trades + Prop Firm */}

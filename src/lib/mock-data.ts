@@ -15,6 +15,12 @@ function makeTrade(overrides: Partial<Trade> & Pick<Trade, "symbol" | "direction
   const durationMinutes = Math.round((exitD.getTime() - entryD.getTime()) / 60000);
   const result = netPnl > 5 ? "win" : netPnl < -5 ? "loss" : "breakeven";
 
+  // Simulate MAE/MFE in dollars
+  const maxPotentialProfit = Math.abs(overrides.takeProfit ? (overrides.takeProfit - entryPrice) * positionSize : netPnl * 1.5);
+  const maxPotentialLoss = Math.abs(entryPrice - stopLoss) * positionSize;
+  const mfe = result === "win" ? netPnl + (Math.random() * maxPotentialProfit * 0.2) : Math.random() * maxPotentialProfit * 0.5;
+  const mae = result === "loss" ? rawPnl - (Math.random() * maxPotentialLoss * 0.2) : -(Math.random() * maxPotentialLoss * 0.5);
+
   return {
     id: generateId(),
     symbol: overrides.symbol,
@@ -44,6 +50,8 @@ function makeTrade(overrides: Partial<Trade> & Pick<Trade, "symbol" | "direction
     mindsetNotes: "",
     durationMinutes,
     accountEquityAfter: 0,
+    mae: parseFloat(mae.toFixed(2)),
+    mfe: parseFloat(mfe.toFixed(2)),
   };
 }
 

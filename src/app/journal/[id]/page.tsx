@@ -6,8 +6,9 @@ import { cn, formatCurrency, formatDate, formatDuration, formatDateTime, formatR
 import { analyzeTrade } from "@/lib/gemini";
 import { motion } from "framer-motion";
 import { use, useMemo, useState, useEffect } from "react";
-import { ArrowUpRight, ArrowDownRight, ChevronLeft, Clock, Target, DollarSign, Activity, AlertTriangle, Brain, Sparkles, TrendingUp, TrendingDown, MessageSquare, CheckCircle, XCircle, Zap, Settings2 } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, ChevronLeft, Clock, Target, DollarSign, Activity, AlertTriangle, Brain, Sparkles, TrendingUp, TrendingDown, MessageSquare, CheckCircle, XCircle, Zap, Settings2, Share2 } from "lucide-react";
 import Link from "next/link";
+import { InteractiveChart } from "@/components/ui/interactive-chart";
 
 const emotionLabels: Record<number, { label: string; emoji: string }> = {
   [-5]: { label: "Terrified", emoji: "😰" }, [-4]: { label: "Very Fearful", emoji: "😨" }, [-3]: { label: "Fearful", emoji: "😟" },
@@ -23,6 +24,14 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
   const trade = useMemo(() => trades.find((t) => t.id === id), [trades, id]);
   const [analysis, setAnalysis] = useState<Awaited<ReturnType<typeof analyzeTrade>> | null>(null);
   const [loadingAI, setLoadingAI] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = () => {
+    const url = `${window.location.origin}/shared/trade/${trade?.id}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const relatedTrades = useMemo(() => {
     if (!trade) return [];
@@ -71,6 +80,13 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
           <p className="text-sm text-text-secondary mt-0.5">{formatDateTime(trade.entryDate)}</p>
         </div>
         <div className="flex items-center gap-2">
+          <button onClick={handleShare}
+            className={cn("p-2 rounded-xl border transition-all flex items-center gap-2", 
+              copied ? "bg-accent-green/10 border-accent-green/20 text-accent-green" : "bg-bg-card border-border-subtle text-text-secondary hover:text-text-primary")}
+            title="Share Trade">
+            <Share2 size={18} />
+            <span className="text-xs font-semibold hidden sm:inline">{copied ? "Copied Link" : "Share"}</span>
+          </button>
           <Link href={`/journal/${trade.id}/edit`} 
             className="p-2 rounded-xl bg-bg-card border border-border-subtle text-text-secondary hover:text-accent-violet transition-all"
             title="Edit Trade">
@@ -89,8 +105,16 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
         </div>
       </div>
 
+      {/* Interactive Trade Replay */}
+      <GlassCard className="h-[400px] p-0 overflow-hidden relative group border-accent-violet/20">
+        <div className="absolute top-4 left-4 z-10 px-3 py-1 bg-bg-base/80 backdrop-blur-md rounded-lg text-xs font-bold text-text-primary border border-border-subtle flex items-center gap-2">
+          <Sparkles size={14} className="text-accent-violet" />
+          Trade Replay
+        </div>
+        <InteractiveChart trade={trade} />
+      </GlassCard>
+
       {/* Screenshot Gallery */}
-      {/* Screenshot Gallery / Carousel */}
       {trade.screenshotUrls && trade.screenshotUrls.length > 0 && (
         <div className="relative group">
           <div className="flex overflow-x-auto no-scrollbar snap-x snap-mandatory gap-4 pb-2">
