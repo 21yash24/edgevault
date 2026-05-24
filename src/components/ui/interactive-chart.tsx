@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useRef, useMemo } from "react";
-import { createChart, ColorType, CrosshairMode } from "lightweight-charts";
+import { createChart, ColorType, CrosshairMode, CandlestickSeries, createSeriesMarkers } from "lightweight-charts";
 import { Trade } from "@/lib/types";
 
 // Helper to generate realistic-looking 1-minute candles around the trade
@@ -84,7 +84,7 @@ export function InteractiveChart({ trade }: { trade: Trade }) {
       autoSize: true,
     });
 
-    const candlestickSeries = chart.addCandlestickSeries({
+    const candlestickSeries = chart.addSeries(CandlestickSeries, {
       upColor: "#00FFB2",
       downColor: "#FF2D55",
       borderVisible: false,
@@ -119,7 +119,7 @@ export function InteractiveChart({ trade }: { trade: Trade }) {
 
     // Must sort markers by time as per lightweight-charts requirements
     markers.sort((a, b) => a.time - b.time);
-    candlestickSeries.setMarkers(markers);
+    createSeriesMarkers(candlestickSeries, markers);
 
     // Add Stop Loss Line if exists
     if (trade.stopLoss) {

@@ -172,7 +172,7 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
   }, [mode, entryPrice, exitPrice, stopLoss, takeProfit, positionSize, commission, direction]);
 
   const livePnl = mode === "quick" ? parseFloat(quickNetPnl) || 0 : detailedCalculations?.netPnl || 0;
-  const isReady = symbol && (mode === "quick" ? quickNetPnl !== "" : (entryPrice && exitPrice && positionSize));
+  const isReady = !!symbol; // Only symbol is strictly required
 
   const handleSubmit = () => {
     if (!isReady || !trade) return;
@@ -190,8 +190,8 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
       exitDate: exitD.toISOString(),
       commission: mode === "quick" ? 0 : parseFloat(commission) || 0,
       netPnl: parseFloat(netPnl.toFixed(2)),
-      rMultiple: mode === "quick" ? 0 : parseFloat(detailedCalculations?.rMultiple.toFixed(2) || "0"),
-      rr: mode === "quick" ? 0 : parseFloat(detailedCalculations?.rr.toFixed(2) || "0"),
+      rMultiple: mode === "quick" ? 0 : parseFloat((detailedCalculations?.rMultiple || 0).toFixed(2)),
+      rr: mode === "quick" ? 0 : parseFloat((detailedCalculations?.rr || 0).toFixed(2)),
       result: netPnl > 5 ? "win" : netPnl < -5 ? "loss" : "breakeven",
       emotion,
       preTradeNotes: preNotes,
@@ -208,11 +208,11 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
     };
 
     if (mode === "detailed") {
-      updates.entryPrice = parseFloat(entryPrice);
-      updates.exitPrice = parseFloat(exitPrice);
-      updates.stopLoss = parseFloat(stopLoss) || 0;
-      updates.takeProfit = parseFloat(takeProfit) || 0;
-      updates.positionSize = parseFloat(positionSize);
+      updates.entryPrice = parseFloat(entryPrice) || undefined;
+      updates.exitPrice = parseFloat(exitPrice) || undefined;
+      updates.stopLoss = parseFloat(stopLoss) || undefined;
+      updates.takeProfit = parseFloat(takeProfit) || undefined;
+      updates.positionSize = parseFloat(positionSize) || 0;
     }
 
     updateTrade(trade.id, updates);
