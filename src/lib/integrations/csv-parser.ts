@@ -266,16 +266,16 @@ function parseTradovate(data: any[], errors: string[]): Omit<Trade, "id">[] {
       
       const qty = parseFloat(getRowValueCaseInsensitive(row, "qty") || "1");
       
-      // Clean and parse P&L (supports standard and parenthesized format like ($21.00))
+      // Clean and parse P&L (supports standard, negative minus, and parenthesized accounting loss format e.g., ($21.00))
       const rawPnl = getRowValueCaseInsensitive(row, "pnl") || "0";
       let cleanPnl = rawPnl.trim();
-      let isNegative = false;
-      if (cleanPnl.startsWith("(") && cleanPnl.endsWith(")")) {
-        isNegative = true;
-        cleanPnl = cleanPnl.substring(1, cleanPnl.length - 1);
-      }
-      cleanPnl = cleanPnl.replace(/[^0-9.-]/g, "");
-      let profit = parseFloat(cleanPnl);
+      
+      // If it contains '(' or ')' or '-', it is a negative number/loss
+      const isNegative = cleanPnl.includes("(") || cleanPnl.includes(")") || cleanPnl.includes("-");
+      
+      // Strip everything except numbers and decimal point
+      cleanPnl = cleanPnl.replace(/[^0-9.]/g, "");
+      let profit = parseFloat(cleanPnl || "0");
       if (isNegative) profit = -profit;
 
       const durationMins = Math.max(1, Math.round(Math.abs(soldDate.getTime() - boughtDate.getTime()) / 60000));
