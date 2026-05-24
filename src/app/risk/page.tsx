@@ -4,7 +4,7 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { cn, formatCurrency } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMemo, useState, useEffect } from "react";
-import { Shield, Calculator, AlertTriangle, Clock, Target, TrendingDown, Flame, CheckSquare, Square, RotateCcw, DollarSign, Percent, BarChart3, Lock } from "lucide-react";
+import { Shield, Calculator, AlertTriangle, Clock, Target, TrendingDown, Flame, CheckSquare, Square, RotateCcw, DollarSign, Percent, BarChart3, Lock, Sparkles, TrendingUp } from "lucide-react";
 import { format, isToday } from "date-fns";
 
 function PositionSizeCalculator({ currentBalance, defaultRisk }: { currentBalance: number, defaultRisk: number }) {
@@ -13,7 +13,6 @@ function PositionSizeCalculator({ currentBalance, defaultRisk }: { currentBalanc
   const [entryPrice, setEntryPrice] = useState("");
   const [stopLoss, setStopLoss] = useState("");
 
-  // Sync if balance or default risk changes
   useEffect(() => {
     setAccountSize(currentBalance.toString());
   }, [currentBalance]);
@@ -35,7 +34,7 @@ function PositionSizeCalculator({ currentBalance, defaultRisk }: { currentBalanc
 
     const positionSize = riskAmount / priceDiff;
     const contracts = Math.floor(positionSize);
-    const lotSize = parseFloat((positionSize / 100000).toFixed(2)); // Forex lots
+    const lotSize = parseFloat((positionSize / 100000).toFixed(2));
 
     return { riskAmount, positionSize, contracts, lotSize, priceDiff };
   }, [accountSize, riskPercent, entryPrice, stopLoss]);
@@ -157,6 +156,203 @@ function RRCalculator() {
   );
 }
 
+function RuinSimulator({ trades }: { trades: any[] }) {
+  const [riskPerTrade, setRiskPerTrade] = useState(1.0);
+  const [drawdownLimit, setDrawdownLimit] = useState(15);
+  const [isSynced, setIsSynced] = useState(true);
+
+  // Sync actual historical stats as default
+  const realMetrics = useMemo(() => {
+    const total = trades.length;
+    if (total === 0) return { winRate: 50, avgRR: 1.5 };
+    const wins = trades.filter(t => t.result === "win");
+    const losses = trades.filter(t => t.result === "loss");
+    const winRate = (wins.length / (wins.length + losses.length || 1)) * 100;
+    
+    const avgWin = wins.reduce((s, t) => s + Math.abs(t.netPnl), 0) / (wins.length || 1);
+    const avgLoss = losses.reduce((s, t) => s + Math.abs(t.netPnl), 0) / (losses.length || 1);
+    const avgRR = avgLoss > 0 ? avgWin / avgLoss : 1.5;
+
+    return { winRate: Math.round(winRate), avgRR: parseFloat(avgRR.toFixed(2)) };
+  }, [trades]);
+
+  const [customWinRate, setCustomWinRate] = useState(50);
+  const [customRR, setCustomRR] = useState(1.5);
+
+  useEffect(() => {
+    if (isSynced && trades.length > 0) {
+      setCustomWinRate(realMetrics.winRate);
+      setCustomRR(realMetrics.avgRR);
+    }
+  }, [isSynced, realMetrics, trades.length]);
+
+  const winRate = isSynced ? realMetrics.winRate : customWinRate;
+  const rrRatio = isSynced ? realMetrics.avgRR : customRR;
+
+  // Run geometric Monte Carlo simulation of 1,000 runs, 100 trades each
+  const sim = useMemo(() => {
+    const numRuns = 1000;
+    const numTrades = 100;
+    let ruinCount = 0;
+    let worstDrawdownsSum = 0;
+
+    const winProb = winRate / 100;
+
+    for (let r = 0; r < numRuns; r++) {
+      let balance = 100; // start at 100% relative equity
+      let peak = 100;
+      let maxDD = 0;
+      let hitRuin = false;
+
+      for (let t = 0; t < numTrades; t++) {
+        const isWin = Math.random() < winProb;
+        const pnlPct = isWin ? (riskPerTrade * rrRatio) : -riskPerTrade;
+        balance = balance * (1 + pnlPct / 100);
+
+        if (balance > peak) peak = balance;
+        const dd = ((peak - balance) / peak) * 100;
+        maxDD = Math.max(maxDD, dd);
+
+        if (dd >= drawdownLimit) hitRuin = true;
+      }
+
+      if (hitRuin) ruinCount++;
+      worstDrawdownsSum += maxDD;
+    }
+
+    return {
+      ruinProbability: (ruinCount / numRuns) * 100,
+      avgMaxDrawdown: worstDrawdownsSum / numRuns,
+    };
+  }, [winRate, rrRatio, riskPerTrade, drawdownLimit]);
+
+  const auditResult = useMemo(() => {
+    if (sim.ruinProbability >= 20) {
+      return {
+        status: "DANGER",
+        color: "text-accent-coral border-accent-coral/20 bg-accent-coral/5",
+        badge: "bg-accent-coral/10 text-accent-coral border-accent-coral/20",
+        advice: `🚨 HIGH RISK AUDIT: Risking ${riskPerTrade}% with a ${winRate}% win rate and ${rrRatio} R:R creates a massive ${sim.ruinProbability.toFixed(0)}% chance of hitting a ${drawdownLimit}% drawdown. You are highly mathematically likely to blow or severely damage your account! Reduce risk per trade to 0.5% or improve your exit execution to increase your average R:R.`,
+      };
+    } else if (sim.ruinProbability >= 5) {
+      return {
+        status: "WARNING",
+        color: "text-yellow-500 border-yellow-500/20 bg-yellow-500/5",
+        badge: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
+        advice: `⚠️ CAUTION AUDIT: Hitting a ${drawdownLimit}% drawdown is a realistic threat (${sim.ruinProbability.toFixed(0)}% probability). A standard series of consecutive losses will test your emotional threshold. Consider scaling down your position sizing by 25% or implementing strict trailing daily limits.`,
+      };
+    } else {
+      return {
+        status: "SECURE",
+        color: "text-accent-green border-accent-green/20 bg-accent-green/5",
+        badge: "bg-accent-green/10 text-accent-green border-accent-green/20",
+        advice: `🛡️ CAPITAL SECURE: Excellent risk parameter confluence! Under these parameters, your ruin probability is virtually zero (${sim.ruinProbability.toFixed(1)}%). Hitting a ${drawdownLimit}% drawdown is statistically highly improbable. You have successfully structured a professional trading model.`,
+      };
+    }
+  }, [sim.ruinProbability, riskPerTrade, winRate, rrRatio, drawdownLimit]);
+
+  return (
+    <GlassCard className="relative overflow-hidden">
+      <div className="absolute top-0 right-0 w-64 h-64 bg-accent-violet/5 blur-3xl rounded-full pointer-events-none" />
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6">
+        <div>
+          <h2 className="font-[family-name:var(--font-syne)] font-bold text-lg flex items-center gap-2">
+            <Sparkles size={18} className="text-accent-violet" /> Monte Carlo Ruin & Drawdown Auditor
+          </h2>
+          <p className="text-xs text-text-muted mt-0.5">Simulate 1,000 parallel series of 100 trades to audit account safety</p>
+        </div>
+        <button onClick={() => setIsSynced(!isSynced)}
+          className={cn("px-2.5 py-1 text-[10px] rounded-lg border font-bold uppercase tracking-wider transition-all self-start sm:self-center",
+            isSynced && trades.length > 0 
+              ? "bg-accent-green/10 text-accent-green border-accent-green/25 hover:bg-accent-green/15" 
+              : "bg-white/5 text-text-secondary border-border-subtle hover:bg-white/10")}>
+          {isSynced && trades.length > 0 ? "🟢 Stats Synced" : "⚙️ Custom Parameters"}
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        {/* Sliders panel */}
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs text-text-muted uppercase tracking-wider mb-1.5 flex justify-between">
+              <span>Risk Per Trade (%)</span>
+              <span className="font-[family-name:var(--font-space-mono)] font-bold text-accent-violet">{riskPerTrade}%</span>
+            </label>
+            <input type="range" min={0.25} max={5.0} step={0.25} value={riskPerTrade} onChange={(e) => setRiskPerTrade(parseFloat(e.target.value))}
+              className="w-full accent-accent-violet h-1 rounded-full appearance-none bg-bg-card cursor-pointer border border-border-subtle" />
+          </div>
+          <div>
+            <label className="text-xs text-text-muted uppercase tracking-wider mb-1.5 flex justify-between">
+              <span>Drawdown Threshold Limit (%)</span>
+              <span className="font-[family-name:var(--font-space-mono)] font-bold text-accent-coral">{drawdownLimit}%</span>
+            </label>
+            <input type="range" min={5} max={50} step={1} value={drawdownLimit} onChange={(e) => setDrawdownLimit(parseInt(e.target.value))}
+              className="w-full accent-accent-coral h-1 rounded-full appearance-none bg-bg-card cursor-pointer border border-border-subtle" />
+          </div>
+          <div>
+            <label className="text-xs text-text-muted uppercase tracking-wider mb-1.5 flex justify-between">
+              <span>Win Rate (%)</span>
+              <span className="font-[family-name:var(--font-space-mono)] font-bold text-accent-green">{winRate}%</span>
+            </label>
+            <input type="range" min={20} max={85} step={1} value={winRate} disabled={isSynced && trades.length > 0}
+              onChange={(e) => setCustomWinRate(parseInt(e.target.value))}
+              className={cn("w-full accent-accent-green h-1 rounded-full appearance-none bg-bg-card border border-border-subtle",
+                isSynced && trades.length > 0 ? "opacity-30 cursor-not-allowed" : "cursor-pointer")} />
+          </div>
+          <div>
+            <label className="text-xs text-text-muted uppercase tracking-wider mb-1.5 flex justify-between">
+              <span>Average Risk:Reward Ratio</span>
+              <span className="font-[family-name:var(--font-space-mono)] font-bold text-text-primary">1:{rrRatio}</span>
+            </label>
+            <input type="range" min={0.5} max={5.0} step={0.1} value={rrRatio} disabled={isSynced && trades.length > 0}
+              onChange={(e) => setCustomRR(parseFloat(e.target.value))}
+              className={cn("w-full accent-text-primary h-1 rounded-full appearance-none bg-bg-card border border-border-subtle",
+                isSynced && trades.length > 0 ? "opacity-30 cursor-not-allowed" : "cursor-pointer")} />
+          </div>
+        </div>
+
+        {/* Output Metrics */}
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="glass-static p-4 rounded-xl text-center relative overflow-hidden">
+              <div className="text-[10px] text-text-muted uppercase mb-1">Ruin Probability</div>
+              <div className={cn("font-[family-name:var(--font-space-mono)] font-black text-3xl transition-all duration-300",
+                sim.ruinProbability >= 20 ? "text-accent-coral drop-shadow-[0_0_20px_rgba(255,45,85,0.2)]" :
+                sim.ruinProbability >= 5 ? "text-yellow-500" : "text-accent-green"
+              )}>
+                {sim.ruinProbability.toFixed(0)}%
+              </div>
+              <div className="text-[8px] text-text-muted uppercase mt-1">To Hit {drawdownLimit}% Drawdown</div>
+            </div>
+            <div className="glass-static p-4 rounded-xl text-center">
+              <div className="text-[10px] text-text-muted uppercase mb-1">Avg Max Drawdown</div>
+              <div className="font-[family-name:var(--font-space-mono)] font-bold text-text-primary text-3xl">
+                {sim.avgMaxDrawdown.toFixed(1)}%
+              </div>
+              <div className="text-[8px] text-text-muted uppercase mt-1">Worst-case volatility</div>
+            </div>
+          </div>
+
+          {/* Audit AuditResult */}
+          <div className={cn("border rounded-xl p-4 transition-all duration-300", auditResult.color)}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-[10px] uppercase font-black tracking-widest flex items-center gap-1.5">
+                <Shield size={12} /> Math Audit Result
+              </div>
+              <span className={cn("text-[9px] px-2 py-0.5 rounded border uppercase font-bold", auditResult.badge)}>
+                {auditResult.status}
+              </span>
+            </div>
+            <p className="text-xs leading-relaxed text-text-primary">
+              {auditResult.advice}
+            </p>
+          </div>
+        </div>
+      </div>
+    </GlassCard>
+  );
+}
+
 export default function RiskPage() {
   const { trades } = useTradeStore();
   const { settings, updateSettings } = useSettingsStore();
@@ -176,7 +372,6 @@ export default function RiskPage() {
   const todayPnl = todayTrades.reduce((s, t) => s + t.netPnl, 0);
   const dailyLossPct = Math.min((Math.abs(Math.min(todayPnl, 0)) / maxLoss) * 100, 100);
 
-  // Consecutive losses
   const consecutiveLosses = useMemo(() => {
     let count = 0;
     for (let i = trades.length - 1; i >= 0; i--) {
@@ -311,6 +506,9 @@ export default function RiskPage() {
           <div className="text-xs text-text-muted mt-1">{allChecked ? "✅ Cleared to Trade" : "⏳ Action Required"}</div>
         </GlassCard>
       </div>
+
+      {/* Ruin Probability & Drawdown Monte Carlo Simulator (New prominent feature!) */}
+      <RuinSimulator trades={trades} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Pre-Market Checklist */}

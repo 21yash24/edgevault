@@ -139,17 +139,30 @@ export const useTradeStore = create<TradeStore>()(
             cloudTrades.push(doc.data() as Trade);
           });
           
-          // Sort by entry date
-          cloudTrades.sort((a, b) => new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime());
-          
-          // Recalculate equity curve based on initial balance (50,000 for demo)
-          let equity = 50000;
-          const recalculated = cloudTrades.map(t => {
-            equity += t.netPnl;
-            return { ...t, accountEquityAfter: parseFloat(equity.toFixed(2)) };
-          });
+          const localTrades = get().trades;
+          if (cloudTrades.length === 0 && localTrades.length > 0 && db) {
+            // Upload local trades to cloud instead of letting empty cloud wipe them out
+            const batch = writeBatch(db);
+            localTrades.forEach(trade => {
+              if (db) {
+                const ref = doc(db, `users/${userId}/trades`, trade.id);
+                batch.set(ref, trade);
+              }
+            });
+            batch.commit().catch(err => console.error("Error syncing local trades to cloud:", err));
+          } else {
+            // Sort by entry date
+            cloudTrades.sort((a, b) => new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime());
+            
+            // Recalculate equity curve based on initial balance (50,000 for demo)
+            let equity = 50000;
+            const recalculated = cloudTrades.map(t => {
+              equity += t.netPnl;
+              return { ...t, accountEquityAfter: parseFloat(equity.toFixed(2)) };
+            });
 
-          set({ trades: recalculated });
+            set({ trades: recalculated });
+          }
         }, (error) => {
           // Silently ignore permission errors until rules are updated
         });
@@ -266,7 +279,16 @@ export const usePlaybookStore = create<PlaybookStore>()(
         return onSnapshot(q, (snapshot) => {
           const items: Playbook[] = [];
           snapshot.forEach((doc) => items.push(doc.data() as Playbook));
-          set({ playbooks: items });
+          
+          const localPlaybooks = get().playbooks;
+          if (items.length === 0 && localPlaybooks.length > 0) {
+            // Upload local playbooks to cloud instead of letting empty cloud wipe them out
+            localPlaybooks.forEach(p => {
+              if (db) setDoc(doc(db, `users/${userId}/playbooks`, p.id), p);
+            });
+          } else {
+            set({ playbooks: items });
+          }
         }, (error) => {
           // Silently ignore permission errors until rules are updated
         });
@@ -286,7 +308,7 @@ interface AccountStore {
 
 export const useAccountStore = create<AccountStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       accounts: [],
       addAccount: async (account) => {
         const newAccount = { ...account, id: generateId(), createdAt: new Date().toISOString() };
@@ -331,7 +353,16 @@ export const useAccountStore = create<AccountStore>()(
         return onSnapshot(q, (snapshot) => {
           const items: TradingAccount[] = [];
           snapshot.forEach((doc) => items.push(doc.data() as TradingAccount));
-          set({ accounts: items });
+          
+          const localAccounts = get().accounts;
+          if (items.length === 0 && localAccounts.length > 0) {
+            // Upload local accounts to cloud
+            localAccounts.forEach(a => {
+              if (db) setDoc(doc(db, `users/${userId}/accounts`, a.id), a);
+            });
+          } else {
+            set({ accounts: items });
+          }
         }, (error) => {
           // Silently ignore permission errors until rules are updated
         });
@@ -351,7 +382,7 @@ interface PropFirmStore {
 
 export const usePropFirmStore = create<PropFirmStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       challenges: [],
       addChallenge: async (challenge) => {
         const newChallenge = { ...challenge, id: generateId() };
@@ -396,7 +427,16 @@ export const usePropFirmStore = create<PropFirmStore>()(
         return onSnapshot(q, (snapshot) => {
           const items: PropFirmChallenge[] = [];
           snapshot.forEach((doc) => items.push(doc.data() as PropFirmChallenge));
-          set({ challenges: items });
+          
+          const localChallenges = get().challenges;
+          if (items.length === 0 && localChallenges.length > 0) {
+            // Upload local challenges to cloud
+            localChallenges.forEach(c => {
+              if (db) setDoc(doc(db, `users/${userId}/challenges`, c.id), c);
+            });
+          } else {
+            set({ challenges: items });
+          }
         }, (error) => {
           // Silently ignore permission errors until rules are updated
         });

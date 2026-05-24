@@ -203,6 +203,147 @@ function DailyReportCard({ trades }: { trades: ReturnType<typeof useTradeStore.g
   );
 }
 
+function WinLossVisualizer({ trades }: { trades: any[] }) {
+  const wins = useMemo(() => trades.filter(t => t.result === "win").length, [trades]);
+  const losses = useMemo(() => trades.filter(t => t.result === "loss").length, [trades]);
+  const total = wins + losses || 1;
+  const winRate = (wins / total) * 100;
+
+  // Streak calculations
+  const streaks = useMemo(() => {
+    let currentStreak = 0;
+    let currentType: "win" | "loss" | null = null;
+    let maxWinStreak = 0;
+    let maxLossStreak = 0;
+
+    trades.forEach((t) => {
+      if (t.result === "win") {
+        if (currentType === "win") {
+          currentStreak++;
+        } else {
+          currentType = "win";
+          currentStreak = 1;
+        }
+        maxWinStreak = Math.max(maxWinStreak, currentStreak);
+      } else if (t.result === "loss") {
+        if (currentType === "loss") {
+          currentStreak++;
+        } else {
+          currentType = "loss";
+          currentStreak = 1;
+        }
+        maxLossStreak = Math.max(maxLossStreak, currentStreak);
+      }
+    });
+
+    let activeStreak = 0;
+    let activeType: "win" | "loss" | null = null;
+    if (trades.length > 0) {
+      const lastResult = trades[trades.length - 1].result;
+      if (lastResult === "win" || lastResult === "loss") {
+        activeType = lastResult;
+        for (let i = trades.length - 1; i >= 0; i--) {
+          if (trades[i].result === lastResult) {
+            activeStreak++;
+          } else {
+            break;
+          }
+        }
+      }
+    }
+
+    return { activeStreak, activeType, maxWinStreak, maxLossStreak };
+  }, [trades]);
+
+  const size = 90;
+  const strokeWidth = 8;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const strokeDashoffset = circumference - (winRate / 100) * circumference;
+
+  return (
+    <GlassCard className="relative overflow-hidden">
+      <h3 className="font-[family-name:var(--font-syne)] font-bold text-sm mb-4 flex items-center gap-2">
+        <Trophy size={14} className="text-accent-green" /> Win / Loss Tracker
+      </h3>
+      
+      <div className="flex items-center gap-4">
+        {/* Radial Progress Ring */}
+        <div className="relative flex-shrink-0 animate-fade-in" style={{ width: size, height: size }}>
+          <svg className="w-full h-full transform -rotate-90">
+            {/* Background (Losses / base) */}
+            <circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              className="stroke-accent-coral/20"
+              strokeWidth={strokeWidth}
+              fill="transparent"
+            />
+            {/* Foreground (Wins) */}
+            <circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              className="stroke-accent-green transition-all duration-1000 ease-out"
+              strokeWidth={strokeWidth}
+              strokeDasharray={circumference}
+              strokeDashoffset={strokeDashoffset}
+              fill="transparent"
+              strokeLinecap="round"
+            />
+          </svg>
+          {/* Centered Percentage */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="font-[family-name:var(--font-space-mono)] font-bold text-base text-accent-green">
+              {winRate.toFixed(0)}%
+            </span>
+            <span className="text-[8px] text-text-muted uppercase">Wins</span>
+          </div>
+        </div>
+
+        {/* Counts & Streaks */}
+        <div className="flex-1 space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-accent-green/5 border border-accent-green/10 rounded-lg p-1 text-center">
+              <div className="text-[8px] text-text-muted uppercase">Wins</div>
+              <div className="font-[family-name:var(--font-space-mono)] font-bold text-accent-green text-sm">{wins}</div>
+            </div>
+            <div className="bg-accent-coral/5 border border-accent-coral/10 rounded-lg p-1 text-center">
+              <div className="text-[8px] text-text-muted uppercase">Losses</div>
+              <div className="font-[family-name:var(--font-space-mono)] font-bold text-accent-coral text-sm">{losses}</div>
+            </div>
+          </div>
+
+          {/* Active Streak */}
+          {streaks.activeStreak > 0 && (
+            <div className={cn(
+              "flex items-center justify-center gap-1 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider",
+              streaks.activeType === "win" 
+                ? "bg-accent-green/10 text-accent-green border border-accent-green/20" 
+                : "bg-accent-coral/10 text-accent-coral border border-accent-coral/20"
+            )}>
+              {streaks.activeType === "win" ? "🔥" : "❄️"} {streaks.activeStreak} {streaks.activeType === "win" ? "Win" : "Loss"} Streak
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Streak Records */}
+      <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-border-subtle text-center text-xs">
+        <div>
+          <div className="text-[8px] text-text-muted uppercase">Max Win Streak</div>
+          <div className="font-[family-name:var(--font-space-mono)] font-bold text-accent-green text-xs mt-0.5">{streaks.maxWinStreak}</div>
+        </div>
+        <div>
+          <div className="text-[8px] text-text-muted uppercase">Max Loss Streak</div>
+          <div className="font-[family-name:var(--font-space-mono)] font-bold text-accent-coral text-xs mt-0.5">{streaks.maxLossStreak}</div>
+        </div>
+      </div>
+    </GlassCard>
+  );
+}
+
 
 export default function DashboardPage() {
   const { trades } = useTradeStore();
@@ -349,6 +490,7 @@ export default function DashboardPage() {
 
         {/* Sidebar Widgets Stack */}
         <div className="flex flex-col gap-4 lg:col-span-1">
+          <WinLossVisualizer trades={trades} />
           <ProactiveAIWidget />
           <TiltmeterWidget recentLosses={3} avgHoldTimeDeviation={1.5} volumeSpike={false} />
         </div>
