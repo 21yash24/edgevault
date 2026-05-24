@@ -1,7 +1,8 @@
 "use client";
-import { usePropFirmStore } from "@/stores";
+import { usePropFirmStore, useTradeStore } from "@/stores";
 import { GlassCard } from "@/components/ui/glass-card";
-import { PROP_FIRM_RULES, PropFirmPhase } from "@/lib/types";
+import { PROP_FIRM_RULES, PropFirmPhase, PropFirmChallenge } from "@/lib/types";
+import { getComputedChallenge } from "@/lib/calculations";
 import { cn, formatCurrency } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMemo, useState, useEffect } from "react";
@@ -31,15 +32,17 @@ function ProgressBar({ value, max, label, color = "bg-accent-green", danger = fa
   );
 }
 
-function ChallengeCard({ challenge }: { challenge: ReturnType<typeof usePropFirmStore.getState>["challenges"][0] }) {
+function ChallengeCard({ challenge }: { challenge: PropFirmChallenge & { hasDailyLossBreach: boolean; hasDrawdownBreach: boolean } }) {
   const profitPct = (challenge.currentPnl / challenge.accountSize) * 100;
-  const drawdownFromHWM = ((challenge.highWaterMark - challenge.currentBalance) / challenge.accountSize) * 100;
+  const drawdownFromHWM = challenge.rules.trailingDrawdown
+    ? ((challenge.highWaterMark - challenge.currentBalance) / challenge.accountSize) * 100
+    : Math.max(0, ((challenge.accountSize - challenge.currentBalance) / challenge.accountSize) * 100);
   const daysUsed = differenceInDays(new Date(), new Date(challenge.startDate));
   const daysLeft = challenge.rules.maxDuration > 0 ? challenge.rules.maxDuration - daysUsed : null;
 
-  const profitTargetReached = profitPct >= challenge.rules.profitTarget;
-  const dailyLimitBreached = false; // Would be computed from today's trades
-  const drawdownBreached = drawdownFromHWM >= challenge.rules.maxDrawdown;
+  const profitTargetReached = challenge.rules.profitTarget > 0 && profitPct >= challenge.rules.profitTarget;
+  const dailyLimitBreached = challenge.hasDailyLossBreach;
+  const drawdownBreached = challenge.hasDrawdownBreach;
   const minDaysMet = challenge.tradingDays >= challenge.rules.minTradingDays;
 
   return (
@@ -138,6 +141,7 @@ function ChallengeCard({ challenge }: { challenge: ReturnType<typeof usePropFirm
 
 export default function PropTrackerPage() {
   const { challenges, addChallenge } = usePropFirmStore();
+  const { trades } = useTradeStore();
   const [mounted, setMounted] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [selectedFirm, setSelectedFirm] = useState("");
@@ -152,7 +156,17 @@ export default function PropTrackerPage() {
   const firmNames = Object.keys(PROP_FIRM_RULES);
   const phases = selectedFirm ? Object.keys(PROP_FIRM_RULES[selectedFirm].phases) : [];
 
-  const filtered = statusFilter === "all" ? challenges : challenges.filter((c) => c.status === statusFilter);
+  const computedChallenges = useMemo(() => {
+    return challenges.map(c => {
+      const comp = getComputedChallenge(c, trades);
+      return {
+        ...c,
+        ...comp
+      };
+    });
+  }, [challenges, trades]);
+
+  const filtered = statusFilter === "all" ? computedChallenges : computedChallenges.filter((c) => c.status === statusFilter);
 
   const handleAdd = () => {
     if (!selectedFirm || !selectedPhase) return;

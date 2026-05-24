@@ -1,7 +1,7 @@
 "use client";
 import { useState, useMemo, useEffect, useRef, use } from "react";
 import { useRouter } from "next/navigation";
-import { useTradeStore } from "@/stores";
+import { useTradeStore, usePropFirmStore, usePlaybookStore } from "@/stores";
 import { GlassCard } from "@/components/ui/glass-card";
 import { SYMBOLS, SETUP_TAGS, SESSION_TAGS, MARKET_CONDITIONS, MISTAKE_TAGS, PLAYBOOKS, MINDSET_TAGS, Trade, SessionTag, MarketCondition, MistakeTag } from "@/lib/types";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -99,6 +99,21 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
   const [marketCondition, setMarketCondition] = useState<MarketCondition>("Trending");
   const [mistakeTags, setMistakeTags] = useState<MistakeTag[]>([]);
   const [playbook, setPlaybook] = useState("");
+  const [propChallengeId, setPropChallengeId] = useState("");
+  const { challenges } = usePropFirmStore();
+  const { playbooks } = usePlaybookStore();
+
+  const activeChallenges = useMemo(() => 
+    challenges.filter(c => c.status === "active" || c.id === propChallengeId), 
+    [challenges, propChallengeId]
+  );
+
+  const allPlaybooks = useMemo(() => {
+    const customs = playbooks.map(p => p.name);
+    const defaults = ["ICT Silver Bullet", "Liquidity Sweep + IFVG", "Opening Range Breakout", "VWAP Mean Reversion", "SMT + OB Confluence", "London Session Sweep", "Asian Range Breakout"];
+    return Array.from(new Set([...customs, ...defaults]));
+  }, [playbooks]);
+
   const [mindsetTags, setMindsetTags] = useState<string[]>([]);
   const [mindsetNotes, setMindsetNotes] = useState("");
   const [screenshotUrls, setScreenshotUrls] = useState<string[]>([]);
@@ -117,6 +132,7 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
       setMarketCondition(trade.marketCondition);
       setMistakeTags(trade.mistakeTags);
       setPlaybook(trade.playbook || "");
+      setPropChallengeId(trade.propChallengeId || "");
       setMindsetTags(trade.mindsetTags || []);
       setMindsetNotes(trade.mindsetNotes || "");
       setScreenshotUrls(trade.screenshotUrls || []);
@@ -201,6 +217,7 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
       marketCondition,
       mistakeTags,
       playbook: playbook || undefined,
+      propChallengeId: propChallengeId || "",
       durationMinutes: Math.max(durationMinutes, 1),
       screenshotUrls,
       mindsetTags,
@@ -358,14 +375,31 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
         <GlassCard>
           <h2 className="font-[family-name:var(--font-syne)] font-bold text-base mb-4">Psychology & Tags</h2>
           <div className="space-y-4">
+            {/* Playbook */}
             <div>
               <label className="text-xs text-text-muted uppercase tracking-wider mb-1.5 block">Playbook</label>
               <select value={playbook} onChange={(e) => setPlaybook(e.target.value)}
-                className="w-full bg-bg-card border border-border-subtle rounded-xl px-4 py-2.5 text-sm appearance-none">
+                className="w-full bg-bg-card border border-border-subtle rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-accent-violet/40 transition-colors appearance-none">
                 <option value="">Select playbook...</option>
-                {PLAYBOOKS.map((p) => <option key={p} value={p}>{p}</option>)}
+                {allPlaybooks.map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
             </div>
+
+            {/* Prop Challenge Selection */}
+            {activeChallenges.length > 0 && (
+              <div>
+                <label className="text-xs text-text-muted uppercase tracking-wider mb-1.5 block">Link to Prop Challenge</label>
+                <select value={propChallengeId} onChange={(e) => setPropChallengeId(e.target.value)}
+                  className="w-full bg-bg-card border border-border-subtle rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-accent-violet/40 transition-colors appearance-none">
+                  <option value="">Do not link challenge...</option>
+                  {activeChallenges.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.firmName} ({c.phase}) - ${c.accountSize.toLocaleString()}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div>
               <label className="text-xs text-text-muted uppercase tracking-wider mb-2 block">

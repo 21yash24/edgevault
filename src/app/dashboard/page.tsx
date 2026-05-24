@@ -3,7 +3,7 @@ import { useTradeStore, usePropFirmStore } from "@/stores";
 import { StatCard } from "@/components/ui/stat-card";
 import { GlassCard } from "@/components/ui/glass-card";
 import { NumberTicker } from "@/components/ui/number-ticker";
-import { calculateMetrics, getEquityCurve, getDailyStats } from "@/lib/calculations";
+import { calculateMetrics, getEquityCurve, getDailyStats, getComputedChallenge } from "@/lib/calculations";
 import { formatCurrency, formatPercent, formatTimeAgo, cn, getHeatmapColor } from "@/lib/utils";
 import { analyzeDailyPerformance, DailyReport } from "@/lib/gemini";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, differenceInDays, isToday } from "date-fns";
@@ -367,7 +367,19 @@ export default function DashboardPage() {
   const todayStr = format(new Date(), "yyyy-MM-dd");
   const todayTrades = useMemo(() => trades.filter((t) => t.entryDate.startsWith(todayStr)), [trades, todayStr]);
   const todayPnl = todayTrades.reduce((s, t) => s + t.netPnl, 0);
-  const activeChallenges = challenges.filter((c) => c.status === "active");
+  const computedChallenges = useMemo(() => {
+    return challenges.map(c => {
+      const comp = getComputedChallenge(c, trades);
+      return {
+        ...c,
+        ...comp
+      };
+    });
+  }, [challenges, trades]);
+
+  const activeChallenges = useMemo(() => {
+    return computedChallenges.filter((c) => c.status === "active");
+  }, [computedChallenges]);
   const currentBalance = trades.length > 0 ? trades[trades.length - 1].accountEquityAfter : 50000;
 
   const containerVariants: any = {

@@ -1,5 +1,5 @@
-import { Trade, DailyStats, PerformanceMetrics } from "./types";
-import { format } from "date-fns";
+import { Trade, DailyStats, PerformanceMetrics, PropFirmChallenge } from "./types";
+import { format, differenceInDays } from "date-fns";
 
 export function calculateMetrics(trades: Trade[]): PerformanceMetrics {
   if (trades.length === 0) {
@@ -212,4 +212,104 @@ export function getWinRateByMindset(trades: Trade[]): { name: string; winRate: n
   return Array.from(map.entries())
     .map(([name, { wins, total, pnl }]) => ({ name, winRate: parseFloat(((wins / total) * 100).toFixed(1)), total, pnl }))
     .sort((a, b) => b.pnl - a.pnl);
+}
+
+export interface ComputedChallenge {
+  currentBalance: number;
+  currentPnl: number;
+  highWaterMark: number;
+  tradingDays: number;
+  status: "active" | "passed" | "breached" | "funded";
+  hasDailyLossBreach: boolean;
+  hasDrawdownBreach: boolean;
+  profitPct: number;
+  drawdownPct: number;
+  daysUsed: number;
+  daysLeft: number | null;
+  profitTargetReached: boolean;
+  minDaysMet: boolean;
+}
+
+export function getComputedChallenge(challenge: PropFirmChallenge, trades: Trade[]): ComputedChallenge {
+  const challengeTrades = trades.filter((t) => t.propChallengeId === challenge.id);
+  const sorted = [...challengeTrades].sort((a, b) => new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime());
+
+  let balance = challenge.accountSize;
+  let pnl = 0;
+  let hwm = challenge.accountSize;
+
+  const uniqueDays = new Set<string>();
+  const dailyPnls: Record<string, number> = {};
+  let hasDailyLossBreach = false;
+  let hasDrawdownBreach = false;
+
+  const dailyLossLimitVal = challenge.rules.dailyLossLimit ? challenge.accountSize * (challenge.rules.dailyLossLimit / 100) : 0;
+  const maxDrawdownVal = challenge.rules.maxDrawdown ? challenge.accountSize * (challenge.rules.maxDrawdown / 100) : 0;
+
+  for (const t of sorted) {
+    pnl += t.netPnl;
+    balance += t.netPnl;
+
+    if (balance > hwm) {
+      hwm = balance;
+    }
+
+    const drawdown = challenge.rules.trailingDrawdown
+      ? hwm - balance
+      : challenge.accountSize - balance;
+
+    if (maxDrawdownVal > 0 && drawdown > maxDrawdownVal) {
+      hasDrawdownBreach = true;
+    }
+
+    const dateStr = t.entryDate.split("T")[0];
+    uniqueDays.add(dateStr);
+    dailyPnls[dateStr] = (dailyPnls[dateStr] || 0) + t.netPnl;
+
+    if (dailyLossLimitVal > 0 && dailyPnls[dateStr] < -dailyLossLimitVal) {
+      hasDailyLossBreach = true;
+    }
+  }
+
+  const tradingDays = uniqueDays.size;
+
+  // Determine status
+  let status = challenge.status;
+  if (hasDailyLossBreach || hasDrawdownBreach) {
+    status = "breached";
+  } else if (challenge.status === "active") {
+    const targetPnl = challenge.accountSize * (challenge.rules.profitTarget / 100);
+    const targetReached = challenge.rules.profitTarget > 0 && pnl >= targetPnl;
+    const minDaysMet = tradingDays >= challenge.rules.minTradingDays;
+    if (targetReached && minDaysMet) {
+      status = "passed";
+    }
+  }
+
+  const profitPct = (pnl / challenge.accountSize) * 100;
+  const drawdownPct = challenge.rules.trailingDrawdown
+    ? ((hwm - balance) / challenge.accountSize) * 100
+    : Math.max(0, ((challenge.accountSize - balance) / challenge.accountSize) * 100);
+
+  const daysUsed = differenceInDays(new Date(), new Date(challenge.startDate));
+  const daysLeft = challenge.rules.maxDuration > 0 ? challenge.rules.maxDuration - daysUsed : null;
+
+  const profitTargetReached = challenge.rules.profitTarget > 0 && profitPct >= challenge.rules.profitTarget;
+  const minDaysMet = tradingDays >= challenge.rules.minTradingDays;
+
+  return {
+    currentBalance: parseFloat(balance.toFixed(2)),
+    currentPnl: parseFloat(pnl.toFixed(2)),
+    highWaterMark: parseFloat(hwm.toFixed(2)),
+    tradingDays,
+    status,
+    hasDailyLossBreach,
+    hasDrawdownBreach,
+    profitPct,
+    drawdownPct,
+    daysUsed,
+    daysLeft,
+    profitTargetReached,
+    minDaysMet
+  };
 }

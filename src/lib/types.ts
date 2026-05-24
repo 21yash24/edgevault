@@ -37,6 +37,7 @@ export interface Trade {
   mfe?: number;
   isPublic?: boolean;
   publicUrl?: string;
+  propChallengeId?: string;
 }
 
 export interface DailyStats {
@@ -182,6 +183,13 @@ export interface PropFirmChallenge {
 }
 
 export const PROP_FIRM_RULES: Record<string, { phases: Record<string, PropFirmRules> }> = {
+  "Lucid": {
+    phases: {
+      "Phase 1": { firmName: "Lucid", profitTarget: 10, dailyLossLimit: 5, maxDrawdown: 10, minTradingDays: 0, maxDuration: 0, trailingDrawdown: false, newsRestriction: false, weekendHolding: true },
+      "Phase 2": { firmName: "Lucid", profitTarget: 5, dailyLossLimit: 5, maxDrawdown: 10, minTradingDays: 0, maxDuration: 0, trailingDrawdown: false, newsRestriction: false, weekendHolding: true },
+      "Funded": { firmName: "Lucid", profitTarget: 0, dailyLossLimit: 5, maxDrawdown: 10, minTradingDays: 0, maxDuration: 0, trailingDrawdown: false, newsRestriction: false, weekendHolding: true },
+    },
+  },
   "FTMO": {
     phases: {
       "Phase 1": { firmName: "FTMO", profitTarget: 10, dailyLossLimit: 5, maxDrawdown: 10, minTradingDays: 4, maxDuration: 30, trailingDrawdown: false, newsRestriction: false, weekendHolding: true },

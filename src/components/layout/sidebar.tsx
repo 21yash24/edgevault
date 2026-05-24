@@ -15,7 +15,6 @@ const navItems = [
   { href: "/journal", label: "Journal", icon: BookOpen },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/playbook", label: "Playbook", icon: Target },
-  { href: "/accounts", label: "Accounts", icon: Wallet },
   { href: "/prop-tracker", label: "Prop Tracker", icon: Trophy },
   { href: "/risk", label: "Risk Manager", icon: Shield },
   { href: "/integrations", label: "Integrations", icon: PlugZap },
