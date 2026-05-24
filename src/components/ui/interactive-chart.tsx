@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef, useMemo } from "react";
+import React, { useEffect, useRef, useMemo, useState } from "react";
 import { createChart, ColorType, CrosshairMode, CandlestickSeries, createSeriesMarkers } from "lightweight-charts";
 import { Trade } from "@/lib/types";
 
@@ -111,14 +111,122 @@ function generateTradeCandles(trade: Trade) {
 export function InteractiveChart({ trade }: { trade: Trade }) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
 
-  // Generate dynamic candles and marker times once
-  const { candles, entryCandleTime, exitCandleTime, intervalMs } = useMemo(
-    () => generateTradeCandles(trade),
-    [trade]
-  );
+  const [chartState, setChartState] = useState<{
+    candles: any[];
+    entryCandleTime: number;
+    exitCandleTime: number;
+    intervalMs: number;
+    isReal: boolean;
+    isLoading: boolean;
+  }>({
+    candles: [],
+    entryCandleTime: 0,
+    exitCandleTime: 0,
+    intervalMs: 60000,
+    isReal: false,
+    isLoading: true,
+  });
+
+  // Fetch real market data or fall back to simulated candles
+  useEffect(() => {
+    let active = true;
+    setChartState((s) => ({ ...s, isLoading: true }));
+
+    async function loadData() {
+      try {
+        const queryParams = new URLSearchParams({
+          symbol: trade.symbol,
+          entryDate: trade.entryDate,
+          exitDate: trade.exitDate,
+        });
+        const res = await fetch(`/api/market-data?${queryParams.toString()}`);
+        if (!res.ok) {
+          throw new Error(`API returned status ${res.status}`);
+        }
+        const data = await res.json();
+        if (!data.candles || data.candles.length === 0) {
+          throw new Error("Empty candles list returned");
+        }
+
+        const realCandles = data.candles;
+        const entryTimeSec = Math.floor(new Date(trade.entryDate).getTime() / 1000);
+        const exitTimeSec = Math.floor(new Date(trade.exitDate).getTime() / 1000);
+
+        let entryIdx = 0;
+        let exitIdx = 0;
+        let minEntryDiff = Infinity;
+        let minExitDiff = Infinity;
+
+        for (let i = 0; i < realCandles.length; i++) {
+          const cTime = realCandles[i].time;
+          const entryDiff = Math.abs(cTime - entryTimeSec);
+          const exitDiff = Math.abs(cTime - exitTimeSec);
+
+          if (entryDiff < minEntryDiff) {
+            minEntryDiff = entryDiff;
+            entryIdx = i;
+          }
+          if (exitDiff < minExitDiff) {
+            minExitDiff = exitDiff;
+            exitIdx = i;
+          }
+        }
+
+        if (exitIdx <= entryIdx) {
+          exitIdx = Math.min(entryIdx + 1, realCandles.length - 1);
+        }
+
+        const entryCandleTime = realCandles[entryIdx].time;
+        const exitCandleTime = realCandles[exitIdx].time;
+
+        // intervalMs estimation for showing/hiding seconds
+        let intervalMs = 60000;
+        if (data.interval === "1m") intervalMs = 60 * 1000;
+        else if (data.interval === "2m") intervalMs = 2 * 60 * 1000;
+        else if (data.interval === "5m") intervalMs = 5 * 60 * 1000;
+        else if (data.interval === "15m") intervalMs = 15 * 60 * 1000;
+        else if (data.interval === "30m") intervalMs = 30 * 60 * 1000;
+        else if (data.interval === "60m") intervalMs = 60 * 60 * 1000;
+        else if (data.interval === "1d") intervalMs = 24 * 60 * 60 * 1000;
+
+        if (active) {
+          setChartState({
+            candles: realCandles,
+            entryCandleTime,
+            exitCandleTime,
+            intervalMs,
+            isReal: true,
+            isLoading: false,
+          });
+        }
+      } catch (err) {
+        console.warn(`Failed to fetch real market data for ${trade.symbol}, falling back to simulated candles:`, err);
+        // Fallback to simulated candles
+        const sim = generateTradeCandles(trade);
+        if (active) {
+          setChartState({
+            candles: sim.candles,
+            entryCandleTime: sim.entryCandleTime,
+            exitCandleTime: sim.exitCandleTime,
+            intervalMs: sim.intervalMs,
+            isReal: false,
+            isLoading: false,
+          });
+        }
+      }
+    }
+
+    loadData();
+
+    return () => {
+      active = false;
+    };
+  }, [trade]);
+
+  const { candles, entryCandleTime, exitCandleTime, intervalMs, isReal, isLoading } = chartState;
 
   useEffect(() => {
-    if (!chartContainerRef.current) return;
+    if (isLoading || candles.length === 0 || !chartContainerRef.current) return;
 
     const chart = createChart(chartContainerRef.current, {
       layout: {
@@ -209,11 +317,26 @@ export function InteractiveChart({ trade }: { trade: Trade }) {
     return () => {
       chart.remove();
     };
-  }, [candles, entryCandleTime, exitCandleTime, intervalMs, trade]);
+  }, [candles, entryCandleTime, exitCandleTime, intervalMs, isLoading, trade]);
 
   return (
     <div className="w-full h-full relative" ref={chartContainerRef}>
-      {/* Chart is injected here */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-[#0B0F19]/65 backdrop-blur-md flex flex-col items-center justify-center rounded-xl z-20 border border-white/5 animate-fade-in">
+          <div className="w-8 h-8 rounded-full border-2 border-t-emerald-400 border-r-transparent border-b-transparent border-l-transparent animate-spin mb-3"></div>
+          <p className="text-xs text-text-muted font-medium tracking-wide">Syncing real market history for {trade.symbol}...</p>
+        </div>
+      )}
+      {!isLoading && (
+        <div className={`absolute top-3 right-3 z-10 flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold tracking-wider uppercase backdrop-blur-md transition-all duration-300 ${
+          isReal 
+            ? "bg-emerald-500/10 border border-emerald-500/25 text-emerald-400" 
+            : "bg-white/5 border border-white/10 text-text-muted"
+        }`}>
+          {isReal && <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>}
+          {isReal ? "Real Market Data" : "Simulated Replay"}
+        </div>
+      )}
     </div>
   );
 }
