@@ -243,8 +243,15 @@ export function getComputedChallenge(challenge: PropFirmChallenge, trades: Trade
   let hasDailyLossBreach = false;
   let hasDrawdownBreach = false;
 
-  const dailyLossLimitVal = challenge.rules.dailyLossLimit ? challenge.accountSize * (challenge.rules.dailyLossLimit / 100) : 0;
-  const maxDrawdownVal = challenge.rules.maxDrawdown ? challenge.accountSize * (challenge.rules.maxDrawdown / 100) : 0;
+  const isFutures = challenge.rules.isFutures;
+
+  const dailyLossLimitVal = challenge.rules.dailyLossLimit
+    ? (isFutures ? challenge.rules.dailyLossLimit : challenge.accountSize * (challenge.rules.dailyLossLimit / 100))
+    : 0;
+
+  const maxDrawdownVal = challenge.rules.maxDrawdown
+    ? (isFutures ? challenge.rules.maxDrawdown : challenge.accountSize * (challenge.rules.maxDrawdown / 100))
+    : 0;
 
   for (const t of sorted) {
     pnl += t.netPnl;
@@ -278,7 +285,10 @@ export function getComputedChallenge(challenge: PropFirmChallenge, trades: Trade
   if (hasDailyLossBreach || hasDrawdownBreach) {
     status = "breached";
   } else if (challenge.status === "active") {
-    const targetPnl = challenge.accountSize * (challenge.rules.profitTarget / 100);
+    const targetPnl = isFutures
+      ? challenge.rules.profitTarget
+      : challenge.accountSize * (challenge.rules.profitTarget / 100);
+
     const targetReached = challenge.rules.profitTarget > 0 && pnl >= targetPnl;
     const minDaysMet = tradingDays >= challenge.rules.minTradingDays;
     if (targetReached && minDaysMet) {
@@ -286,15 +296,22 @@ export function getComputedChallenge(challenge: PropFirmChallenge, trades: Trade
     }
   }
 
-  const profitPct = (pnl / challenge.accountSize) * 100;
-  const drawdownPct = challenge.rules.trailingDrawdown
-    ? ((hwm - balance) / challenge.accountSize) * 100
-    : Math.max(0, ((challenge.accountSize - balance) / challenge.accountSize) * 100);
+  // If futures, value and max for progress are raw P&L and absolute profit target, respectively
+  // For drawdowns, it's raw drawdown and absolute max drawdown limit
+  const profitPct = isFutures ? pnl : (pnl / challenge.accountSize) * 100;
+  const drawdownPct = isFutures 
+    ? (challenge.rules.trailingDrawdown ? (hwm - balance) : Math.max(0, challenge.accountSize - balance))
+    : (challenge.rules.trailingDrawdown
+        ? ((hwm - balance) / challenge.accountSize) * 100
+        : Math.max(0, ((challenge.accountSize - balance) / challenge.accountSize) * 100));
 
   const daysUsed = differenceInDays(new Date(), new Date(challenge.startDate));
   const daysLeft = challenge.rules.maxDuration > 0 ? challenge.rules.maxDuration - daysUsed : null;
 
-  const profitTargetReached = challenge.rules.profitTarget > 0 && profitPct >= challenge.rules.profitTarget;
+  const profitTargetReached = isFutures
+    ? (challenge.rules.profitTarget > 0 && pnl >= challenge.rules.profitTarget)
+    : (challenge.rules.profitTarget > 0 && profitPct >= challenge.rules.profitTarget);
+
   const minDaysMet = tradingDays >= challenge.rules.minTradingDays;
 
   return {

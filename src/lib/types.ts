@@ -156,14 +156,16 @@ export type PropFirmPhase = "Phase 1" | "Phase 2" | "Funded" | "Breached" | "Pas
 
 export interface PropFirmRules {
   firmName: string;
-  profitTarget: number; // percent
-  dailyLossLimit: number; // percent
-  maxDrawdown: number; // percent
+  profitTarget: number; // percent or absolute USD depending on isFutures
+  dailyLossLimit: number; // percent or absolute USD depending on isFutures
+  maxDrawdown: number; // percent or absolute USD depending on isFutures
   minTradingDays: number;
   maxDuration: number; // days, 0 = unlimited
   trailingDrawdown: boolean;
   newsRestriction: boolean;
   weekendHolding: boolean;
+  isFutures?: boolean;
+  maxContracts?: number;
 }
 
 export interface PropFirmChallenge {
@@ -182,69 +184,128 @@ export interface PropFirmChallenge {
   status: "active" | "passed" | "breached" | "funded";
 }
 
-export const PROP_FIRM_RULES: Record<string, { phases: Record<string, PropFirmRules> }> = {
+export const PROP_FIRM_RULES: Record<string, { isFutures?: boolean; phases: Record<string, any> }> = {
   "Lucid": {
+    isFutures: true,
     phases: {
-      "Phase 1": { firmName: "Lucid", profitTarget: 10, dailyLossLimit: 5, maxDrawdown: 10, minTradingDays: 0, maxDuration: 0, trailingDrawdown: false, newsRestriction: false, weekendHolding: true },
-      "Phase 2": { firmName: "Lucid", profitTarget: 5, dailyLossLimit: 5, maxDrawdown: 10, minTradingDays: 0, maxDuration: 0, trailingDrawdown: false, newsRestriction: false, weekendHolding: true },
-      "Funded": { firmName: "Lucid", profitTarget: 0, dailyLossLimit: 5, maxDrawdown: 10, minTradingDays: 0, maxDuration: 0, trailingDrawdown: false, newsRestriction: false, weekendHolding: true },
-    },
+      "Phase 1": {
+        25000: { firmName: "Lucid", profitTarget: 1250, dailyLossLimit: 1000, maxDrawdown: 1000, minTradingDays: 0, maxDuration: 0, trailingDrawdown: true, newsRestriction: false, weekendHolding: true, isFutures: true, maxContracts: 3 },
+        50000: { firmName: "Lucid", profitTarget: 3000, dailyLossLimit: 2000, maxDrawdown: 2000, minTradingDays: 0, maxDuration: 0, trailingDrawdown: true, newsRestriction: false, weekendHolding: true, isFutures: true, maxContracts: 5 },
+        100000: { firmName: "Lucid", profitTarget: 6000, dailyLossLimit: 3000, maxDrawdown: 3000, minTradingDays: 0, maxDuration: 0, trailingDrawdown: true, newsRestriction: false, weekendHolding: true, isFutures: true, maxContracts: 10 },
+        150000: { firmName: "Lucid", profitTarget: 9000, dailyLossLimit: 4500, maxDrawdown: 4500, minTradingDays: 0, maxDuration: 0, trailingDrawdown: true, newsRestriction: false, weekendHolding: true, isFutures: true, maxContracts: 15 },
+      },
+      "Phase 2": {
+        25000: { firmName: "Lucid", profitTarget: 1250, dailyLossLimit: 1000, maxDrawdown: 1000, minTradingDays: 0, maxDuration: 0, trailingDrawdown: true, newsRestriction: false, weekendHolding: true, isFutures: true, maxContracts: 3 },
+        50000: { firmName: "Lucid", profitTarget: 3000, dailyLossLimit: 2000, maxDrawdown: 2000, minTradingDays: 0, maxDuration: 0, trailingDrawdown: true, newsRestriction: false, weekendHolding: true, isFutures: true, maxContracts: 5 },
+        100000: { firmName: "Lucid", profitTarget: 6000, dailyLossLimit: 3000, maxDrawdown: 3000, minTradingDays: 0, maxDuration: 0, trailingDrawdown: true, newsRestriction: false, weekendHolding: true, isFutures: true, maxContracts: 10 },
+        150000: { firmName: "Lucid", profitTarget: 9000, dailyLossLimit: 4500, maxDrawdown: 4500, minTradingDays: 0, maxDuration: 0, trailingDrawdown: true, newsRestriction: false, weekendHolding: true, isFutures: true, maxContracts: 15 },
+      },
+      "Funded": {
+        25000: { firmName: "Lucid", profitTarget: 0, dailyLossLimit: 1000, maxDrawdown: 1000, minTradingDays: 0, maxDuration: 0, trailingDrawdown: true, newsRestriction: false, weekendHolding: true, isFutures: true, maxContracts: 3 },
+        50000: { firmName: "Lucid", profitTarget: 0, dailyLossLimit: 2000, maxDrawdown: 2000, minTradingDays: 0, maxDuration: 0, trailingDrawdown: true, newsRestriction: false, weekendHolding: true, isFutures: true, maxContracts: 5 },
+        100000: { firmName: "Lucid", profitTarget: 0, dailyLossLimit: 3000, maxDrawdown: 3000, minTradingDays: 0, maxDuration: 0, trailingDrawdown: true, newsRestriction: false, weekendHolding: true, isFutures: true, maxContracts: 10 },
+        150000: { firmName: "Lucid", profitTarget: 0, dailyLossLimit: 4500, maxDrawdown: 4500, minTradingDays: 0, maxDuration: 0, trailingDrawdown: true, newsRestriction: false, weekendHolding: true, isFutures: true, maxContracts: 15 },
+      }
+    }
+  },
+  "TopStep": {
+    isFutures: true,
+    phases: {
+      "Phase 1": {
+        50000: { firmName: "TopStep", profitTarget: 3000, dailyLossLimit: 1000, maxDrawdown: 2000, minTradingDays: 5, maxDuration: 0, trailingDrawdown: false, newsRestriction: true, weekendHolding: false, isFutures: true, maxContracts: 5 },
+        100000: { firmName: "TopStep", profitTarget: 6000, dailyLossLimit: 2000, maxDrawdown: 3000, minTradingDays: 5, maxDuration: 0, trailingDrawdown: false, newsRestriction: true, weekendHolding: false, isFutures: true, maxContracts: 10 },
+        150000: { firmName: "TopStep", profitTarget: 9000, dailyLossLimit: 3000, maxDrawdown: 4500, minTradingDays: 5, maxDuration: 0, trailingDrawdown: false, newsRestriction: true, weekendHolding: false, isFutures: true, maxContracts: 15 },
+      },
+      "Phase 2": {
+        50000: { firmName: "TopStep", profitTarget: 3000, dailyLossLimit: 1000, maxDrawdown: 2000, minTradingDays: 5, maxDuration: 0, trailingDrawdown: false, newsRestriction: true, weekendHolding: false, isFutures: true, maxContracts: 5 },
+        100000: { firmName: "TopStep", profitTarget: 6000, dailyLossLimit: 2000, maxDrawdown: 3000, minTradingDays: 5, maxDuration: 0, trailingDrawdown: false, newsRestriction: true, weekendHolding: false, isFutures: true, maxContracts: 10 },
+        150000: { firmName: "TopStep", profitTarget: 9000, dailyLossLimit: 3000, maxDrawdown: 4500, minTradingDays: 5, maxDuration: 0, trailingDrawdown: false, newsRestriction: true, weekendHolding: false, isFutures: true, maxContracts: 15 },
+      },
+      "Funded": {
+        50000: { firmName: "TopStep", profitTarget: 0, dailyLossLimit: 1000, maxDrawdown: 2000, minTradingDays: 0, maxDuration: 0, trailingDrawdown: false, newsRestriction: true, weekendHolding: false, isFutures: true, maxContracts: 5 },
+        100000: { firmName: "TopStep", profitTarget: 0, dailyLossLimit: 2000, maxDrawdown: 3000, minTradingDays: 0, maxDuration: 0, trailingDrawdown: false, newsRestriction: true, weekendHolding: false, isFutures: true, maxContracts: 10 },
+        150000: { firmName: "TopStep", profitTarget: 0, dailyLossLimit: 3000, maxDrawdown: 4500, minTradingDays: 0, maxDuration: 0, trailingDrawdown: false, newsRestriction: true, weekendHolding: false, isFutures: true, maxContracts: 15 },
+      }
+    }
+  },
+  "Apex": {
+    isFutures: true,
+    phases: {
+      "Phase 1": {
+        25000: { firmName: "Apex", profitTarget: 1500, dailyLossLimit: 0, maxDrawdown: 1500, minTradingDays: 7, maxDuration: 0, trailingDrawdown: true, newsRestriction: false, weekendHolding: false, isFutures: true, maxContracts: 3 },
+        50000: { firmName: "Apex", profitTarget: 3000, dailyLossLimit: 0, maxDrawdown: 2500, minTradingDays: 7, maxDuration: 0, trailingDrawdown: true, newsRestriction: false, weekendHolding: false, isFutures: true, maxContracts: 10 },
+        100000: { firmName: "Apex", profitTarget: 6000, dailyLossLimit: 0, maxDrawdown: 3000, minTradingDays: 7, maxDuration: 0, trailingDrawdown: true, newsRestriction: false, weekendHolding: false, isFutures: true, maxContracts: 14 },
+      },
+      "Funded": {
+        25000: { firmName: "Apex", profitTarget: 0, dailyLossLimit: 0, maxDrawdown: 1500, minTradingDays: 0, maxDuration: 0, trailingDrawdown: true, newsRestriction: false, weekendHolding: false, isFutures: true, maxContracts: 3 },
+        50000: { firmName: "Apex", profitTarget: 0, dailyLossLimit: 0, maxDrawdown: 2500, minTradingDays: 0, maxDuration: 0, trailingDrawdown: true, newsRestriction: false, weekendHolding: false, isFutures: true, maxContracts: 10 },
+        100000: { firmName: "Apex", profitTarget: 0, dailyLossLimit: 0, maxDrawdown: 3000, minTradingDays: 0, maxDuration: 0, trailingDrawdown: true, newsRestriction: false, weekendHolding: false, isFutures: true, maxContracts: 14 },
+      }
+    }
   },
   "FTMO": {
     phases: {
       "Phase 1": { firmName: "FTMO", profitTarget: 10, dailyLossLimit: 5, maxDrawdown: 10, minTradingDays: 4, maxDuration: 30, trailingDrawdown: false, newsRestriction: false, weekendHolding: true },
       "Phase 2": { firmName: "FTMO", profitTarget: 5, dailyLossLimit: 5, maxDrawdown: 10, minTradingDays: 4, maxDuration: 60, trailingDrawdown: false, newsRestriction: false, weekendHolding: true },
-    },
-  },
-  "Apex": {
-    phases: {
-      "Phase 1": { firmName: "Apex", profitTarget: 6, dailyLossLimit: 2.5, maxDrawdown: 6, minTradingDays: 7, maxDuration: 0, trailingDrawdown: true, newsRestriction: false, weekendHolding: false },
-    },
-  },
-  "TopStep": {
-    phases: {
-      "Phase 1": { firmName: "TopStep", profitTarget: 6, dailyLossLimit: 2, maxDrawdown: 4, minTradingDays: 5, maxDuration: 0, trailingDrawdown: false, newsRestriction: true, weekendHolding: false },
-      "Phase 2": { firmName: "TopStep", profitTarget: 3, dailyLossLimit: 2, maxDrawdown: 4, minTradingDays: 5, maxDuration: 0, trailingDrawdown: false, newsRestriction: true, weekendHolding: false },
-    },
+    }
   },
   "MyForexFunds": {
     phases: {
       "Phase 1": { firmName: "MyForexFunds", profitTarget: 8, dailyLossLimit: 5, maxDrawdown: 12, minTradingDays: 5, maxDuration: 30, trailingDrawdown: false, newsRestriction: true, weekendHolding: true },
       "Phase 2": { firmName: "MyForexFunds", profitTarget: 5, dailyLossLimit: 5, maxDrawdown: 12, minTradingDays: 5, maxDuration: 60, trailingDrawdown: false, newsRestriction: true, weekendHolding: true },
-    },
+    }
   },
   "E8 Funding": {
     phases: {
       "Phase 1": { firmName: "E8 Funding", profitTarget: 8, dailyLossLimit: 5, maxDrawdown: 8, minTradingDays: 0, maxDuration: 30, trailingDrawdown: false, newsRestriction: false, weekendHolding: true },
-    },
+    }
   },
   "FundedNext": {
     phases: {
       "Phase 1": { firmName: "FundedNext", profitTarget: 10, dailyLossLimit: 5, maxDrawdown: 10, minTradingDays: 5, maxDuration: 30, trailingDrawdown: false, newsRestriction: false, weekendHolding: true },
       "Phase 2": { firmName: "FundedNext", profitTarget: 5, dailyLossLimit: 5, maxDrawdown: 10, minTradingDays: 5, maxDuration: 60, trailingDrawdown: false, newsRestriction: false, weekendHolding: true },
-    },
+    }
   },
   "Goat Funded": {
     phases: {
       "Phase 1": { firmName: "Goat Funded", profitTarget: 8, dailyLossLimit: 5, maxDrawdown: 10, minTradingDays: 3, maxDuration: 45, trailingDrawdown: false, newsRestriction: false, weekendHolding: true },
       "Phase 2": { firmName: "Goat Funded", profitTarget: 5, dailyLossLimit: 5, maxDrawdown: 10, minTradingDays: 3, maxDuration: 45, trailingDrawdown: false, newsRestriction: false, weekendHolding: true },
-    },
+    }
   },
   "Alpha Capital": {
     phases: {
       "Phase 1": { firmName: "Alpha Capital", profitTarget: 8, dailyLossLimit: 5, maxDrawdown: 10, minTradingDays: 5, maxDuration: 30, trailingDrawdown: false, newsRestriction: false, weekendHolding: true },
       "Phase 2": { firmName: "Alpha Capital", profitTarget: 5, dailyLossLimit: 5, maxDrawdown: 10, minTradingDays: 5, maxDuration: 60, trailingDrawdown: false, newsRestriction: false, weekendHolding: true },
-    },
+    }
   },
   "Funding Pips": {
     phases: {
       "Phase 1": { firmName: "Funding Pips", profitTarget: 8, dailyLossLimit: 5, maxDrawdown: 10, minTradingDays: 3, maxDuration: 0, trailingDrawdown: false, newsRestriction: false, weekendHolding: true },
       "Phase 2": { firmName: "Funding Pips", profitTarget: 5, dailyLossLimit: 5, maxDrawdown: 10, minTradingDays: 3, maxDuration: 0, trailingDrawdown: false, newsRestriction: false, weekendHolding: true },
-    },
+    }
   },
   "The5ers": {
     phases: {
       "Phase 1": { firmName: "The5ers", profitTarget: 6, dailyLossLimit: 3, maxDrawdown: 6, minTradingDays: 3, maxDuration: 0, trailingDrawdown: false, newsRestriction: false, weekendHolding: true },
-    },
+    }
   },
 };
+
+export function getRulesForChallenge(firmName: string, phaseName: string, accountSize: number): PropFirmRules {
+  const firm = PROP_FIRM_RULES[firmName];
+  if (!firm) {
+    return { firmName, profitTarget: 10, dailyLossLimit: 5, maxDrawdown: 10, minTradingDays: 0, maxDuration: 0, trailingDrawdown: false, newsRestriction: false, weekendHolding: true };
+  }
+  const phase = firm.phases[phaseName];
+  if (!phase) {
+    return { firmName, profitTarget: 10, dailyLossLimit: 5, maxDrawdown: 10, minTradingDays: 0, maxDuration: 0, trailingDrawdown: false, newsRestriction: false, weekendHolding: true };
+  }
+
+  // If the phase has sub-rules by account size (Futures)
+  if (accountSize in phase) {
+    return phase[accountSize];
+  }
+
+  // If it's a traditional forex rule
+  return phase;
+}
