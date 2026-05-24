@@ -1,33 +1,34 @@
 @import "tailwindcss";
 
 :root, .dark {
-  --bg-base: #07080D;
-  --bg-secondary: #0D0F18;
-  --bg-card: #111420;
-  --bg-card-hover: #161A2A;
+  --bg-base: #040814;
+  --bg-secondary: #0A101D;
+  --bg-card: #0E1525;
+  --bg-card-hover: #131A2D;
   --accent-green: #00FFB2;
-  --accent-violet: #7B61FF;
+  --accent-violet: #8F00FF;
   --accent-coral: #FF2D55;
+  --accent-blue: #00D4FF;
   --text-primary: #FFFFFF;
   --text-secondary: #8B8FA3;
   --text-muted: #4A4E63;
-  --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-glow: rgba(0, 255, 178, 0.12);
-  --border-violet: rgba(123, 97, 255, 0.2);
+  --border-subtle: rgba(255, 255, 255, 0.04);
+  --border-glow: rgba(0, 255, 178, 0.2);
+  --border-violet: rgba(143, 0, 255, 0.25);
 
-  --glass-bg: rgba(17, 20, 32, 0.6);
-  --glass-bg-hover: rgba(17, 20, 32, 0.75);
-  --glass-border: rgba(255, 255, 255, 0.06);
+  --glass-bg: rgba(10, 16, 29, 0.5);
+  --glass-bg-hover: rgba(14, 21, 37, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.08);
   
-  --shimmer-1: rgba(17, 20, 32, 0.4);
+  --shimmer-1: rgba(14, 21, 37, 0.4);
   --shimmer-2: rgba(30, 35, 50, 0.6);
 
-  --hero-mid: #0a0c15;
-  --hero-end: #0d0a18;
+  --hero-mid: #060b18;
+  --hero-end: #0a0d1f;
   
-  --mesh-green: rgba(0, 255, 178, 0.08);
-  --mesh-violet: rgba(123, 97, 255, 0.06);
-  --mesh-coral: rgba(255, 45, 85, 0.03);
+  --mesh-green: rgba(0, 255, 178, 0.12);
+  --mesh-violet: rgba(143, 0, 255, 0.1);
+  --mesh-coral: rgba(255, 45, 85, 0.06);
 
   --font-display: var(--font-syne);
   --font-data: var(--font-space-mono);
@@ -122,8 +123,14 @@
   }
 
   @keyframes border-glow {
-    0%, 100% { border-color: rgba(0, 255, 178, 0.08); }
-    50% { border-color: rgba(0, 255, 178, 0.2); }
+    0%, 100% { border-color: rgba(0, 255, 178, 0.08); box-shadow: 0 0 10px rgba(0,255,178,0.05); }
+    50% { border-color: rgba(0, 255, 178, 0.3); box-shadow: 0 0 20px rgba(0,255,178,0.15); }
+  }
+
+  @keyframes fluid-bg {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
   }
 }
 
@@ -163,27 +170,44 @@ body {
 /* ===== GLASSMORPHISM ===== */
 .glass {
   background: var(--glass-bg);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
   border: 1px solid var(--border-subtle);
   border-radius: 16px;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -2px rgba(0, 0, 0, 0.02);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05), 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.glass::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.02'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
+.glass > * {
+  position: relative;
+  z-index: 1;
 }
 
 .light .glass {
   border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.04), inset 0 0 0 1px rgba(255,255,255,0.5);
+  box-shadow: inset 0 1px 1px rgba(255,255,255,1), 0 8px 32px rgba(15, 23, 42, 0.04);
 }
 
 .dark .glass {
-  border-color: var(--border-glow);
+  border-color: var(--border-subtle);
 }
 
 .glass:hover {
   background: var(--glass-bg-hover);
   border-color: var(--border-glow);
-  box-shadow: 0 0 30px var(--border-glow), 0 0 60px rgba(0, 255, 178, 0.03);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1), 0 0 30px var(--border-glow), 0 0 60px rgba(0, 255, 178, 0.05);
+  transform: translateY(-2px);
 }
 
 .light .glass:hover {
@@ -252,10 +276,26 @@ body {
 
 /* ===== GRADIENT BACKGROUNDS ===== */
 .gradient-mesh {
+  background: linear-gradient(120deg, var(--bg-base), var(--bg-secondary));
+  position: relative;
+}
+
+.gradient-mesh::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
   background-image:
-    radial-gradient(at 20% 20%, var(--mesh-green) 0px, transparent 50%),
-    radial-gradient(at 80% 80%, var(--mesh-violet) 0px, transparent 50%),
-    radial-gradient(at 50% 50%, var(--mesh-coral) 0px, transparent 50%);
+    radial-gradient(ellipse at 10% 20%, var(--mesh-green) 0%, transparent 40%),
+    radial-gradient(ellipse at 90% 80%, var(--mesh-violet) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, var(--mesh-coral) 0%, transparent 60%);
+  background-size: 200% 200%;
+  animation: fluid-bg 15s ease infinite;
+  z-index: 0;
+}
+.gradient-mesh > * {
+  position: relative;
+  z-index: 1;
 }
 
 .gradient-hero {

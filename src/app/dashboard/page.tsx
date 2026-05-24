@@ -264,27 +264,44 @@ export default function DashboardPage() {
   const activeChallenges = challenges.filter((c) => c.status === "active");
   const currentBalance = trades.length > 0 ? trades[trades.length - 1].accountEquityAfter : 50000;
 
+  const containerVariants: any = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
+
+  const itemVariants: any = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  };
+
   return (
-    <div className="space-y-6">
+    <motion.div className="space-y-6" variants={containerVariants} initial="hidden" animate="visible">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <motion.div variants={itemVariants} className="flex items-center justify-between">
         <div>
-          <h1 className="font-[family-name:var(--font-syne)] font-bold text-2xl">Dashboard</h1>
+          <h1 className="font-[family-name:var(--font-syne)] font-bold text-3xl bg-clip-text text-transparent bg-gradient-to-r from-accent-green via-accent-blue to-accent-violet pb-1">
+            Dashboard
+          </h1>
           <p className="text-sm text-text-secondary mt-1">
             {format(new Date(), "EEEE, MMMM d, yyyy")}
           </p>
         </div>
-        <Link
-          href="/journal/new"
-          className="flex items-center gap-2 bg-accent-green text-bg-base px-5 py-2.5 rounded-xl text-sm font-semibold hover:shadow-[0_0_30px_rgba(0,255,178,0.3)] transition-all duration-300"
-        >
-          <Plus size={16} />
-          Log Trade
-        </Link>
-      </div>
+        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.95 }}>
+          <Link
+            href="/journal/new"
+            className="flex items-center gap-2 bg-gradient-to-r from-accent-green to-accent-blue text-bg-base px-5 py-2.5 rounded-xl text-sm font-semibold hover:shadow-[0_0_30px_rgba(0,255,178,0.4)] transition-all duration-300 border border-white/20"
+          >
+            <Plus size={16} />
+            Log Trade
+          </Link>
+        </motion.div>
+      </motion.div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Today's P&L"
           value={todayPnl}
@@ -321,13 +338,14 @@ export default function DashboardPage() {
           subtitle={formatCurrency(metrics.totalNetPnl) + " all time"}
           delay={0.15}
         />
-      </div>
+      </motion.div>
 
       {/* Main Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         {/* Equity Curve */}
-        <GlassCard className="lg:col-span-3" transition={{ delay: 0.2 }}>
-          <div className="flex items-center justify-between mb-4">
+        <GlassCard className="lg:col-span-3 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-accent-violet/5 blur-3xl rounded-full pointer-events-none" />
+          <div className="flex items-center justify-between mb-4 relative z-10">
             <h2 className="font-[family-name:var(--font-syne)] font-bold text-base">Equity Curve</h2>
             <div className="flex gap-1">
               {["1W", "1M", "3M", "ALL"].map((range) => (
@@ -389,12 +407,12 @@ export default function DashboardPage() {
             </div>
           </div>
         </GlassCard>
-      </div>
+      </motion.div>
 
       {/* Bottom Row: Recent Trades + Prop Firm */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Recent Trades */}
-        <GlassCard className="lg:col-span-2" transition={{ delay: 0.3 }}>
+        <GlassCard className="lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-[family-name:var(--font-syne)] font-bold text-base">Recent Trades</h2>
             <Link href="/journal" className="text-xs text-accent-violet hover:text-accent-green transition-colors">
@@ -451,8 +469,9 @@ export default function DashboardPage() {
         </GlassCard>
 
         {/* Prop Firm Challenges Widget */}
-        <GlassCard transition={{ delay: 0.35 }}>
-          <div className="flex items-center justify-between mb-4">
+        <GlassCard className="relative overflow-hidden">
+          <div className="absolute bottom-0 right-0 w-48 h-48 bg-accent-blue/5 blur-3xl rounded-full pointer-events-none" />
+          <div className="flex items-center justify-between mb-4 relative z-10">
             <h2 className="font-[family-name:var(--font-syne)] font-bold text-base">
               <Trophy size={16} className="inline mr-2 text-accent-violet" />
               Challenges
@@ -527,7 +546,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </GlassCard>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

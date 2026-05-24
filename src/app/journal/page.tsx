@@ -318,13 +318,23 @@ export default function JournalPage() {
     return { wins, losses, curWin, maxWin };
   }, [trades]);
 
+  const containerVariants: any = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+
+  const itemVariants: any = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  };
+
   return (
-    <div className="space-y-6">
+    <motion.div className="space-y-6" variants={containerVariants} initial="hidden" animate="visible">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="font-[family-name:var(--font-syne)] font-bold text-2xl">Trade Journal</h1>
-          <p className="text-sm text-text-secondary mt-1">{trades.length} trades logged</p>
+          <h1 className="font-[family-name:var(--font-syne)] font-bold text-3xl bg-clip-text text-transparent bg-gradient-to-r from-accent-green via-accent-blue to-accent-violet pb-1">Trade Journal</h1>
+          <p className="text-sm text-text-secondary mt-1">{trades.length} trades recorded</p>
         </div>
         <div className="flex items-center gap-3">
           {/* View Toggle */}
@@ -355,36 +365,38 @@ export default function JournalPage() {
           <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs text-text-secondary hover:text-text-primary bg-bg-card border border-border-subtle hover:border-accent-violet/30 transition-all">
             <Download size={14} /> Export
           </button>
-          <Link
-            href="/journal/new"
-            className="flex items-center gap-1.5 bg-accent-green text-bg-base px-4 py-2 rounded-xl text-xs font-semibold hover:shadow-[0_0_20px_rgba(0,255,178,0.2)] transition-all"
-          >
-            <Plus size={14} /> New Trade
-          </Link>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.95 }}>
+            <Link
+              href="/journal/new"
+              className="flex items-center gap-1.5 bg-gradient-to-r from-accent-green to-accent-blue text-bg-base px-4 py-2 rounded-xl text-xs font-semibold hover:shadow-[0_0_20px_rgba(0,255,178,0.2)] transition-all"
+            >
+              <Plus size={14} /> New Trade
+            </Link>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Streak Badges */}
-      <div className="flex gap-3">
-        <div className="flex items-center gap-2 glass-static px-3 py-2 rounded-xl">
-          <Flame size={14} className="text-accent-green" />
+      <motion.div variants={itemVariants} className="flex gap-3">
+        <div className="flex items-center gap-2 glass-static px-3 py-2 rounded-xl border border-white/5 shadow-[0_4px_12px_rgba(0,0,0,0.2)]">
+          <Flame size={14} className="text-accent-green drop-shadow-[0_0_8px_rgba(0,255,178,0.5)]" />
           <span className="text-xs text-text-secondary">Win Streak:</span>
-          <span className="font-[family-name:var(--font-space-mono)] font-bold text-accent-green text-sm">{metrics.curWin}</span>
+          <span className="font-[family-name:var(--font-space-mono)] font-bold text-accent-green text-sm text-glow-green">{metrics.curWin}</span>
         </div>
-        <div className="flex items-center gap-2 glass-static px-3 py-2 rounded-xl">
-          <Trophy size={14} className="text-accent-violet" />
+        <div className="flex items-center gap-2 glass-static px-3 py-2 rounded-xl border border-white/5 shadow-[0_4px_12px_rgba(0,0,0,0.2)]">
+          <Trophy size={14} className="text-accent-violet drop-shadow-[0_0_8px_rgba(123,97,255,0.5)]" />
           <span className="text-xs text-text-secondary">Max:</span>
-          <span className="font-[family-name:var(--font-space-mono)] font-bold text-accent-violet text-sm">{metrics.maxWin}</span>
+          <span className="font-[family-name:var(--font-space-mono)] font-bold text-accent-violet text-sm text-glow-violet">{metrics.maxWin}</span>
         </div>
-        <div className="flex items-center gap-2 glass-static px-3 py-2 rounded-xl">
+        <div className="flex items-center gap-2 glass-static px-3 py-2 rounded-xl border border-white/5 shadow-[0_4px_12px_rgba(0,0,0,0.2)]">
           <span className="text-xs text-text-secondary">W/L:</span>
           <span className="font-[family-name:var(--font-space-mono)] font-bold text-sm">
             <span className="text-accent-green">{metrics.wins}</span>
-            <span className="text-text-muted">/</span>
+            <span className="text-text-muted"> / </span>
             <span className="text-accent-coral">{metrics.losses}</span>
           </span>
         </div>
-      </div>
+      </motion.div>
 
       {/* Content */}
       <GlassCard noPadding className="overflow-hidden">
@@ -402,6 +414,6 @@ export default function JournalPage() {
           </AnimatePresence>
         </div>
       </GlassCard>
-    </div>
+    </motion.div>
   );
 }
