@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import yahooFinance from 'yahoo-finance2';
 
 function cleanSymbolForYahoo(symbol: string): string {
   const upper = symbol.toUpperCase().trim();
@@ -65,7 +66,7 @@ export async function GET(req: NextRequest) {
     const ageMs = Date.now() - entryTime;
 
     // Determine interval and padding based on trade duration and age
-    let interval = "1d";
+    let interval: "1m" | "2m" | "5m" | "15m" | "30m" | "60m" | "1d" = "1d";
     let paddingMs = 30 * 24 * 60 * 60 * 1000; // default 30 days padding for daily charts
 
     if (ageMs < 7 * 24 * 60 * 60 * 1000) {
@@ -110,45 +111,29 @@ export async function GET(req: NextRequest) {
       paddingMs = 30 * 24 * 60 * 60 * 1000;
     }
 
-    const period1 = Math.floor((entryTime - paddingMs) / 1000);
-    const period2 = Math.floor((exitTime + paddingMs) / 1000);
+    const period1Date = new Date(entryTime - paddingMs);
+    const period2Date = new Date(exitTime + paddingMs);
 
-    const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?period1=${period1}&period2=${period2}&interval=${interval}`;
+    const result = (await yahooFinance.chart(ticker, {
+      period1: period1Date,
+      period2: period2Date,
+      interval: interval
+    })) as any;
 
-    const res = await fetch(yahooUrl, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-      }
-    });
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      return NextResponse.json(
-        { error: `Yahoo Finance API returned status ${res.status}: ${errorText}` },
-        { status: 502 }
-      );
-    }
-
-    const data = await res.json();
-    const result = data.chart?.result?.[0];
-
-    if (!result || !result.timestamp || !result.indicators?.quote?.[0]) {
+    if (!result || !result.quotes || result.quotes.length === 0) {
       return NextResponse.json(
         { error: "No market data found for the specified period and symbol" },
         { status: 404 }
       );
     }
 
-    const timestamps = result.timestamp;
-    const quote = result.indicators.quote[0];
-
-    const candles = timestamps
-      .map((ts: number, i: number) => ({
-        time: ts,
-        open: quote.open[i],
-        high: quote.high[i],
-        low: quote.low[i],
-        close: quote.close[i],
+    const candles = result.quotes
+      .map((q: any) => ({
+        time: Math.floor(q.date.getTime() / 1000),
+        open: q.open,
+        high: q.high,
+        low: q.low,
+        close: q.close,
       }))
       // Filter out any entries with incomplete data
       .filter(
@@ -183,3 +168,4 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+
