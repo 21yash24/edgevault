@@ -1,12 +1,14 @@
 "use client";
-import { useTradeStore, usePropFirmStore } from "@/stores";
+
+import { useTradeStore, usePropFirmStore, useSettingsStore } from "@/stores";
 import { GlassCard } from "@/components/ui/glass-card";
-import { cn, formatCurrency, formatDate } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMemo, useState } from "react";
 import {
   Bell, AlertTriangle, CheckCircle, XCircle, Shield, TrendingDown,
   Trophy, Clock, Flame, DollarSign, Target, Zap, ChevronDown, BellOff,
+  ToggleLeft, ToggleRight, Radio, Sliders, Smartphone, Send, Mail
 } from "lucide-react";
 import { format, isToday, isYesterday, subDays, differenceInDays } from "date-fns";
 
@@ -149,19 +151,31 @@ const typeStyles: Record<AlertType, { bg: string; border: string; icon: string }
 export default function AlertsPage() {
   const { trades } = useTradeStore();
   const { challenges } = usePropFirmStore();
+  const { settings, updateSettings } = useSettingsStore();
+
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [readFilter, setReadFilter] = useState<"all" | "unread">("all");
-  const [dismissed, setDismissed] = useState<string[]>([]);
+  const [dismissedIds, setDismissedIds] = useState<string[]>([]);
+  const [activeSubTab, setActiveSubTab] = useState<"active" | "history">("active");
 
   const allAlerts = useMemo(() => generateAlerts(trades, challenges), [trades, challenges]);
-  const alerts = allAlerts.filter((a) => {
-    if (dismissed.includes(a.id)) return false;
-    if (categoryFilter !== "all" && a.category !== categoryFilter) return false;
-    if (readFilter === "unread" && a.read) return false;
-    return true;
-  });
 
-  const unreadCount = allAlerts.filter((a) => !a.read && !dismissed.includes(a.id)).length;
+  // Active alerts (not dismissed)
+  const activeAlerts = useMemo(() => {
+    return allAlerts.filter((a) => {
+      if (dismissedIds.includes(a.id)) return false;
+      if (categoryFilter !== "all" && a.category !== categoryFilter) return false;
+      if (readFilter === "unread" && a.read) return false;
+      return true;
+    });
+  }, [allAlerts, dismissedIds, categoryFilter, readFilter]);
+
+  // Dismissed alerts (History)
+  const dismissedAlerts = useMemo(() => {
+    return allAlerts.filter((a) => dismissedIds.includes(a.id));
+  }, [allAlerts, dismissedIds]);
+
+  const unreadCount = allAlerts.filter((a) => !a.read && !dismissedIds.includes(a.id)).length;
 
   const formatAlertTime = (d: Date) => {
     if (isToday(d)) return `Today, ${format(d, "h:mm a")}`;
@@ -169,98 +183,341 @@ export default function AlertsPage() {
     return format(d, "MMM d, h:mm a");
   };
 
+  // Smart alert toggles local state
+  const [smartToggles, setSmartToggles] = useState({
+    telegram: true,
+    browser: false,
+    drawdownWarning: true,
+    lossBreaker: true,
+    dailyAiReport: true,
+    smsAlerts: false
+  });
+
+  const toggleSmartTrigger = (key: keyof typeof smartToggles) => {
+    setSmartToggles(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      
+      {/* Title section */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="font-[family-name:var(--font-syne)] font-bold text-2xl">Alerts</h1>
-          <p className="text-sm text-text-secondary mt-1">
-            {unreadCount > 0 ? `${unreadCount} unread alert${unreadCount !== 1 ? "s" : ""}` : "All caught up"}
+          <h1 className="font-[family-name:var(--font-syne)] font-bold text-2xl text-text-primary">
+            Smart Alerts & Risk Compliance
+          </h1>
+          <p className="text-sm text-text-muted mt-1">
+            {unreadCount > 0 ? `${unreadCount} unread active risk alert${unreadCount !== 1 ? "s" : ""}` : "All active conditions compliant"}
           </p>
         </div>
-        {dismissed.length > 0 && (
-          <button onClick={() => setDismissed([])} className="text-xs text-accent-violet hover:underline">
-            Restore dismissed
+        {dismissedIds.length > 0 && (
+          <button 
+            onClick={() => setDismissedIds([])} 
+            className="px-3 py-1.5 rounded-lg bg-white/[0.02] border border-border-subtle hover:bg-white/[0.05] text-xs font-semibold text-text-secondary transition-all active:scale-95"
+          >
+            Restore History
           </button>
         )}
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2">
-        {[
-          { id: "all", label: "All" },
-          { id: "risk", label: "Risk", icon: Shield },
-          { id: "prop", label: "Prop Firm", icon: Trophy },
-          { id: "performance", label: "Performance", icon: Zap },
-          { id: "system", label: "System", icon: Bell },
-        ].map((f) => (
-          <button key={f.id} onClick={() => setCategoryFilter(f.id)}
-            className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
-              categoryFilter === f.id ? "bg-accent-green/10 text-accent-green border border-accent-green/20" : "bg-bg-card text-text-muted border border-border-subtle")}>
-            {f.icon && <f.icon size={12} />}
-            {f.label}
-          </button>
-        ))}
-        <div className="ml-auto">
-          <button onClick={() => setReadFilter(readFilter === "all" ? "unread" : "all")}
-            className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
-              readFilter === "unread" ? "bg-accent-violet/10 text-accent-violet border border-accent-violet/20" : "bg-bg-card text-text-muted border border-border-subtle")}>
-            <BellOff size={12} /> {readFilter === "unread" ? "Unread only" : "All alerts"}
-          </button>
-        </div>
-      </div>
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        
+        {/* Left 2/3 Side: Active Alerts feed & History */}
+        <div className="xl:col-span-2 space-y-6">
+          
+          {/* Sub tabs for Active Feed vs History */}
+          <div className="flex gap-4 border-b border-border-subtle/30 pb-2">
+            <button
+              onClick={() => setActiveSubTab("active")}
+              className={cn(
+                "pb-2 text-sm font-semibold border-b-2 transition-all relative active:scale-98",
+                activeSubTab === "active" ? "border-accent-green text-accent-green" : "border-transparent text-text-muted hover:text-text-secondary"
+              )}
+            >
+              Active Triggers ({activeAlerts.length})
+              {activeSubTab === "active" && (
+                <motion.div layoutId="activeAlertSubTab" className="absolute bottom-[-2px] left-0 right-0 h-[2px] bg-accent-green" />
+              )}
+            </button>
 
-      {/* Alert List */}
-      <div className="space-y-3">
-        <AnimatePresence>
-          {alerts.map((alert, i) => {
-            const style = typeStyles[alert.type];
-            return (
-              <motion.div key={alert.id}
-                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -20 }}
-                transition={{ delay: i * 0.03 }}
-                className={cn("p-4 rounded-xl border transition-all", style.bg, style.border, !alert.read && "ring-1 ring-offset-0", !alert.read && alert.type === "danger" && "ring-accent-coral/30", !alert.read && alert.type === "success" && "ring-accent-green/30")}>
-                <div className="flex items-start gap-3">
-                  <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0", style.bg)}>
-                    <alert.icon size={18} className={style.icon} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="text-sm font-medium">{alert.title}</h3>
-                      <span className="text-[10px] text-text-muted whitespace-nowrap">{formatAlertTime(alert.timestamp)}</span>
-                    </div>
-                    <p className="text-xs text-text-secondary mt-1">{alert.message}</p>
-                    <div className="flex items-center gap-3 mt-2.5">
-                      {alert.actionLabel && alert.actionHref && (
-                        <a href={alert.actionHref}
-                          className={cn("text-xs font-medium hover:underline", style.icon)}>
-                          {alert.actionLabel} →
-                        </a>
-                      )}
-                      <button onClick={() => setDismissed([...dismissed, alert.id])}
-                        className="text-xs text-text-muted hover:text-text-secondary transition-colors">
-                        Dismiss
-                      </button>
-                    </div>
-                  </div>
-                  {!alert.read && (
-                    <div className={cn("w-2 h-2 rounded-full flex-shrink-0 mt-2",
-                      alert.type === "danger" ? "bg-accent-coral" : alert.type === "success" ? "bg-accent-green" : "bg-accent-violet")} />
-                  )}
+            <button
+              onClick={() => setActiveSubTab("history")}
+              className={cn(
+                "pb-2 text-sm font-semibold border-b-2 transition-all relative active:scale-98",
+                activeSubTab === "history" ? "border-accent-green text-accent-green" : "border-transparent text-text-muted hover:text-text-secondary"
+              )}
+            >
+              Alert History ({dismissedAlerts.length})
+              {activeSubTab === "history" && (
+                <motion.div layoutId="activeAlertSubTab" className="absolute bottom-[-2px] left-0 right-0 h-[2px] bg-accent-green" />
+              )}
+            </button>
+          </div>
+
+          {activeSubTab === "active" ? (
+            <div className="space-y-4">
+              
+              {/* Category Filters for active */}
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { id: "all", label: "All Types" },
+                  { id: "risk", label: "Risk Limits", icon: Shield },
+                  { id: "prop", label: "Prop Challenges", icon: Trophy },
+                  { id: "performance", label: "Performance", icon: Zap },
+                  { id: "system", label: "System Alerts", icon: Bell },
+                ].map((f) => (
+                  <button key={f.id} onClick={() => setCategoryFilter(f.id)}
+                    className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
+                      categoryFilter === f.id ? "bg-accent-green/10 text-accent-green border border-accent-green/20" : "bg-bg-card text-text-muted border border-border-subtle hover:bg-white/[0.02]")}>
+                    {f.icon && <f.icon size={11} />}
+                    {f.label}
+                  </button>
+                ))}
+                
+                <div className="ml-auto">
+                  <button onClick={() => setReadFilter(readFilter === "all" ? "unread" : "all")}
+                    className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
+                      readFilter === "unread" ? "bg-accent-violet/10 text-accent-violet border border-accent-violet/20 animate-pulse" : "bg-bg-card text-text-muted border border-border-subtle")}>
+                    <BellOff size={11} /> {readFilter === "unread" ? "Unread Only" : "All Messages"}
+                  </button>
                 </div>
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
+              </div>
+
+              {/* Alert List */}
+              <div className="space-y-3">
+                <AnimatePresence initial={false}>
+                  {activeAlerts.map((alert, i) => {
+                    const style = typeStyles[alert.type];
+                    return (
+                      <motion.div key={alert.id}
+                        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -20 }}
+                        className={cn("p-4 rounded-xl border transition-all relative group", 
+                          style.bg, style.border, 
+                          !alert.read && "ring-1 ring-offset-0", 
+                          !alert.read && alert.type === "danger" && "ring-accent-coral/30", 
+                          !alert.read && alert.type === "success" && "ring-accent-green/30"
+                        )}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 border", style.bg, style.border)}>
+                            <alert.icon size={18} className={style.icon} />
+                          </div>
+                          
+                          <div className="flex-1 min-w-0 pr-6">
+                            <div className="flex items-start justify-between gap-2">
+                              <h3 className="text-sm font-semibold text-text-primary">{alert.title}</h3>
+                              <span className="text-[9px] text-text-muted font-[family-name:var(--font-space-mono)] whitespace-nowrap">{formatAlertTime(alert.timestamp)}</span>
+                            </div>
+                            <p className="text-xs text-text-secondary mt-1 leading-relaxed">{alert.message}</p>
+                            
+                            <div className="flex items-center gap-3 mt-3">
+                              {alert.actionLabel && alert.actionHref && (
+                                <a href={alert.actionHref} className={cn("text-xs font-bold hover:underline flex items-center gap-0.5", style.icon)}>
+                                  {alert.actionLabel} →
+                                </a>
+                              )}
+                              <button onClick={() => setDismissedIds([...dismissedIds, alert.id])}
+                                className="text-xs text-text-muted hover:text-text-secondary transition-colors">
+                                Archive
+                              </button>
+                            </div>
+                          </div>
+
+                          {!alert.read && (
+                            <div className={cn("w-2 h-2 rounded-full flex-shrink-0 mt-2 absolute right-4 top-4 animate-ping",
+                              alert.type === "danger" ? "bg-accent-coral" : alert.type === "success" ? "bg-accent-green" : "bg-accent-violet")} />
+                          )}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+
+                {activeAlerts.length === 0 && (
+                  <GlassCard className="text-center py-16">
+                    <CheckCircle size={40} className="mx-auto text-accent-green mb-3 opacity-30" />
+                    <p className="text-sm font-bold text-text-secondary">All clear. Excellent discipline!</p>
+                    <p className="text-xs text-text-muted mt-1">No active risk limits or challenges triggered.</p>
+                  </GlassCard>
+                )}
+              </div>
+
+            </div>
+          ) : (
+            // History tab content
+            <div className="space-y-3">
+              <AnimatePresence initial={false}>
+                {dismissedAlerts.map((alert) => {
+                  const style = typeStyles[alert.type];
+                  return (
+                    <motion.div key={alert.id}
+                      initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}
+                      className={cn("p-4 rounded-xl border opacity-60 bg-white/[0.01] border-border-subtle flex items-center justify-between gap-4")}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-white/[0.03] border border-border-subtle/50 flex items-center justify-center flex-shrink-0 text-text-muted">
+                          <alert.icon size={16} />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="text-xs font-semibold text-text-primary truncate">{alert.title}</h4>
+                          <span className="text-[8px] text-text-muted font-[family-name:var(--font-space-mono)]">{formatAlertTime(alert.timestamp)}</span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => setDismissedIds(prev => prev.filter(id => id !== alert.id))}
+                        className="text-[10px] font-bold text-accent-violet hover:underline flex-shrink-0"
+                      >
+                        Restore
+                      </button>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+
+              {dismissedAlerts.length === 0 && (
+                <div className="text-center py-16 text-text-muted">
+                  <Clock size={32} className="mx-auto opacity-15 mb-2" />
+                  <p className="text-xs font-semibold">No alert history available</p>
+                  <p className="text-[10px] mt-0.5">Archived alert logs will be retained here.</p>
+                </div>
+              )}
+            </div>
+          )}
+
+        </div>
+
+        {/* Right 1/3 Side: Smart Trigger toggles */}
+        <div className="xl:col-span-1 space-y-6">
+          
+          <div className="flex items-center justify-between px-1">
+            <span className="font-[family-name:var(--font-syne)] font-bold text-xs uppercase tracking-wider text-text-muted">Smart Rules & Sync</span>
+            <Sliders size={14} className="text-text-muted" />
+          </div>
+
+          <div className="space-y-4">
+            
+            {/* Telegram Channel Toggle Card */}
+            <GlassCard className="p-4 border-border-subtle/70 hover:border-accent-violet/20 transition-all duration-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-[#0088cc]/10 flex items-center justify-center border border-[#0088cc]/20">
+                    <Send size={18} className="text-[#0088cc]" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-text-primary">Telegram Sync Alerts</h4>
+                    <p className="text-[9px] text-text-muted mt-0.5">Stream violations to private chat</p>
+                  </div>
+                </div>
+
+                <button onClick={() => toggleSmartTrigger("telegram")} className="text-text-secondary active:scale-90 transition-all">
+                  {smartToggles.telegram ? (
+                    <ToggleRight size={32} className="text-accent-green" />
+                  ) : (
+                    <ToggleLeft size={32} className="text-text-muted" />
+                  )}
+                </button>
+              </div>
+            </GlassCard>
+
+            {/* SMS/Twilio alerts */}
+            <GlassCard className="p-4 border-border-subtle/70 hover:border-accent-violet/20 transition-all duration-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-accent-coral/10 flex items-center justify-center border border-accent-coral/20">
+                    <Smartphone size={18} className="text-accent-coral" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-text-primary">SMS Emergency Alerts</h4>
+                    <p className="text-[9px] text-text-muted mt-0.5">SMS text on critical 5% drawdown</p>
+                  </div>
+                </div>
+
+                <button onClick={() => toggleSmartTrigger("smsAlerts")} className="text-text-secondary active:scale-90 transition-all">
+                  {smartToggles.smsAlerts ? (
+                    <ToggleRight size={32} className="text-accent-green" />
+                  ) : (
+                    <ToggleLeft size={32} className="text-text-muted" />
+                  )}
+                </button>
+              </div>
+            </GlassCard>
+
+            {/* Email reports */}
+            <GlassCard className="p-4 border-border-subtle/70 hover:border-accent-violet/20 transition-all duration-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-accent-violet/10 flex items-center justify-center border border-accent-violet/20">
+                    <Mail size={18} className="text-accent-violet" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-text-primary">Daily AI Coaching Digest</h4>
+                    <p className="text-[9px] text-text-muted mt-0.5">Email containing discipline score</p>
+                  </div>
+                </div>
+
+                <button onClick={() => toggleSmartTrigger("dailyAiReport")} className="text-text-secondary active:scale-90 transition-all">
+                  {smartToggles.dailyAiReport ? (
+                    <ToggleRight size={32} className="text-accent-green" />
+                  ) : (
+                    <ToggleLeft size={32} className="text-text-muted" />
+                  )}
+                </button>
+              </div>
+            </GlassCard>
+
+            {/* Prop Drawdown alert */}
+            <GlassCard className="p-4 border-border-subtle/70 hover:border-accent-violet/20 transition-all duration-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-yellow-500/10 flex items-center justify-center border border-yellow-500/20">
+                    <Trophy size={18} className="text-yellow-500" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-text-primary">Critical Drawdown Warnings</h4>
+                    <p className="text-[9px] text-text-muted mt-0.5">Alert at 70% threshold of rules</p>
+                  </div>
+                </div>
+
+                <button onClick={() => toggleSmartTrigger("drawdownWarning")} className="text-text-secondary active:scale-90 transition-all">
+                  {smartToggles.drawdownWarning ? (
+                    <ToggleRight size={32} className="text-accent-green" />
+                  ) : (
+                    <ToggleLeft size={32} className="text-text-muted" />
+                  )}
+                </button>
+              </div>
+            </GlassCard>
+
+            {/* Cooldown Lock trigger */}
+            <GlassCard className="p-4 border-border-subtle/70 hover:border-accent-violet/20 transition-all duration-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-accent-green/10 flex items-center justify-center border border-accent-green/20">
+                    <Shield size={18} className="text-accent-green" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-text-primary">Daily Loss Cooldown lock</h4>
+                    <p className="text-[9px] text-text-muted mt-0.5">Lock platform on daily limit hits</p>
+                  </div>
+                </div>
+
+                <button onClick={() => toggleSmartTrigger("lossBreaker")} className="text-text-secondary active:scale-90 transition-all">
+                  {smartToggles.lossBreaker ? (
+                    <ToggleRight size={32} className="text-accent-green" />
+                  ) : (
+                    <ToggleLeft size={32} className="text-text-muted" />
+                  )}
+                </button>
+              </div>
+            </GlassCard>
+
+          </div>
+
+        </div>
+
       </div>
 
-      {alerts.length === 0 && (
-        <GlassCard className="text-center py-12">
-          <CheckCircle size={40} className="mx-auto text-accent-green mb-3 opacity-40" />
-          <p className="text-sm text-text-muted">No alerts to show</p>
-          <p className="text-xs text-text-muted mt-1">You&apos;re all caught up!</p>
-        </GlassCard>
-      )}
     </div>
   );
 }

@@ -17,6 +17,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { TiltmeterWidget } from "@/components/ui/tiltmeter";
 import { ProactiveAIWidget } from "@/components/ui/proactive-ai";
 import { CalendarHeatmap } from "@/components/ui/calendar-heatmap";
+import { EconomicCalendar } from "@/components/ui/economic-calendar";
+import { PerformanceReport } from "@/components/ui/performance-report";
 import { useMemo, useEffect, useRef, useState } from "react";
 
 function EquityCurveChart({ data }: { data: { time: string; value: number }[] }) {
@@ -739,6 +741,16 @@ export default function DashboardPage() {
             <CalendarHeatmap trades={trades} />
           </div>
         </GlassCard>
+      </motion.div>
+
+      {/* Row 4.5: Economic Calendar News & Dynamic Performance Analytics */}
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <EconomicCalendar />
+        </div>
+        <div className="lg:col-span-1">
+          <PerformanceReport trades={trades} />
+        </div>
       </motion.div>
 
       {/* Row 5: Logs & AI Feedback */}
