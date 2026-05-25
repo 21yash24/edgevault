@@ -87,7 +87,7 @@ export const SETUP_TAGS = [
   "IFVG", "Order Block", "Breaker Block", "FVG", "Liquidity Sweep",
   "SMT Divergence", "ICT Silver Bullet", "Opening Range", "VWAP Bounce",
   "Trend Continuation", "Reversal", "Breakout", "Mean Reversion",
-  "Gap Fill", "News Reaction",
+  "Gap Fill", "News Reaction", "Asia Session Sweep", "London Session Sweep",
 ];
 
 export const SESSION_TAGS: SessionTag[] = [
