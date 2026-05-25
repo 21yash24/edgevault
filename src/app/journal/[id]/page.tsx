@@ -384,7 +384,7 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
               </div>
               <div className="bg-bg-secondary/30 dark:bg-white/[0.01] border border-border-subtle p-2.5 rounded-xl">
                 <div className="text-[8px] text-text-muted uppercase font-bold tracking-wider mb-1">Playbook R:R</div>
-                <div className="font-[family-name:var(--font-space-mono)] font-bold text-text-primary">1 : {(trade.rr || 0).toFixed(1)}</div>
+                <div className="font-[family-name:var(--font-space-mono)] font-bold text-text-primary">1 : {(trade.rr || Math.abs(trade.rMultiple) || 0).toFixed(1)}</div>
               </div>
               <div className="bg-bg-secondary/30 dark:bg-white/[0.01] border border-border-subtle p-2.5 rounded-xl">
                 <div className="text-[8px] text-text-muted uppercase font-bold tracking-wider mb-1">Hold Duration</div>

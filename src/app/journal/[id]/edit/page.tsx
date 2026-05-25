@@ -181,9 +181,11 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
     const netPnl = rawPnl - comm;
     const risk = (!isNaN(sl) && sl > 0) ? Math.abs(entry - sl) * size : 200;
     const rMultiple = netPnl / (risk || 200);
-    const rr = (!isNaN(sl) && !isNaN(tp)) 
+    const rr = (!isNaN(sl) && !isNaN(tp) && sl > 0) 
       ? Math.abs(tp - entry) / Math.abs(entry - sl) 
-      : (!isNaN(tp) && size > 0 ? (Math.abs(tp - entry) * size) / 200 : 0);
+      : (isNaN(sl) || sl === 0) && !isNaN(tp) && size > 0 
+        ? (Math.abs(tp - entry) * size) / 200 
+        : Math.abs(netPnl) / (risk || 200);
     const pctChange = ((exit - entry) / entry) * 100 * (direction === "long" ? 1 : -1);
 
     return { netPnl, rMultiple, rr, pctChange };
@@ -209,7 +211,7 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
       commission: mode === "quick" ? 0 : parseFloat(commission) || 0,
       netPnl: parseFloat(netPnl.toFixed(2)),
       rMultiple: mode === "quick" ? parseFloat((netPnl / 200).toFixed(2)) : parseFloat((detailedCalculations?.rMultiple || (netPnl / 200)).toFixed(2)),
-      rr: mode === "quick" ? parseFloat((netPnl / 200).toFixed(2)) : parseFloat((detailedCalculations?.rr || 0).toFixed(2)),
+      rr: mode === "quick" ? parseFloat(Math.abs(netPnl / 200).toFixed(2)) : parseFloat((detailedCalculations?.rr || Math.abs(netPnl / 200)).toFixed(2)),
       result: netPnl > 5 ? "win" : netPnl < -5 ? "loss" : "breakeven",
       emotion,
       preTradeNotes: preNotes,

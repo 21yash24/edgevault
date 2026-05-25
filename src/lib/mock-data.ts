@@ -7,9 +7,11 @@ function makeTrade(overrides: Partial<Trade> & Pick<Trade, "symbol" | "direction
     ? (exitPrice - entryPrice) * positionSize
     : (entryPrice - exitPrice) * positionSize;
   const netPnl = parseFloat((rawPnl - commission).toFixed(2));
-  const risk = Math.abs(entryPrice - stopLoss) * positionSize;
-  const rMultiple = risk > 0 ? parseFloat((netPnl / risk).toFixed(2)) : 0;
-  const rr = overrides.takeProfit && overrides.takeProfit > 0 ? Math.abs(overrides.takeProfit - entryPrice) / Math.abs(entryPrice - stopLoss) : 0;
+  const risk = (stopLoss && stopLoss > 0) ? Math.abs(entryPrice - stopLoss) * positionSize : 200;
+  const rMultiple = parseFloat((netPnl / risk).toFixed(2));
+  const rr = (overrides.takeProfit && overrides.takeProfit > 0)
+    ? (Math.abs(overrides.takeProfit - entryPrice) * positionSize) / risk
+    : Math.abs(netPnl / risk);
   const entryD = new Date(overrides.entryDate);
   const exitD = new Date(overrides.exitDate);
   const durationMinutes = Math.round((exitD.getTime() - entryD.getTime()) / 60000);
