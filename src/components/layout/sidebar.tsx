@@ -7,11 +7,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, BookOpen, BarChart3, Target,
   Shield, TrendingUp, Bell, Settings, ChevronLeft,
-  ChevronRight, Zap, Trophy, PlugZap, Brain, Notebook
+  ChevronRight, Zap, Trophy, PlugZap, Brain, Notebook, Globe
 } from "lucide-react";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/markets", label: "Markets Hub", icon: Globe },
   { href: "/journal", label: "Journal", icon: BookOpen },
   { href: "/notebook", label: "Trading Notebook", icon: Notebook },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
