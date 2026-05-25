@@ -534,3 +534,55 @@ export const useRiskStore = create<RiskStore>()(
   )
 );
 
+// ═══════════════════════════════
+// Daily Notebook Store (TradeZella Inspired)
+// ═══════════════════════════════
+
+export interface DailyNote {
+  date: string; // YYYY-MM-DD
+  preMarketPlan: string;
+  bias: "bullish" | "bearish" | "neutral" | "";
+  sleepScore: number; // 1 to 5
+  focusScore: number; // 1 to 5
+  postMarketReview: string;
+  intradayNotes: string;
+  checklistComplete: boolean;
+  sessionGrade: "A" | "B" | "C" | "D" | "F" | "";
+}
+
+interface NotebookStore {
+  notes: Record<string, DailyNote>;
+  saveNote: (date: string, note: Partial<DailyNote>) => void;
+}
+
+export const useNotebookStore = create<NotebookStore>()(
+  persist(
+    (set, get) => ({
+      notes: {},
+      saveNote: (date, updatedFields) => {
+        set((state) => {
+          const existing = state.notes[date] || {
+            date,
+            preMarketPlan: "",
+            bias: "",
+            sleepScore: 3,
+            focusScore: 3,
+            postMarketReview: "",
+            intradayNotes: "",
+            checklistComplete: false,
+            sessionGrade: ""
+          };
+          return {
+            notes: {
+              ...state.notes,
+              [date]: { ...existing, ...updatedFields }
+            }
+          };
+        });
+      }
+    }),
+    { name: "edgevault-notebook" }
+  )
+);
+
+
