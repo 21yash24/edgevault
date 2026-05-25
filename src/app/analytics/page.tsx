@@ -11,7 +11,7 @@ import {
   AreaChart, Area, CartesianGrid, PieChart, Pie,
 } from "recharts";
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, Target, DollarSign, Clock, Activity, Zap, BarChart3, Award, AlertTriangle, Brain, Crosshair } from "lucide-react";
+import { TrendingUp, TrendingDown, Target, DollarSign, Clock, Activity, Zap, BarChart3, Award, AlertTriangle, Brain, Crosshair, Calendar } from "lucide-react";
 import { MaeMfeChart } from "@/components/ui/mae-mfe-chart";
 import { AiCoach } from "@/components/ui/ai-coach";
 import { useSettingsStore } from "@/stores";
@@ -321,6 +321,91 @@ function MonteCarloChart({ trades }: { trades: ReturnType<typeof useTradeStore.g
   );
 }
 
+function MistakeCostChart({ trades }: { trades: ReturnType<typeof useTradeStore.getState>["trades"] }) {
+  const data = useMemo(() => {
+    const map = new Map<string, { count: number; pnl: number }>();
+    trades.forEach(t => {
+      t.mistakeTags?.forEach(tag => {
+        const existing = map.get(tag) ?? { count: 0, pnl: 0 };
+        existing.count++;
+        existing.pnl += t.netPnl;
+        map.set(tag, existing);
+      });
+    });
+    return Array.from(map.entries())
+      .map(([name, { count, pnl }]) => ({ name, count, pnl: parseFloat(pnl.toFixed(2)) }))
+      .sort((a, b) => a.pnl - b.pnl); // Most expensive mistakes first
+  }, [trades]);
+
+  if (data.length === 0) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center text-sm text-text-muted py-10">
+        <Target className="text-accent-green mb-2 opacity-30" size={24} />
+        <p className="font-semibold text-xs">No execution mistakes logged!</p>
+        <p className="text-[10px] mt-0.5">Your portfolio has absolute rule compliance.</p>
+      </div>
+    );
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, bottom: 5, left: 5 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" horizontal={false} />
+        <XAxis type="number" tick={{ fill: "#8B8FA3", fontSize: 9, fontFamily: "Space Mono" }} tickFormatter={(v) => `$${v}`} axisLine={false} tickLine={false} />
+        <YAxis dataKey="name" type="category" tick={{ fill: "#8B8FA3", fontSize: 9 }} axisLine={false} tickLine={false} width={100} />
+        <Tooltip content={<CustomTooltip />} />
+        <Bar dataKey="pnl" radius={[0, 4, 4, 0]} animationDuration={1200}>
+          {data.map((entry, i) => (
+            <Cell key={i} fill="#FF2D55" fillOpacity={0.7} />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+function DayOfWeekPerformanceChart({ trades }: { trades: ReturnType<typeof useTradeStore.getState>["trades"] }) {
+  const data = useMemo(() => {
+    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const map: Record<string, { pnl: number; count: number }> = {};
+    
+    // Initialize trading days
+    for (let i = 1; i <= 5; i++) {
+      map[days[i]] = { pnl: 0, count: 0 };
+    }
+
+    trades.forEach(t => {
+      const dayName = days[new Date(t.entryDate).getDay()];
+      if (map[dayName]) {
+        map[dayName].pnl += t.netPnl;
+        map[dayName].count++;
+      }
+    });
+
+    return Object.entries(map).map(([name, { pnl, count }]) => ({
+      name,
+      pnl: parseFloat(pnl.toFixed(2)),
+      count
+    }));
+  }, [trades]);
+
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={data} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
+        <XAxis dataKey="name" tick={{ fill: "#8B8FA3", fontSize: 10 }} axisLine={false} tickLine={false} />
+        <YAxis tick={{ fill: "#8B8FA3", fontSize: 10, fontFamily: "Space Mono" }} tickFormatter={(v: number) => `$${v}`} axisLine={false} tickLine={false} width={55} />
+        <Tooltip content={<CustomTooltip />} />
+        <Bar dataKey="pnl" radius={[4, 4, 0, 0]} animationDuration={1200}>
+          {data.map((entry, i) => (
+            <Cell key={i} fill={entry.pnl >= 0 ? "#00FFB2" : "#FF2D55"} fillOpacity={0.7} />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
 export default function AnalyticsPage() {
   const { trades } = useTradeStore();
   const { settings } = useSettingsStore();
@@ -466,6 +551,35 @@ export default function AnalyticsPage() {
           <MindsetPerformanceChart trades={filteredTrades} />
         </div>
       </GlassCard>
+
+      {/* TradeZella Capital Leaks & Days Performance Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <GlassCard transition={{ delay: 0.585 }}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <AlertTriangle size={18} className="text-accent-coral" />
+              <h3 className="font-[family-name:var(--font-syne)] font-bold text-base">Cost of Mistakes (Capital Leaks)</h3>
+            </div>
+            <span className="text-xs text-text-muted">Cumulative loss per mistake tag</span>
+          </div>
+          <div className="h-64">
+            <MistakeCostChart trades={filteredTrades} />
+          </div>
+        </GlassCard>
+
+        <GlassCard transition={{ delay: 0.587 }}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Calendar size={18} className="text-accent-violet" />
+              <h3 className="font-[family-name:var(--font-syne)] font-bold text-base">Performance by Day of Week</h3>
+            </div>
+            <span className="text-xs text-text-muted">Cumulative P&L by trading day</span>
+          </div>
+          <div className="h-64">
+            <DayOfWeekPerformanceChart trades={filteredTrades} />
+          </div>
+        </GlassCard>
+      </div>
 
       {/* Charts Row 4: MAE / MFE */}
       <GlassCard transition={{ delay: 0.59 }}>
