@@ -401,7 +401,7 @@ function DataSection() {
               obj.sessionTag = "NY AM";
               obj.marketCondition = "Trending";
               obj.emotion = 0;
-              obj.result = obj.netPnl > 5 ? "win" : obj.netPnl < -5 ? "loss" : "breakeven";
+              obj.result = obj.netPnl >= 0 ? "win" : "loss";
               tradesToImport.push(obj);
             }
             importTrades(tradesToImport);

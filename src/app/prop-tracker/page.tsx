@@ -59,7 +59,7 @@ function LogTradeModal({ challenge, onClose }: { challenge: PropFirmChallenge; o
       netPnl: value,
       rMultiple: 0,
       rr: 0,
-      result: value > 5 ? "win" : value < -5 ? "loss" : "breakeven",
+      result: value >= 0 ? "win" : "loss",
       emotion: 0,
       preTradeNotes: notes || `Direct entry into ${challenge.firmName}`,
       postTradeReview: "",

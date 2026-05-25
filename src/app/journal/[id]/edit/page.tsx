@@ -150,14 +150,14 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
         setQuickNetPnl(trade.netPnl.toString());
       }
 
-      // Format dates for datetime-local input (YYYY-MM-DDThh:mm)
+      // Format dates for datetime-local input (YYYY-MM-DDThh:mm) in LOCAL time
       if (trade.entryDate) {
         const d = new Date(trade.entryDate);
-        setEntryDate(d.toISOString().slice(0, 16));
+        setEntryDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}T${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`);
       }
       if (trade.exitDate) {
         const d = new Date(trade.exitDate);
-        setExitDate(d.toISOString().slice(0, 16));
+        setExitDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}T${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`);
       }
     }
   }, [trade]);
@@ -212,7 +212,7 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
       netPnl: parseFloat(netPnl.toFixed(2)),
       rMultiple: mode === "quick" ? parseFloat((netPnl / 200).toFixed(2)) : parseFloat((detailedCalculations?.rMultiple || (netPnl / 200)).toFixed(2)),
       rr: mode === "quick" ? parseFloat(Math.abs(netPnl / 200).toFixed(2)) : parseFloat((detailedCalculations?.rr || Math.abs(netPnl / 200)).toFixed(2)),
-      result: netPnl > 5 ? "win" : netPnl < -5 ? "loss" : "breakeven",
+      result: netPnl >= 0 ? "win" : "loss",
       emotion,
       preTradeNotes: preNotes,
       postTradeReview: postReview,
@@ -229,11 +229,11 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
     };
 
     if (mode === "detailed") {
-      updates.entryPrice = parseFloat(entryPrice) || undefined;
-      updates.exitPrice = parseFloat(exitPrice) || undefined;
-      updates.stopLoss = parseFloat(stopLoss) || undefined;
-      updates.takeProfit = parseFloat(takeProfit) || undefined;
-      updates.positionSize = parseFloat(positionSize) || 0;
+      updates.entryPrice = isNaN(parseFloat(entryPrice)) ? undefined : parseFloat(entryPrice);
+      updates.exitPrice = isNaN(parseFloat(exitPrice)) ? undefined : parseFloat(exitPrice);
+      updates.stopLoss = isNaN(parseFloat(stopLoss)) ? undefined : parseFloat(stopLoss);
+      updates.takeProfit = isNaN(parseFloat(takeProfit)) ? undefined : parseFloat(takeProfit);
+      updates.positionSize = isNaN(parseFloat(positionSize)) ? 0 : parseFloat(positionSize);
     }
 
     updateTrade(trade.id, updates);

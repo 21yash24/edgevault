@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     // 3. Map to EDGEVAULT Trade Schema
     const direction = payload.type === 0 ? "long" : "short";
     const netPnl = (payload.profit || 0) + (payload.commission || 0) + (payload.swap || 0);
-    const result = netPnl > 0 ? "win" : netPnl < 0 ? "loss" : "breakeven";
+    const result = netPnl >= 0 ? "win" : "loss";
     
     const trade: Trade = {
       id: generateId(),

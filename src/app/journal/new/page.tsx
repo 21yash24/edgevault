@@ -246,7 +246,7 @@ export default function NewTradePage() {
       netPnl: parseFloat(netPnl.toFixed(2)),
       rMultiple: mode === "quick" ? parseFloat((netPnl / 200).toFixed(2)) : parseFloat((detailedCalculations?.rMultiple || (netPnl / 200)).toFixed(2)),
       rr: mode === "quick" ? parseFloat(Math.abs(netPnl / 200).toFixed(2)) : parseFloat((detailedCalculations?.rr || Math.abs(netPnl / 200)).toFixed(2)),
-      result: netPnl > 5 ? "win" : netPnl < -5 ? "loss" : "breakeven",
+      result: netPnl >= 0 ? "win" : "loss",
       emotion: emotion || 0,
       preTradeNotes: preNotes,
       postTradeReview: postReview,
@@ -264,11 +264,11 @@ export default function NewTradePage() {
     };
 
     if (mode === "detailed") {
-      trade.entryPrice = parseFloat(entryPrice);
-      trade.exitPrice = parseFloat(exitPrice);
-      trade.stopLoss = parseFloat(stopLoss) || 0;
-      trade.takeProfit = parseFloat(takeProfit) || 0;
-      trade.positionSize = parseFloat(positionSize);
+      trade.entryPrice = isNaN(parseFloat(entryPrice)) ? undefined : parseFloat(entryPrice);
+      trade.exitPrice = isNaN(parseFloat(exitPrice)) ? undefined : parseFloat(exitPrice);
+      trade.stopLoss = isNaN(parseFloat(stopLoss)) ? undefined : parseFloat(stopLoss);
+      trade.takeProfit = isNaN(parseFloat(takeProfit)) ? undefined : parseFloat(takeProfit);
+      trade.positionSize = isNaN(parseFloat(positionSize)) ? 0 : parseFloat(positionSize);
     }
 
     addTrade(trade);

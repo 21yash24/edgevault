@@ -79,7 +79,7 @@ export function mapTradovatePayloadToTrades(payload: any): Omit<Trade, "id">[] {
       positionSize: entryFill.qty,
       commission,
       netPnl,
-      result: netPnl > 0 ? "win" : netPnl < 0 ? "loss" : "breakeven",
+      result: netPnl >= 0 ? "win" : "loss",
       rMultiple: 0,
       rr: 0,
       durationMinutes,

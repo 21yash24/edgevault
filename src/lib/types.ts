@@ -1,5 +1,5 @@
 export type TradeDirection = "long" | "short";
-export type TradeResult = "win" | "loss" | "breakeven";
+export type TradeResult = "win" | "loss";
 export type SessionTag = "Pre-Market" | "London" | "NY AM" | "NY PM" | "Asian" | "Overnight";
 export type MarketCondition = "Trending" | "Ranging" | "Choppy" | "News-driven";
 export type MistakeTag = "Chased entry" | "Moved SL" | "Sized too big" | "Broke rules" | "Early exit" | "Late entry" | "No plan" | "Revenge trade" | "FOMO";

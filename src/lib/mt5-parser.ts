@@ -133,7 +133,7 @@ export function parseMT5CSV(csvText: string): { trades: Omit<Trade, "id" | "acco
     trades.push({
       symbol, direction, entryPrice, exitPrice, stopLoss, takeProfit,
       positionSize, entryDate, exitDate, commission, netPnl, rMultiple, rr,
-      result: netPnl > 1 ? "win" : netPnl < -1 ? "loss" : "breakeven",
+      result: netPnl >= 0 ? "win" : "loss",
       emotion: 0, preTradeNotes: "", postTradeReview: `Imported from MT5 (Ticket: ${ticket})`,
       setupTags: [], sessionTag: "NY AM", marketCondition: "Trending",
       mistakeTags: [], durationMinutes,

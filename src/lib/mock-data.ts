@@ -15,7 +15,7 @@ function makeTrade(overrides: Partial<Trade> & Pick<Trade, "symbol" | "direction
   const entryD = new Date(overrides.entryDate);
   const exitD = new Date(overrides.exitDate);
   const durationMinutes = Math.round((exitD.getTime() - entryD.getTime()) / 60000);
-  const result = netPnl > 5 ? "win" : netPnl < -5 ? "loss" : "breakeven";
+  const result = netPnl >= 0 ? "win" : "loss";
 
   // Simulate MAE/MFE in dollars
   const maxPotentialProfit = Math.abs(overrides.takeProfit ? (overrides.takeProfit - entryPrice) * positionSize : netPnl * 1.5);

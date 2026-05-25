@@ -7,6 +7,24 @@ import { generateId } from "@/lib/utils";
 import { db, auth } from "@/lib/firebase";
 import { collection, onSnapshot, query, doc, setDoc, deleteDoc, writeBatch } from "firebase/firestore";
 
+const sanitizeForFirestore = (obj: any): any => {
+  if (obj === undefined) return null;
+  if (obj === null || typeof obj !== "object") return obj;
+  if (Array.isArray(obj)) return obj.map(sanitizeForFirestore);
+  const result: any = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value === undefined) {
+      // Omit undefined, or set to null if preferred. Firestore supports null.
+      // We will omit them to simulate delete behavior, but setDoc merge true won't delete unless we use deleteField().
+      // However, the best approach for Next.js/Firestore is deleting undefined keys before send.
+      // We will just not add the key.
+    } else {
+      result[key] = sanitizeForFirestore(value);
+    }
+  }
+  return result;
+};
+
 const recalculate = (trades: Trade[]) => {
   const sorted = [...trades].sort((a, b) => new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime());
   let equity = 50000;
@@ -58,7 +76,8 @@ export const useTradeStore = create<TradeStore>()(
         const user = auth?.currentUser;
         if (user && db) {
           try {
-            await setDoc(doc(db, `users/${user.uid}/trades`, newTrade.id), newTrade);
+            const cleanTrade = sanitizeForFirestore(newTrade);
+            await setDoc(doc(db, `users/${user.uid}/trades`, newTrade.id), cleanTrade);
           } catch (error) {
             console.error("Error syncing trade to cloud:", error);
           }
@@ -82,7 +101,7 @@ export const useTradeStore = create<TradeStore>()(
             newTrades.forEach(trade => {
               if (db) {
                 const ref = doc(db, `users/${user.uid}/trades`, trade.id);
-                batch.set(ref, trade);
+                batch.set(ref, sanitizeForFirestore(trade));
               }
             });
             await batch.commit();
@@ -100,7 +119,8 @@ export const useTradeStore = create<TradeStore>()(
         const user = auth?.currentUser;
         if (user && db) {
           try {
-            await setDoc(doc(db, `users/${user.uid}/trades`, id), updates, { merge: true });
+            const cleanUpdates = sanitizeForFirestore(updates);
+            await setDoc(doc(db, `users/${user.uid}/trades`, id), cleanUpdates, { merge: true });
           } catch (error) {
             console.error("Error updating trade in cloud:", error);
           }
@@ -315,7 +335,7 @@ export const useAccountStore = create<AccountStore>()(
         const user = auth?.currentUser;
         if (user && db) {
           try {
-            await setDoc(doc(db, `users/${user.uid}/accounts`, newAccount.id), newAccount);
+            await setDoc(doc(db, `users/${user.uid}/accounts`, newAccount.id), sanitizeForFirestore(newAccount));
           } catch (error) {
             console.error("Error syncing account to cloud:", error);
           }
@@ -327,7 +347,7 @@ export const useAccountStore = create<AccountStore>()(
         const user = auth?.currentUser;
         if (user && db) {
           try {
-            await setDoc(doc(db, `users/${user.uid}/accounts`, id), updates, { merge: true });
+            await setDoc(doc(db, `users/${user.uid}/accounts`, id), sanitizeForFirestore(updates), { merge: true });
           } catch (error) {
             console.error("Error updating account in cloud:", error);
           }
@@ -389,7 +409,7 @@ export const usePropFirmStore = create<PropFirmStore>()(
         const user = auth?.currentUser;
         if (user && db) {
           try {
-            await setDoc(doc(db, `users/${user.uid}/challenges`, newChallenge.id), newChallenge);
+            await setDoc(doc(db, `users/${user.uid}/challenges`, newChallenge.id), sanitizeForFirestore(newChallenge));
           } catch (error) {
             console.error("Error syncing challenge to cloud:", error);
           }
@@ -401,7 +421,7 @@ export const usePropFirmStore = create<PropFirmStore>()(
         const user = auth?.currentUser;
         if (user && db) {
           try {
-            await setDoc(doc(db, `users/${user.uid}/challenges`, id), updates, { merge: true });
+            await setDoc(doc(db, `users/${user.uid}/challenges`, id), sanitizeForFirestore(updates), { merge: true });
           } catch (error) {
             console.error("Error updating challenge in cloud:", error);
           }
