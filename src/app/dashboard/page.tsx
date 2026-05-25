@@ -20,6 +20,8 @@ import { CalendarHeatmap } from "@/components/ui/calendar-heatmap";
 import { EconomicCalendar } from "@/components/ui/economic-calendar";
 import { PerformanceReport } from "@/components/ui/performance-report";
 import { useMemo, useEffect, useRef, useState } from "react";
+import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from "recharts";
+
 
 function EquityCurveChart({ data }: { data: { time: string; value: number }[] }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -489,6 +491,104 @@ function PreFlightChecklist() {
   );
 }
 
+function TraderCognitionRadar({ trades, settings }: { trades: any[]; settings: any }) {
+  const radarData = useMemo(() => {
+    if (trades.length === 0) {
+      return [
+        { subject: "Consistency", value: 80 },
+        { subject: "Risk Management", value: 85 },
+        { subject: "Discipline", value: 75 },
+        { subject: "Execution", value: 90 },
+        { subject: "Patience", value: 85 },
+      ];
+    }
+    
+    // 1. Consistency (R-multiple variance)
+    const rMultiples = trades.map(t => t.rMultiple || 0);
+    const avgR = rMultiples.reduce((s, r) => s + r, 0) / (rMultiples.length || 1);
+    const varianceR = rMultiples.reduce((s, r) => s + (r - avgR) ** 2, 0) / (rMultiples.length || 1);
+    const stdDevR = Math.sqrt(varianceR);
+    const consistencyScore = Math.max(20, Math.min(100, 100 - Math.min(80, stdDevR * 25)));
+
+    // 2. Risk Management
+    const maxLoss = settings?.trading?.maxLoss || 500;
+    const riskCompliant = trades.filter(t => t.stopLoss && t.stopLoss > 0 && Math.abs(t.netPnl) <= maxLoss * 1.5);
+    const riskScore = trades.length > 0 ? (riskCompliant.length / trades.length) * 100 : 80;
+
+    // 3. Discipline (No mistakes)
+    const disciplined = trades.filter(t => (t.mistakeTags || []).length === 0);
+    const disciplineScore = trades.length > 0 ? (disciplined.length / trades.length) * 100 : 90;
+
+    // 4. Execution Quality (Profit factor and win rate)
+    const wins = trades.filter(t => t.result === "win");
+    const winRate = trades.length > 0 ? (wins.length / trades.length) * 100 : 50;
+    const grossWins = wins.reduce((s, t) => s + t.netPnl, 0);
+    const grossLosses = Math.abs(trades.filter(t => t.result === "loss").reduce((s, t) => s + t.netPnl, 0));
+    const pf = grossLosses > 0 ? grossWins / grossLosses : grossWins > 0 ? 3.0 : 1.0;
+    const executionScore = Math.max(30, Math.min(100, winRate * 0.6 + Math.min(3, pf) * 13.3));
+
+    // 5. Patience (No chasing, FOMO, or revenge trading)
+    const patientTrades = trades.filter((t: any) => 
+      !(t.mistakeTags || []).some((m: any) => ["Chased entry", "FOMO", "Revenge trade", "Impulsive"].includes(m))
+    );
+    const patienceScore = trades.length > 0 ? (patientTrades.length / trades.length) * 100 : 85;
+
+    return [
+      { subject: "Consistency", value: Math.round(consistencyScore) },
+      { subject: "Risk Management", value: Math.round(riskScore) },
+      { subject: "Discipline", value: Math.round(disciplineScore) },
+      { subject: "Execution", value: Math.round(executionScore) },
+      { subject: "Patience", value: Math.round(patienceScore) },
+    ];
+  }, [trades, settings]);
+
+  return (
+    <GlassCard className="relative overflow-hidden group flex flex-col justify-between min-h-[295px] border border-white/[0.04]">
+      <div className="absolute -bottom-16 -right-16 w-36 h-36 bg-accent-violet/5 rounded-full blur-[60px] pointer-events-none" />
+      <h3 className="font-[family-name:var(--font-syne)] font-bold text-sm mb-2 flex items-center gap-2 select-none">
+        <Brain size={14} className="text-accent-violet" /> Trader Cognition Baseline
+      </h3>
+      <div className="h-[190px] w-full flex items-center justify-center relative z-10">
+        <ResponsiveContainer width="100%" height="100%">
+          <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
+            <defs>
+              <linearGradient id="radarGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#7B61FF" stopOpacity={0.6} />
+                <stop offset="100%" stopColor="#00FFB2" stopOpacity={0.1} />
+              </linearGradient>
+            </defs>
+            <PolarGrid stroke="rgba(255,255,255,0.05)" />
+            <PolarAngleAxis 
+              dataKey="subject" 
+              tick={{ fill: "#8B8FA3", fontSize: 8, fontFamily: "var(--font-syne), sans-serif", fontWeight: 700 }} 
+            />
+            <PolarRadiusAxis 
+              angle={30} 
+              domain={[0, 100]} 
+              tick={{ fill: "rgba(139,143,163,0.5)", fontSize: 7 }} 
+              axisLine={false}
+              tickCount={3}
+            />
+            <Radar
+              name="Cognition"
+              dataKey="value"
+              stroke="#7B61FF"
+              fill="url(#radarGrad)"
+              fillOpacity={0.5}
+              animationDuration={1500}
+            />
+          </RadarChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="text-[9px] text-text-muted mt-2 pt-2 border-t border-white/[0.05] flex justify-between uppercase font-bold tracking-wider select-none relative z-10">
+        <span>Mindset Profiling</span>
+        <span className="text-accent-violet">Real-Time Behavior</span>
+      </div>
+    </GlassCard>
+  );
+}
+
+
 export default function DashboardPage() {
   const { trades } = useTradeStore();
   const { challenges } = usePropFirmStore();
@@ -527,6 +627,27 @@ export default function DashboardPage() {
   }, [computedChallenges]);
 
   const currentBalance = trades.length > 0 ? trades[trades.length - 1].accountEquityAfter : 50000;
+
+  const { settings } = useSettingsStore();
+
+  const sparklinePoints = useMemo(() => {
+    if (filteredTrades.length === 0) return "";
+    const lastTrades = filteredTrades.slice(-5);
+    const values = lastTrades.map((t) => t.accountEquityAfter);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = max - min || 1;
+    return values.map((v, i) => `${(i / 4) * 60 + 5},${30 - ((v - min) / range) * 20}`).join(" ");
+  }, [filteredTrades]);
+
+  const winRatio = useMemo(() => {
+    return metrics.avgWin / (metrics.avgWin + metrics.avgLoss || 1) * 100;
+  }, [metrics]);
+
+  const maxLoss = settings?.trading?.maxLoss || 500;
+  const todayPnlRatio = useMemo(() => {
+    return Math.max(0, Math.min(100, (Math.abs(todayPnl) / maxLoss) * 100));
+  }, [todayPnl, maxLoss]);
 
   const containerVariants: any = {
     hidden: { opacity: 0 },
@@ -575,7 +696,22 @@ export default function DashboardPage() {
           trend={todayPnl >= 0 ? "up" : "down"}
           subtitle={`${todayTrades.length} trades today`}
           delay={0}
-        />
+        >
+          <svg viewBox="0 0 32 32" className="w-8 h-8 select-none">
+            <circle cx="16" cy="16" r="12" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="3" />
+            <circle 
+              cx="16" cy="16" r="12" 
+              fill="none" 
+              stroke={todayPnl >= 0 ? "#00FFB2" : "#FF2D55"} 
+              strokeWidth="3" 
+              strokeDasharray="75.4" 
+              strokeDashoffset={75.4 - (75.4 * todayPnlRatio) / 100} 
+              strokeLinecap="round" 
+              className="transform -rotate-90 origin-center transition-all duration-1000 ease-out" 
+              style={{ filter: `drop-shadow(0 0 3px ${todayPnl >= 0 ? "rgba(0,255,178,0.4)" : "rgba(255,45,85,0.4)"})` }}
+            />
+          </svg>
+        </StatCard>
         <StatCard
           title="Win Rate"
           value={metrics.winRate}
@@ -584,7 +720,22 @@ export default function DashboardPage() {
           trend={metrics.winRate >= 50 ? "up" : "down"}
           subtitle={`${metrics.totalTrades} total trades`}
           delay={0.03}
-        />
+        >
+          <svg viewBox="0 0 70 35" className="w-16 h-8 select-none">
+            <path d="M 10 30 A 25 25 0 0 1 60 30" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="4.5" strokeLinecap="round" />
+            <path 
+              d="M 10 30 A 25 25 0 0 1 60 30" 
+              fill="none" 
+              stroke="#00FFB2" 
+              strokeWidth="4.5" 
+              strokeLinecap="round" 
+              strokeDasharray="78.5" 
+              strokeDashoffset={78.5 - (78.5 * metrics.winRate) / 100} 
+              className="transition-all duration-1000 ease-out"
+              style={{ filter: "drop-shadow(0 0 3px rgba(0,255,178,0.4))" }} 
+            />
+          </svg>
+        </StatCard>
         <StatCard
           title="Profit Factor"
           value={metrics.profitFactor}
@@ -593,7 +744,18 @@ export default function DashboardPage() {
           trend={metrics.profitFactor >= 1.5 ? "up" : metrics.profitFactor >= 1 ? "neutral" : "down"}
           subtitle={`${metrics.maxWinStreak} max win streak`}
           delay={0.06}
-        />
+        >
+          <div className="flex flex-col gap-1 w-20 select-none">
+            <div className="flex justify-between text-[7px] font-black text-text-muted">
+              <span className="text-accent-green">W:{formatCurrency(metrics.avgWin, false)}</span>
+              <span className="text-accent-coral">L:{formatCurrency(metrics.avgLoss, false)}</span>
+            </div>
+            <div className="h-1.5 w-full bg-white/[0.02] rounded-full overflow-hidden flex border border-white/[0.04]">
+              <div className="h-full bg-accent-green" style={{ width: `${winRatio}%` }} />
+              <div className="h-full bg-accent-coral flex-1" />
+            </div>
+          </div>
+        </StatCard>
         <StatCard
           title="Account Balance"
           value={currentBalance}
@@ -602,18 +764,33 @@ export default function DashboardPage() {
           trend="up"
           subtitle={formatCurrency(metrics.totalNetPnl) + " all time"}
           delay={0.09}
-        />
+        >
+          {sparklinePoints ? (
+            <svg viewBox="0 0 70 35" className="w-16 h-8 select-none">
+              <polyline 
+                fill="none" 
+                stroke="#7B61FF" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                points={sparklinePoints} 
+                className="transition-all duration-1000 ease-out"
+                style={{ filter: "drop-shadow(0 0 3px rgba(123,97,255,0.4))" }} 
+              />
+            </svg>
+          ) : (
+            <div className="text-[8px] text-text-muted font-bold">No history</div>
+          )}
+        </StatCard>
       </motion.div>
 
       {/* Row 2: Tactical HUD (Win/Loss, Pre-Flight, AI diagnostics) */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <WinLossVisualizer trades={trades} />
         <PreFlightChecklist />
-        <div className="flex flex-col gap-6">
-          <ProactiveAIWidget />
-          <TiltmeterWidget recentLosses={3} avgHoldTimeDeviation={1.5} volumeSpike={false} />
-        </div>
+        <TraderCognitionRadar trades={filteredTrades} settings={settings} />
       </motion.div>
+
 
       {/* Row 3: Performance Curve & Challenges */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -725,23 +902,32 @@ export default function DashboardPage() {
         </GlassCard>
       </motion.div>
 
-      {/* Row 4: Consistency graph (GitHub Heatmap Calendar Spanned Full Width) */}
-      <motion.div variants={itemVariants}>
-        <GlassCard className="relative overflow-hidden">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Calendar size={16} className="text-accent-violet" />
-              <h2 className="font-[family-name:var(--font-syne)] font-bold text-base">Consistency Calendar</h2>
+      {/* Row 4: Consistency graph & Dynamic Diagnostics */}
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <GlassCard className="relative overflow-hidden h-full flex flex-col justify-between border border-white/[0.04]">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Calendar size={16} className="text-accent-violet" />
+                  <h2 className="font-[family-name:var(--font-syne)] font-bold text-base">Consistency Calendar</h2>
+                </div>
+                <span className="text-[9px] px-2 py-0.5 rounded bg-accent-violet/10 text-accent-violet uppercase font-black tracking-widest select-none">
+                  Last 371 Days Tracker
+                </span>
+              </div>
+              <div className="flex items-center justify-center py-2">
+                <CalendarHeatmap trades={trades} />
+              </div>
             </div>
-            <span className="text-[9px] px-2 py-0.5 rounded bg-accent-violet/10 text-accent-violet uppercase font-black tracking-widest select-none">
-              Last 371 Days Tracker
-            </span>
-          </div>
-          <div className="flex items-center justify-center py-2">
-            <CalendarHeatmap trades={trades} />
-          </div>
-        </GlassCard>
+          </GlassCard>
+        </div>
+        <div className="lg:col-span-1 flex flex-col gap-6">
+          <ProactiveAIWidget />
+          <TiltmeterWidget recentLosses={3} avgHoldTimeDeviation={1.5} volumeSpike={false} />
+        </div>
       </motion.div>
+
 
       {/* Row 4.5: Economic Calendar News & Dynamic Performance Analytics */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6">

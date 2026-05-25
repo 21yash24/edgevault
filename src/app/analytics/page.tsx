@@ -427,6 +427,48 @@ export default function AnalyticsPage() {
 
   const metrics = useMemo(() => calculateMetrics(filteredTrades), [filteredTrades]);
 
+  const hourlyStats = useMemo(() => {
+    const map = new Map<number, { pnl: number; count: number }>();
+    
+    // Initialize hours
+    for (let i = 0; i < 24; i++) {
+      map.set(i, { pnl: 0, count: 0 });
+    }
+
+    filteredTrades.forEach(t => {
+      const d = new Date(t.entryDate);
+      const hour = d.getHours();
+      const existing = map.get(hour) || { pnl: 0, count: 0 };
+      existing.pnl += t.netPnl;
+      existing.count++;
+      map.set(hour, existing);
+    });
+
+    const list = Array.from(map.entries()).map(([hour, data]) => ({
+      hour,
+      pnl: parseFloat(data.pnl.toFixed(2)),
+      count: data.count
+    }));
+
+    const sorted = [...list].sort((a, b) => b.pnl - a.pnl);
+    const best = sorted[0]?.pnl > 0 ? sorted[0] : null;
+    const worst = sorted[sorted.length - 1]?.pnl < 0 ? sorted[sorted.length - 1] : null;
+
+    return { best, worst };
+  }, [filteredTrades]);
+
+  const formatHourLabel = (hour: number) => {
+    const ampm = hour >= 12 ? "PM" : "AM";
+    const displayHour = hour % 12 || 12;
+    let sessionName = "Overnight Session";
+    if (hour >= 8 && hour < 12) sessionName = "NY AM Session";
+    else if (hour >= 12 && hour < 17) sessionName = "NY PM Session";
+    else if (hour >= 2 && hour < 8) sessionName = "London Session";
+    else if (hour >= 17 && hour < 22) sessionName = "Asian Session";
+    
+    return `${sessionName} (${displayHour}:00 ${ampm})`;
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -464,12 +506,68 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
+      {/* Session Edges & Capital Leaks Badges */}
+      {filteredTrades.length >= 2 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-2 select-none">
+          {hourlyStats.best && (
+            <div className="relative overflow-hidden bg-white/[0.01] border border-accent-green/20 rounded-2xl p-4 flex items-center justify-between shadow-[0_0_20px_rgba(0,255,178,0.05)] hover:shadow-[0_0_25px_rgba(0,255,178,0.1)] transition-all duration-500">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-accent-green/5 rounded-full blur-2xl pointer-events-none" />
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-accent-green/10 text-accent-green flex items-center justify-center border border-accent-green/20">
+                  <Award size={20} className="stroke-[2.5]" />
+                </div>
+                <div>
+                  <div className="text-[10px] text-accent-green uppercase font-black tracking-widest">Peak Trading Edge Hour</div>
+                  <div className="font-[family-name:var(--font-syne)] font-black text-sm text-text-primary mt-0.5">
+                    {formatHourLabel(hourlyStats.best.hour)}
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="font-[family-name:var(--font-space-mono)] font-bold text-accent-green text-base">
+                  +{formatCurrency(hourlyStats.best.pnl)}
+                </div>
+                <div className="text-[9px] text-text-muted mt-0.5 font-bold">
+                  {hourlyStats.best.count} trades executed
+                </div>
+              </div>
+            </div>
+          )}
+
+          {hourlyStats.worst && (
+            <div className="relative overflow-hidden bg-white/[0.01] border border-accent-coral/20 rounded-2xl p-4 flex items-center justify-between shadow-[0_0_20px_rgba(255,45,85,0.05)] hover:shadow-[0_0_25px_rgba(255,45,85,0.1)] transition-all duration-500">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-accent-coral/5 rounded-full blur-2xl pointer-events-none" />
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-accent-coral/10 text-accent-coral flex items-center justify-center border border-accent-coral/20">
+                  <AlertTriangle size={20} className="stroke-[2.5]" />
+                </div>
+                <div>
+                  <div className="text-[10px] text-accent-coral uppercase font-black tracking-widest">Severe Capital Leak Hour</div>
+                  <div className="font-[family-name:var(--font-syne)] font-black text-sm text-text-primary mt-0.5">
+                    {formatHourLabel(hourlyStats.worst.hour)}
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="font-[family-name:var(--font-space-mono)] font-bold text-accent-coral text-base">
+                  {formatCurrency(hourlyStats.worst.pnl)}
+                </div>
+                <div className="text-[9px] text-text-muted mt-0.5 font-bold">
+                  {hourlyStats.worst.count} trades executed
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {activeTab === "AI Coach" ? (
         <AiCoach trades={filteredTrades} geminiKey={settings.api.geminiKey} />
       ) : (
         <>
           {/* Metrics Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+
         <MetricCard label="Net P&L" value={metrics.totalNetPnl} format={(v) => formatCurrency(v)} icon={DollarSign} color={metrics.totalNetPnl >= 0 ? "text-accent-green" : "text-accent-coral"} delay={0} />
         <MetricCard label="Win Rate" value={metrics.winRate} format={(v) => `${v.toFixed(1)}%`} icon={Target} color={metrics.winRate >= 50 ? "text-accent-green" : "text-accent-coral"} delay={0.03} />
         <MetricCard label="Profit Factor" value={metrics.profitFactor} format={(v) => v.toFixed(2)} icon={TrendingUp} color="text-accent-violet" delay={0.06} />
