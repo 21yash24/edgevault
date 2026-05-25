@@ -12,7 +12,15 @@ const recalculate = (trades: Trade[]) => {
   let equity = 50000;
   return sorted.map(t => {
     equity += t.netPnl;
-    return { ...t, accountEquityAfter: parseFloat(equity.toFixed(2)) };
+    // Fallback rMultiple & rr to $200 unit risk baseline if zero or falsy
+    const rMultiple = t.rMultiple !== 0 ? (t.rMultiple || 0) : parseFloat((t.netPnl / 200).toFixed(2));
+    const rr = t.rr !== 0 ? (t.rr || 0) : parseFloat(Math.abs(t.netPnl / 200).toFixed(2));
+    return { 
+      ...t, 
+      rMultiple,
+      rr,
+      accountEquityAfter: parseFloat(equity.toFixed(2)) 
+    };
   });
 };
 
@@ -35,7 +43,7 @@ export const useTradeStore = create<TradeStore>()(
       initialized: false,
       initializeTrades: () => {
         if (!get().initialized) {
-          set({ trades: generateMockTrades(), initialized: true });
+          set({ trades: recalculate(generateMockTrades()), initialized: true });
         }
       },
       addTrade: async (trade) => {
@@ -151,17 +159,7 @@ export const useTradeStore = create<TradeStore>()(
             });
             batch.commit().catch(err => console.error("Error syncing local trades to cloud:", err));
           } else {
-            // Sort by entry date
-            cloudTrades.sort((a, b) => new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime());
-            
-            // Recalculate equity curve based on initial balance (50,000 for demo)
-            let equity = 50000;
-            const recalculated = cloudTrades.map(t => {
-              equity += t.netPnl;
-              return { ...t, accountEquityAfter: parseFloat(equity.toFixed(2)) };
-            });
-
-            set({ trades: recalculated });
+            set({ trades: recalculate(cloudTrades) });
           }
         }, (error) => {
           // Silently ignore permission errors until rules are updated
