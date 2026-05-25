@@ -89,7 +89,7 @@ function TradeListView({ trades }: { trades: Trade[] }) {
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setSelectedIds([])}
-                  className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-text-secondary hover:text-text-primary transition-colors hover:bg-white/5"
+                  className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-text-secondary hover:text-text-primary transition-colors hover:bg-bg-secondary/40 dark:hover:bg-white/5"
                 >
                   Clear Selection
                 </button>
@@ -109,13 +109,13 @@ function TradeListView({ trades }: { trades: Trade[] }) {
       <div className="overflow-x-auto no-scrollbar">
         <table className="w-full text-sm border-collapse">
           <thead>
-            <tr className="border-b border-white/[0.04] text-text-muted select-none">
+            <tr className="border-b border-border-subtle text-text-muted select-none">
               <th className="py-3 px-3 w-10 text-center">
                 <input
                   type="checkbox"
                   checked={sorted.length > 0 && selectedIds.length === sorted.length}
                   onChange={toggleAll}
-                  className="rounded border-white/20 bg-bg-secondary text-accent-green focus:ring-accent-green focus:ring-offset-0 cursor-pointer h-4 w-4 accent-accent-green"
+                  className="rounded border-border-subtle/85 dark:border-white/20 bg-bg-secondary text-accent-green focus:ring-accent-green focus:ring-offset-0 cursor-pointer h-4 w-4 accent-accent-green"
                 />
               </th>
               {headers.map((h) => (
@@ -145,7 +145,7 @@ function TradeListView({ trades }: { trades: Trade[] }) {
                   key={trade.id}
                   onClick={() => router.push(`/journal/${trade.id}`)}
                   className={cn(
-                    "border-b border-white/[0.02] hover:bg-white/[0.015] transition-colors cursor-pointer group relative",
+                    "border-b border-border-subtle/40 hover:bg-bg-secondary/20 dark:hover:bg-white/[0.015] transition-colors cursor-pointer group relative",
                     trade.result === "win" ? "row-win" : trade.result === "loss" ? "row-loss" : "",
                     isSelected ? "bg-accent-green/5 hover:bg-accent-green/10" : ""
                   )}
@@ -159,7 +159,7 @@ function TradeListView({ trades }: { trades: Trade[] }) {
                       checked={isSelected}
                       onChange={(e) => {}}
                       onClick={(e) => toggleSelect(e, trade.id)}
-                      className="rounded border-white/20 bg-bg-secondary text-accent-green focus:ring-accent-green focus:ring-offset-0 cursor-pointer h-4 w-4 accent-accent-green"
+                      className="rounded border-border-subtle/85 dark:border-white/20 bg-bg-secondary text-accent-green focus:ring-accent-green focus:ring-offset-0 cursor-pointer h-4 w-4 accent-accent-green"
                     />
                   </td>
                   <td className="py-3 px-3 font-[family-name:var(--font-space-mono)] text-[11px] text-text-secondary">
@@ -249,8 +249,8 @@ function CalendarHeatmapView({ trades }: { trades: Trade[] }) {
   return (
     <div className="space-y-6">
       {/* Month Navigation Row */}
-      <div className="flex items-center justify-between border-b border-white/[0.03] pb-4">
-        <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-2 rounded-xl bg-white/[0.01] border border-white/[0.03] hover:border-white/10 transition-colors text-text-secondary hover:text-text-primary">
+      <div className="flex items-center justify-between border-b border-border-subtle/50 pb-4">
+        <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-2 rounded-xl bg-bg-secondary/20 dark:bg-white/[0.01] border border-border-subtle hover:border-accent-violet/30 hover:bg-bg-secondary/40 dark:hover:border-white/10 transition-colors text-text-secondary hover:text-text-primary">
           <ChevronLeft size={18} />
         </button>
         <div className="text-center">
@@ -259,13 +259,13 @@ function CalendarHeatmapView({ trades }: { trades: Trade[] }) {
             Net Month P&L: {monthPnl >= 0 ? "+" : ""}{formatCurrency(monthPnl)}
           </p>
         </div>
-        <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-2 rounded-xl bg-white/[0.01] border border-white/[0.03] hover:border-white/10 transition-colors text-text-secondary hover:text-text-primary">
+        <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-2 rounded-xl bg-bg-secondary/20 dark:bg-white/[0.01] border border-border-subtle hover:border-accent-violet/30 hover:bg-bg-secondary/40 dark:hover:border-white/10 transition-colors text-text-secondary hover:text-text-primary">
           <ChevronRight size={18} />
         </button>
       </div>
 
       {/* 8-Column Grid Headers */}
-      <div className="grid grid-cols-8 gap-3 text-center text-[10px] text-text-muted uppercase font-black tracking-widest select-none border-b border-white/[0.03] pb-2">
+      <div className="grid grid-cols-8 gap-3 text-center text-[10px] text-text-muted uppercase font-black tracking-widest select-none border-b border-border-subtle/50 pb-2">
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
           <div key={d}>{d}</div>
         ))}
@@ -291,7 +291,7 @@ function CalendarHeatmapView({ trades }: { trades: Trade[] }) {
             <div key={weekIdx} className="grid grid-cols-8 gap-3 items-stretch">
               {week.map((day, dayIdx) => {
                 if (!day) {
-                  return <div key={`empty-${dayIdx}`} className="aspect-square bg-white/[0.005] border border-transparent rounded-2xl opacity-10" />;
+                  return <div key={`empty-${dayIdx}`} className="aspect-square bg-bg-secondary/10 dark:bg-white/[0.005] border border-transparent rounded-2xl opacity-10" />;
                 }
 
                 const dateStr = format(day, "yyyy-MM-dd");
@@ -303,7 +303,7 @@ function CalendarHeatmapView({ trades }: { trades: Trade[] }) {
                 const winCount = dayTrades.filter(t => t.result === "win").length;
                 const winRate = dayTrades.length > 0 ? (winCount / dayTrades.length) * 100 : 0;
 
-                let cardStyle = "bg-white/[0.01] border-white/[0.03] text-text-secondary hover:border-white/10 hover:bg-white/[0.03]";
+                let cardStyle = "bg-bg-secondary/20 dark:bg-white/[0.01] border-border-subtle text-text-secondary hover:border-accent-violet/30 hover:bg-bg-secondary/40 dark:hover:border-white/10 dark:hover:bg-white/[0.03]";
                 let shadowGlow = "";
                 if (stat) {
                   if (stat.pnl >= 0) {
@@ -355,7 +355,7 @@ function CalendarHeatmapView({ trades }: { trades: Trade[] }) {
                       ? "bg-accent-green/5 border-accent-green/20 shadow-[0_0_12px_rgba(0,255,178,0.03)]" 
                       : "bg-accent-coral/5 border-accent-coral/20 shadow-[0_0_12px_rgba(255,45,85,0.03)]"
                     )
-                  : "bg-white/[0.01] border-white/[0.02]"
+                  : "bg-bg-secondary/20 dark:bg-white/[0.01] border-border-subtle"
               )}>
                 <span className="text-[9px] text-text-muted uppercase font-black tracking-wider leading-none select-none">Week {weekIdx + 1}</span>
                 {weekTrades.length > 0 ? (
@@ -383,7 +383,7 @@ function CalendarHeatmapView({ trades }: { trades: Trade[] }) {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="mt-6 pt-5 border-t border-white/[0.05] space-y-3"
+            className="mt-6 pt-5 border-t border-border-subtle/60 space-y-3"
           >
             <h4 className="text-[10px] text-text-muted uppercase font-black tracking-widest mb-2 select-none">
               Trades executed on {formatDate(selectedDay)}
@@ -393,7 +393,7 @@ function CalendarHeatmapView({ trades }: { trades: Trade[] }) {
                 <div 
                   key={t.id} 
                   onClick={() => router.push(`/journal/${t.id}`)}
-                  className={cn("flex items-center justify-between p-3.5 rounded-xl border border-transparent cursor-pointer hover:bg-white/[0.02] transition-all", 
+                  className={cn("flex items-center justify-between p-3.5 rounded-xl border border-transparent cursor-pointer hover:bg-bg-secondary/30 dark:hover:bg-white/[0.02] transition-all", 
                     t.result === "win" ? "row-win" : "row-loss"
                   )}
                 >
@@ -462,7 +462,7 @@ export default function JournalPage() {
         </div>
         <div className="flex items-center gap-3">
           {/* View Toggle */}
-          <div className="flex bg-white/[0.01] border border-white/[0.04] rounded-xl p-1">
+          <div className="flex bg-bg-secondary/40 dark:bg-white/[0.01] border border-border-subtle rounded-xl p-1">
             <button
               onClick={() => setJournalView("list")}
               className={cn(
@@ -483,10 +483,10 @@ export default function JournalPage() {
             </button>
           </div>
 
-          <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-text-secondary hover:text-text-primary bg-white/[0.01] border border-white/[0.03] hover:border-accent-violet/30 transition-all">
+          <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-text-secondary hover:text-text-primary bg-bg-secondary/20 dark:bg-white/[0.01] border border-border-subtle hover:border-accent-violet/30 transition-all">
             <Filter size={14} /> Filters
           </button>
-          <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-text-secondary hover:text-text-primary bg-white/[0.01] border border-white/[0.03] hover:border-accent-violet/30 transition-all">
+          <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-text-secondary hover:text-text-primary bg-bg-secondary/20 dark:bg-white/[0.01] border border-border-subtle hover:border-accent-violet/30 transition-all">
             <Download size={14} /> Export
           </button>
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.95 }}>
@@ -502,17 +502,17 @@ export default function JournalPage() {
 
       {/* Streak Badges */}
       <motion.div variants={itemVariants} className="flex gap-3">
-        <div className="flex items-center gap-2 bg-white/[0.01] border border-white/[0.03] px-3.5 py-2 rounded-xl select-none">
+        <div className="flex items-center gap-2 bg-bg-secondary/20 dark:bg-white/[0.01] border border-border-subtle px-3.5 py-2 rounded-xl select-none">
           <Flame size={14} className="text-accent-green drop-shadow-[0_0_8px_rgba(0,255,178,0.4)]" />
           <span className="text-[10px] text-text-muted uppercase font-black tracking-wider">Win Streak:</span>
           <span className="font-[family-name:var(--font-space-mono)] font-bold text-accent-green text-sm text-glow-green">{metrics.curWin}</span>
         </div>
-        <div className="flex items-center gap-2 bg-white/[0.01] border border-white/[0.03] px-3.5 py-2 rounded-xl select-none">
+        <div className="flex items-center gap-2 bg-bg-secondary/20 dark:bg-white/[0.01] border border-border-subtle px-3.5 py-2 rounded-xl select-none">
           <Trophy size={14} className="text-accent-violet drop-shadow-[0_0_8px_rgba(123,97,255,0.4)]" />
           <span className="text-[10px] text-text-muted uppercase font-black tracking-wider">Max Streak:</span>
           <span className="font-[family-name:var(--font-space-mono)] font-bold text-accent-violet text-sm text-glow-violet">{metrics.maxWin}</span>
         </div>
-        <div className="flex items-center gap-2 bg-white/[0.01] border border-white/[0.03] px-3.5 py-2 rounded-xl select-none">
+        <div className="flex items-center gap-2 bg-bg-secondary/20 dark:bg-white/[0.01] border border-border-subtle px-3.5 py-2 rounded-xl select-none">
           <span className="text-[10px] text-text-muted uppercase font-black tracking-wider">Ratio wins/losses:</span>
           <span className="font-[family-name:var(--font-space-mono)] font-bold text-sm">
             <span className="text-accent-green">{metrics.wins} W</span>
@@ -523,7 +523,7 @@ export default function JournalPage() {
       </motion.div>
 
       {/* Content */}
-      <GlassCard noPadding className="overflow-hidden border border-white/[0.04] p-5">
+      <GlassCard noPadding className="overflow-hidden border border-border-subtle p-5">
         <AnimatePresence mode="wait">
           {journalView === "list" ? (
             <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>

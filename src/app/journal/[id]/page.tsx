@@ -123,7 +123,7 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
                 {trade.direction}
               </span>
               <span className={cn("text-[10px] px-2.5 py-1 rounded-full font-black uppercase tracking-wider border",
-                trade.result === "win" ? "bg-accent-green/10 text-accent-green border-accent-green/20" : trade.result === "loss" ? "bg-accent-coral/10 text-accent-coral border-accent-coral/20" : "bg-white/[0.02] border-white/[0.04] text-text-muted")}>
+                trade.result === "win" ? "bg-accent-green/10 text-accent-green border-accent-green/20" : trade.result === "loss" ? "bg-accent-coral/10 text-accent-coral border-accent-coral/20" : "bg-bg-secondary/40 border-border-subtle text-text-muted")}>
                 {trade.result}
               </span>
             </div>
@@ -152,7 +152,7 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
             </button>
           </div>
 
-          <div className="w-[1px] h-8 bg-white/[0.05] hidden md:block" />
+          <div className="w-[1px] h-8 bg-border-subtle hidden md:block" />
 
           <div className={cn("text-right font-[family-name:var(--font-space-mono)] ml-4",
             trade.netPnl >= 0 ? "text-accent-green" : "text-accent-coral")}>
@@ -167,8 +167,8 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
         
         {/* Left Column (1/3 Width): Sleep, Focus, Mindset, and Mistakes Reviewer */}
         <div className="lg:col-span-1 space-y-6">
-          <GlassCard className="border border-white/[0.04] p-5 space-y-5">
-            <div className="flex items-center justify-between border-b border-white/[0.05] pb-3">
+          <GlassCard className="border border-border-subtle p-5 space-y-5">
+            <div className="flex items-center justify-between border-b border-border-subtle/50 pb-3">
               <h3 className="font-[family-name:var(--font-syne)] font-black text-sm flex items-center gap-2">
                 <Brain size={16} className="text-accent-violet" /> Trade Review Board
               </h3>
@@ -192,7 +192,7 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
 
             {/* Daily Session Review */}
             <div className="space-y-4">
-              <h4 className="text-[10px] text-text-muted uppercase font-black tracking-widest select-none border-b border-white/[0.02] pb-1">Daily Cognition Overview</h4>
+              <h4 className="text-[10px] text-text-muted uppercase font-black tracking-widest select-none border-b border-border-subtle/50 pb-1">Daily Cognition Overview</h4>
               
               {/* Sleep Score Rating Bar */}
               <div className="space-y-1">
@@ -208,7 +208,7 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
                       className={cn("w-7 h-7 rounded-lg border flex items-center justify-center text-[10px] font-black transition-all duration-300",
                         num <= dailyNote.sleepScore 
                           ? "bg-accent-violet border-accent-violet text-bg-base shadow-[0_0_8px_rgba(123,97,255,0.3)]" 
-                          : "bg-white/[0.01] border-white/[0.03] text-text-muted hover:border-white/10"
+                          : "bg-bg-secondary/20 dark:bg-white/[0.01] border-border-subtle text-text-secondary dark:text-text-muted hover:border-accent-violet/30 hover:bg-bg-secondary/40 dark:hover:border-white/10"
                       )}
                     >
                       {num}
@@ -231,7 +231,7 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
                       className={cn("w-7 h-7 rounded-lg border flex items-center justify-center text-[10px] font-black transition-all duration-300",
                         num <= dailyNote.focusScore 
                           ? "bg-accent-violet border-accent-violet text-bg-base shadow-[0_0_8px_rgba(123,97,255,0.3)]" 
-                          : "bg-white/[0.01] border-white/[0.03] text-text-muted hover:border-white/10"
+                          : "bg-bg-secondary/20 dark:bg-white/[0.01] border-border-subtle text-text-secondary dark:text-text-muted hover:border-accent-violet/30 hover:bg-bg-secondary/40 dark:hover:border-white/10"
                       )}
                     >
                       {num}
@@ -253,7 +253,7 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
                         className={cn("w-8 h-8 rounded-xl border flex items-center justify-center font-black text-xs transition-all duration-300",
                           active 
                             ? "bg-accent-green border-accent-green text-bg-base shadow-[0_0_12px_rgba(0,255,178,0.3)]" 
-                            : "bg-white/[0.01] border-white/[0.03] text-text-muted hover:border-white/10"
+                            : "bg-bg-secondary/20 dark:bg-white/[0.01] border-border-subtle text-text-secondary dark:text-text-muted hover:border-accent-green/30 hover:bg-bg-secondary/40 dark:hover:border-white/10"
                         )}
                       >
                         {grade}
@@ -265,8 +265,8 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
             </div>
 
             {/* Trade Specific Psychology */}
-            <div className="space-y-4 pt-4 border-t border-white/[0.05]">
-              <h4 className="text-[10px] text-text-muted uppercase font-black tracking-widest select-none border-b border-white/[0.02] pb-1">Trade Psychology</h4>
+            <div className="space-y-4 pt-4 border-t border-border-subtle/60">
+              <h4 className="text-[10px] text-text-muted uppercase font-black tracking-widest select-none border-b border-border-subtle/50 pb-1">Trade Psychology</h4>
               
               {/* Emotion Slider */}
               <div className="space-y-1.5">
@@ -280,7 +280,7 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
                   type="range" min="-5" max="5" 
                   value={trade.emotion} 
                   onChange={(e) => handleUpdateTrade({ emotion: parseInt(e.target.value) })}
-                  className="w-full accent-accent-violet h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                  className="w-full accent-accent-violet h-1 bg-bg-secondary/60 dark:bg-white/10 rounded-lg appearance-none cursor-pointer"
                 />
               </div>
 
@@ -297,7 +297,7 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
                         className={cn("px-2 py-1 rounded-lg border text-[9px] font-black transition-all duration-300",
                           active 
                             ? "bg-accent-blue/10 border-accent-blue/20 text-accent-blue shadow-[0_0_10px_rgba(0,186,255,0.05)]" 
-                            : "bg-white/[0.01] border-white/[0.03] text-text-muted hover:border-white/10"
+                            : "bg-bg-secondary/20 dark:bg-white/[0.01] border-border-subtle text-text-secondary dark:text-text-muted hover:border-accent-blue/30 hover:bg-bg-secondary/40 dark:hover:border-white/10"
                         )}
                       >
                         {tag}
@@ -309,8 +309,8 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
             </div>
 
             {/* Tag Review Workspace */}
-            <div className="space-y-4 pt-4 border-t border-white/[0.05]">
-              <h4 className="text-[10px] text-text-muted uppercase font-black tracking-widest select-none border-b border-white/[0.02] pb-1">Tags Review Workspace</h4>
+            <div className="space-y-4 pt-4 border-t border-border-subtle/60">
+              <h4 className="text-[10px] text-text-muted uppercase font-black tracking-widest select-none border-b border-border-subtle/50 pb-1">Tags Review Workspace</h4>
               
               {/* Setups */}
               <div className="space-y-1.5">
@@ -325,7 +325,7 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
                         className={cn("px-2 py-1 rounded-lg border text-[9px] font-black transition-all duration-300",
                           active 
                             ? "bg-accent-violet/10 border-accent-violet/20 text-accent-violet shadow-[0_0_10px_rgba(123,97,255,0.05)]" 
-                            : "bg-white/[0.01] border-white/[0.03] text-text-muted hover:border-white/10"
+                            : "bg-bg-secondary/20 dark:bg-white/[0.01] border-border-subtle text-text-secondary dark:text-text-muted hover:border-accent-violet/30 hover:bg-bg-secondary/40 dark:hover:border-white/10"
                         )}
                       >
                         {tag}
@@ -348,7 +348,7 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
                         className={cn("px-2 py-1 rounded-lg border text-[9px] font-black transition-all duration-300",
                           active 
                             ? "bg-accent-coral/10 border-accent-coral/20 text-accent-coral shadow-[0_0_10px_rgba(255,45,85,0.05)]" 
-                            : "bg-white/[0.01] border-white/[0.03] text-text-muted hover:border-white/10"
+                            : "bg-bg-secondary/20 dark:bg-white/[0.01] border-border-subtle text-text-secondary dark:text-text-muted hover:border-accent-coral/30 hover:bg-bg-secondary/40 dark:hover:border-white/10"
                         )}
                       >
                         {tag}
@@ -361,32 +361,32 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
           </GlassCard>
 
           {/* Core Metrics HUD */}
-          <GlassCard className="border border-white/[0.04] p-5 space-y-4">
+          <GlassCard className="border border-border-subtle p-5 space-y-4">
             <h3 className="font-[family-name:var(--font-syne)] font-black text-sm flex items-center gap-2 select-none">
               <Activity size={16} className="text-accent-green" /> execution HUD Metrics
             </h3>
             <div className="grid grid-cols-2 gap-4 text-xs">
-              <div className="bg-white/[0.01] border border-white/[0.03] p-2.5 rounded-xl">
+              <div className="bg-bg-secondary/30 dark:bg-white/[0.01] border border-border-subtle p-2.5 rounded-xl">
                 <div className="text-[8px] text-text-muted uppercase font-bold tracking-wider mb-1">Entry Price</div>
                 <div className="font-[family-name:var(--font-space-mono)] font-bold text-text-primary">{trade.entryPrice ? trade.entryPrice.toLocaleString() : "—"}</div>
               </div>
-              <div className="bg-white/[0.01] border border-white/[0.03] p-2.5 rounded-xl">
+              <div className="bg-bg-secondary/30 dark:bg-white/[0.01] border border-border-subtle p-2.5 rounded-xl">
                 <div className="text-[8px] text-text-muted uppercase font-bold tracking-wider mb-1">Exit Price</div>
                 <div className="font-[family-name:var(--font-space-mono)] font-bold text-text-primary">{trade.exitPrice ? trade.exitPrice.toLocaleString() : "—"}</div>
               </div>
-              <div className="bg-white/[0.01] border border-white/[0.03] p-2.5 rounded-xl">
+              <div className="bg-bg-secondary/30 dark:bg-white/[0.01] border border-border-subtle p-2.5 rounded-xl">
                 <div className="text-[8px] text-text-muted uppercase font-bold tracking-wider mb-1">Stop Loss</div>
                 <div className="font-[family-name:var(--font-space-mono)] font-bold text-accent-coral">{trade.stopLoss && trade.stopLoss > 0 ? trade.stopLoss.toLocaleString() : "—"}</div>
               </div>
-              <div className="bg-white/[0.01] border border-white/[0.03] p-2.5 rounded-xl">
+              <div className="bg-bg-secondary/30 dark:bg-white/[0.01] border border-border-subtle p-2.5 rounded-xl">
                 <div className="text-[8px] text-text-muted uppercase font-bold tracking-wider mb-1">Take Profit</div>
                 <div className="font-[family-name:var(--font-space-mono)] font-bold text-accent-green">{trade.takeProfit && trade.takeProfit > 0 ? trade.takeProfit.toLocaleString() : "—"}</div>
               </div>
-              <div className="bg-white/[0.01] border border-white/[0.03] p-2.5 rounded-xl">
+              <div className="bg-bg-secondary/30 dark:bg-white/[0.01] border border-border-subtle p-2.5 rounded-xl">
                 <div className="text-[8px] text-text-muted uppercase font-bold tracking-wider mb-1">Playbook R:R</div>
                 <div className="font-[family-name:var(--font-space-mono)] font-bold text-text-primary">1 : {(trade.rr || 0).toFixed(1)}</div>
               </div>
-              <div className="bg-white/[0.01] border border-white/[0.03] p-2.5 rounded-xl">
+              <div className="bg-bg-secondary/30 dark:bg-white/[0.01] border border-border-subtle p-2.5 rounded-xl">
                 <div className="text-[8px] text-text-muted uppercase font-bold tracking-wider mb-1">Hold Duration</div>
                 <div className="font-[family-name:var(--font-space-mono)] font-bold text-text-primary">{formatDuration(trade.durationMinutes)}</div>
               </div>
@@ -426,28 +426,28 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
 
           {/* Plan vs Execution Review Panels */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <GlassCard className="border border-white/[0.04]">
+            <GlassCard className="border border-border-subtle">
               <h3 className="font-[family-name:var(--font-syne)] font-black text-sm mb-3 flex items-center gap-1.5 select-none">
                 <MessageSquare size={14} className="text-accent-violet" /> Pre-Trade Setup Plan
               </h3>
-              <p className="text-xs text-text-secondary bg-white/[0.01] border border-white/[0.03] rounded-xl p-3.5 leading-relaxed italic border-l-2 border-l-accent-violet">
+              <p className="text-xs text-text-secondary bg-bg-secondary/30 dark:bg-white/[0.01] border border-border-subtle rounded-xl p-3.5 leading-relaxed italic border-l-2 border-l-accent-violet">
                 {trade.preTradeNotes ? `“${trade.preTradeNotes}”` : "No pre-trade notes recorded for this execution bias."}
               </p>
             </GlassCard>
 
-            <GlassCard className="border border-white/[0.04]">
+            <GlassCard className="border border-border-subtle">
               <h3 className="font-[family-name:var(--font-syne)] font-black text-sm mb-3 flex items-center gap-1.5 select-none">
                 <CheckCircle size={14} className="text-accent-green" /> Post-Trade Execution Review
               </h3>
-              <p className="text-xs text-text-secondary bg-white/[0.01] border border-white/[0.03] rounded-xl p-3.5 leading-relaxed italic border-l-2 border-l-accent-green">
+              <p className="text-xs text-text-secondary bg-bg-secondary/30 dark:bg-white/[0.01] border border-border-subtle rounded-xl p-3.5 leading-relaxed italic border-l-2 border-l-accent-green">
                 {trade.postTradeReview ? `“${trade.postTradeReview}”` : "No post-trade review compiled for this trade bias."}
               </p>
             </GlassCard>
           </div>
 
           {/* AI Coach Analysis */}
-          <GlassCard className={cn("border border-white/[0.04]", analysis ? "border-accent-violet/20" : "")}>
-            <div className="flex items-center justify-between mb-4 border-b border-white/[0.03] pb-3">
+          <GlassCard className={cn("border border-border-subtle", analysis ? "border-accent-violet/20" : "")}>
+            <div className="flex items-center justify-between mb-4 border-b border-border-subtle/50 pb-3">
               <h3 className="font-[family-name:var(--font-syne)] font-black text-sm flex items-center gap-2">
                 <Brain size={16} className="text-accent-violet animate-pulse" />
                 AI Execution Diagnostics & Diagnostics
@@ -483,7 +483,7 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
             {analysis && (
               <motion.div className="space-y-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                 {/* Visual Discipline Score */}
-                <div className="flex items-center gap-6 p-4 rounded-2xl bg-white/[0.01] border border-white/[0.03] overflow-hidden relative">
+                <div className="flex items-center gap-6 p-4 rounded-2xl bg-bg-secondary/30 dark:bg-white/[0.01] border border-border-subtle overflow-hidden relative">
                   <div className="absolute top-0 right-0 w-24 h-24 bg-accent-violet/5 rounded-full blur-2xl pointer-events-none" />
                   <div className="relative w-16 h-16 flex-shrink-0">
                     <svg className="w-full h-full" viewBox="0 0 100 100">
@@ -506,7 +506,7 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
 
                 {/* Strengths & Weaknesses side by side */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-white/[0.01] border border-white/[0.03] p-3 rounded-xl">
+                  <div className="bg-bg-secondary/30 dark:bg-white/[0.01] border border-border-subtle p-3 rounded-xl">
                     <div className="text-[10px] text-accent-green uppercase font-black tracking-wider mb-2 flex items-center gap-1"><CheckCircle size={12} /> Execution Edges</div>
                     <ul className="space-y-1.5 text-xs text-text-secondary">
                       {analysis.strengths.map((s, i) => (
@@ -515,7 +515,7 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
                     </ul>
                   </div>
 
-                  <div className="bg-white/[0.01] border border-white/[0.03] p-3 rounded-xl">
+                  <div className="bg-bg-secondary/30 dark:bg-white/[0.01] border border-border-subtle p-3 rounded-xl">
                     <div className="text-[10px] text-accent-coral uppercase font-black tracking-wider mb-2 flex items-center gap-1"><XCircle size={12} /> Capital Leaks</div>
                     <ul className="space-y-1.5 text-xs text-text-secondary">
                       {analysis.weaknesses.map((w, i) => (
@@ -527,12 +527,12 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
 
                 {/* Pattern & Risk */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="p-3.5 rounded-xl bg-white/[0.01] border border-white/[0.03]">
+                  <div className="p-3.5 rounded-xl bg-bg-secondary/30 dark:bg-white/[0.01] border border-border-subtle">
                     <div className="text-[10px] text-accent-violet uppercase font-black tracking-wider mb-1 flex items-center gap-1"><Zap size={12} /> Setup Mechanics</div>
                     <p className="text-xs text-text-secondary leading-relaxed">{analysis.pattern}</p>
                   </div>
 
-                  <div className="p-3.5 rounded-xl bg-white/[0.01] border border-white/[0.03]">
+                  <div className="p-3.5 rounded-xl bg-bg-secondary/30 dark:bg-white/[0.01] border border-border-subtle">
                     <div className="text-[10px] text-text-muted uppercase font-black tracking-wider mb-1 flex items-center gap-1"><AlertTriangle size={12} className="text-accent-coral" /> Risk Exposure</div>
                     <p className="text-xs text-text-secondary leading-relaxed">{analysis.riskAssessment}</p>
                   </div>
@@ -545,7 +545,7 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
                 </div>
 
                 {/* Emotion Insight */}
-                <div className="p-3.5 rounded-xl bg-white/[0.01] border border-white/[0.03]">
+                <div className="p-3.5 rounded-xl bg-bg-secondary/30 dark:bg-white/[0.01] border border-border-subtle">
                   <div className="text-[10px] text-text-muted uppercase font-black tracking-wider mb-1">Emotion Dynamics</div>
                   <p className="text-xs text-text-secondary leading-relaxed">{analysis.emotionInsight}</p>
                 </div>

@@ -184,13 +184,13 @@ function DailyReportCard({ trades }: { trades: ReturnType<typeof useTradeStore.g
         </p>
 
         <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="bg-white/[0.01] border border-white/[0.04] p-2.5 rounded-xl">
+          <div className="bg-bg-secondary/20 dark:bg-white/[0.01] border border-border-subtle p-2.5 rounded-xl">
             <div className="text-[9px] text-text-muted uppercase font-bold tracking-wider mb-1">Top Mindset</div>
             <div className="text-xs font-bold flex items-center gap-1.5 truncate">
               <Brain size={12} className="text-accent-violet flex-shrink-0" /> {report.topMindset}
             </div>
           </div>
-          <div className="bg-white/[0.01] border border-white/[0.04] p-2.5 rounded-xl">
+          <div className="bg-bg-secondary/20 dark:bg-white/[0.01] border border-border-subtle p-2.5 rounded-xl">
             <div className="text-[9px] text-text-muted uppercase font-bold tracking-wider mb-1">Main Leak</div>
             <div className="text-xs font-bold flex items-center gap-1.5 truncate">
               {report.mainMistake ? (
@@ -203,7 +203,7 @@ function DailyReportCard({ trades }: { trades: ReturnType<typeof useTradeStore.g
         </div>
       </div>
 
-      <div className="bg-white/[0.02] border border-white/[0.04] rounded-xl p-3">
+      <div className="bg-bg-secondary/40 dark:bg-white/[0.02] border border-border-subtle rounded-xl p-3">
         <div className="text-[9px] text-accent-green uppercase font-black tracking-widest mb-1 flex items-center gap-1">
           <Zap size={10} /> Actionable AI Advice
         </div>
@@ -316,7 +316,7 @@ function WinLossVisualizer({ trades }: { trades: any[] }) {
               </filter>
             </defs>
 
-            <circle cx={size / 2} cy={size / 2} r={radiusOuter} className="stroke-white/[0.02]" strokeWidth={strokeWidthOuter} fill="transparent" />
+            <circle cx={size / 2} cy={size / 2} r={radiusOuter} className="stroke-bg-secondary dark:stroke-white/[0.02]" strokeWidth={strokeWidthOuter} fill="transparent" />
             <circle
               cx={size / 2} cy={size / 2} r={radiusOuter}
               stroke="url(#winGlow)" strokeWidth={strokeWidthOuter}
@@ -326,7 +326,7 @@ function WinLossVisualizer({ trades }: { trades: any[] }) {
               style={{ filter: winRate >= 50 ? "url(#glow)" : "none" }}
             />
 
-            <circle cx={size / 2} cy={size / 2} r={radiusInner} className="stroke-white/[0.01]" strokeWidth={strokeWidthInner} fill="transparent" />
+            <circle cx={size / 2} cy={size / 2} r={radiusInner} className="stroke-bg-secondary/60 dark:stroke-white/[0.01]" strokeWidth={strokeWidthInner} fill="transparent" />
             <circle
               cx={size / 2} cy={size / 2} r={radiusInner}
               stroke="url(#pfGlow)" strokeWidth={strokeWidthInner}
@@ -347,17 +347,17 @@ function WinLossVisualizer({ trades }: { trades: any[] }) {
 
         <div className="flex-1 w-full space-y-2">
           <div className="grid grid-cols-2 gap-2">
-            <div className="bg-white/[0.01] border border-white/[0.03] rounded-xl p-2 text-center hover:bg-white/[0.03] transition-colors">
+            <div className="bg-bg-secondary/30 dark:bg-white/[0.01] border border-border-subtle rounded-xl p-2 text-center hover:bg-bg-secondary/40 dark:hover:bg-white/[0.03] transition-colors">
               <div className="text-[8px] text-text-muted uppercase font-semibold">Wins</div>
               <div className="font-[family-name:var(--font-space-mono)] font-bold text-accent-green text-sm mt-0.5">{wins}</div>
             </div>
-            <div className="bg-white/[0.01] border border-white/[0.03] rounded-xl p-2 text-center hover:bg-white/[0.03] transition-colors">
+            <div className="bg-bg-secondary/30 dark:bg-white/[0.01] border border-border-subtle rounded-xl p-2 text-center hover:bg-bg-secondary/40 dark:hover:bg-white/[0.03] transition-colors">
               <div className="text-[8px] text-text-muted uppercase font-semibold">Losses</div>
               <div className="font-[family-name:var(--font-space-mono)] font-bold text-accent-coral text-sm mt-0.5">{losses}</div>
             </div>
           </div>
 
-          <div className="bg-white/[0.01] border border-white/[0.03] rounded-xl p-2 flex items-center justify-between hover:bg-white/[0.03] transition-colors">
+          <div className="bg-bg-secondary/30 dark:bg-white/[0.01] border border-border-subtle rounded-xl p-2 flex items-center justify-between hover:bg-bg-secondary/40 dark:hover:bg-white/[0.03] transition-colors">
             <div>
               <div className="text-[8px] text-text-muted uppercase font-semibold">Profit Factor</div>
               <div className="font-[family-name:var(--font-space-mono)] font-bold text-accent-violet text-xs mt-0.5">{pf.toFixed(2)}</div>
@@ -383,7 +383,7 @@ function WinLossVisualizer({ trades }: { trades: any[] }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-white/[0.05] text-center text-[10px] relative z-10">
+      <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-border-subtle/50 text-center text-[10px] relative z-10">
         <div>
           <div className="text-[8px] text-text-muted uppercase font-semibold">Max Win Streak</div>
           <div className="font-[family-name:var(--font-space-mono)] font-bold text-accent-green text-xs mt-0.5">{streaks.maxWinStreak} wins</div>
@@ -451,14 +451,14 @@ function PreFlightChecklist() {
                   "flex items-center gap-2.5 p-2 rounded-xl border cursor-pointer transition-all",
                   isChecked
                     ? "bg-accent-green/5 border-accent-green/20 text-text-primary"
-                    : "bg-white/[0.01] border-white/[0.03] text-text-secondary hover:border-white/10"
+                    : "bg-bg-secondary/20 dark:bg-white/[0.01] border-border-subtle text-text-secondary hover:border-accent-violet/30 hover:bg-bg-secondary/40 dark:hover:border-white/10"
                 )}
               >
                 <div className={cn(
                   "w-4 h-4 rounded-md flex items-center justify-center border transition-all",
                   isChecked
                     ? "bg-accent-green border-accent-green text-bg-base"
-                    : "border-white/20"
+                    : "border-border-subtle/80 dark:border-white/20"
                 )}>
                   {isChecked && <Check size={10} className="stroke-[3]" />}
                 </div>
@@ -471,14 +471,14 @@ function PreFlightChecklist() {
         </div>
       </div>
 
-      <div className="relative z-10 pt-3 border-t border-white/[0.05] mt-3">
+      <div className="relative z-10 pt-3 border-t border-border-subtle/50 mt-3">
         <div className="flex justify-between text-[8px] text-text-muted mb-1.5 uppercase font-bold tracking-wider select-none">
           <span>Disciplined Mindset</span>
           <span className={cn("font-bold font-[family-name:var(--font-space-mono)]", pct === 100 ? "text-accent-green" : "text-accent-violet")}>
             {pct.toFixed(0)}%
           </span>
         </div>
-        <div className="h-1.5 bg-white/[0.02] rounded-full overflow-hidden border border-white/[0.03]">
+        <div className="h-1.5 bg-bg-secondary/40 dark:bg-white/[0.02] rounded-full overflow-hidden border border-border-subtle/50 dark:border-white/[0.03]">
           <motion.div
             className={cn("h-full rounded-full", pct === 100 ? "bg-accent-green" : "bg-accent-violet")}
             initial={{ width: 0 }}
@@ -543,7 +543,7 @@ function TraderCognitionRadar({ trades, settings }: { trades: any[]; settings: a
   }, [trades, settings]);
 
   return (
-    <GlassCard className="relative overflow-hidden group flex flex-col justify-between min-h-[295px] border border-white/[0.04]">
+    <GlassCard className="relative overflow-hidden group flex flex-col justify-between min-h-[295px] border border-border-subtle">
       <div className="absolute -bottom-16 -right-16 w-36 h-36 bg-accent-violet/5 rounded-full blur-[60px] pointer-events-none" />
       <h3 className="font-[family-name:var(--font-syne)] font-bold text-sm mb-2 flex items-center gap-2 select-none">
         <Brain size={14} className="text-accent-violet" /> Trader Cognition Baseline
@@ -557,15 +557,15 @@ function TraderCognitionRadar({ trades, settings }: { trades: any[]; settings: a
                 <stop offset="100%" stopColor="#00FFB2" stopOpacity={0.1} />
               </linearGradient>
             </defs>
-            <PolarGrid stroke="rgba(255,255,255,0.05)" />
+            <PolarGrid stroke="var(--border-subtle)" strokeOpacity={0.8} />
             <PolarAngleAxis 
               dataKey="subject" 
-              tick={{ fill: "#8B8FA3", fontSize: 8, fontFamily: "var(--font-syne), sans-serif", fontWeight: 700 }} 
+              tick={{ fill: "var(--text-secondary)", fontSize: 8, fontFamily: "var(--font-syne), sans-serif", fontWeight: 700 }} 
             />
             <PolarRadiusAxis 
               angle={30} 
               domain={[0, 100]} 
-              tick={{ fill: "rgba(139,143,163,0.5)", fontSize: 7 }} 
+              tick={{ fill: "var(--text-muted)", fontSize: 7 }} 
               axisLine={false}
               tickCount={3}
             />
@@ -580,7 +580,7 @@ function TraderCognitionRadar({ trades, settings }: { trades: any[]; settings: a
           </RadarChart>
         </ResponsiveContainer>
       </div>
-      <div className="text-[9px] text-text-muted mt-2 pt-2 border-t border-white/[0.05] flex justify-between uppercase font-bold tracking-wider select-none relative z-10">
+      <div className="text-[9px] text-text-muted mt-2 pt-2 border-t border-border-subtle/50 flex justify-between uppercase font-bold tracking-wider select-none relative z-10">
         <span>Mindset Profiling</span>
         <span className="text-accent-violet">Real-Time Behavior</span>
       </div>
@@ -589,10 +589,47 @@ function TraderCognitionRadar({ trades, settings }: { trades: any[]; settings: a
 }
 
 
+const MINDSET_QUOTES = [
+  { text: "If you can learn to create a state of mind that is not affected by the market’s behavior, the struggle will cease to exist.", author: "Mark Douglas", book: "Trading in the Zone" },
+  { text: "The market is a calculator of human emotions. Your job is to manage your own.", author: "Mark Douglas", book: "The Disciplined Trader" },
+  { text: "It was never my thinking that made the big money for me. It was always my sitting.", author: "Edwin Lefèvre", book: "Reminiscences of a Stock Operator" },
+  { text: "Do not focus on what the market is doing to you. Focus on what you are doing in response to the market.", author: "Mark Douglas", book: "Trading in the Zone" },
+  { text: "The goal of a successful trader is to make the best trades. Money is secondary.", author: "Alexander Elder", book: "Trading for a Living" },
+  { text: "Amateurs focus on how much money they can make. Professionals focus on how much they could lose.", author: "Jack Schwager", book: "Market Wizards" },
+  { text: "Losses are necessary companions in this business. How you treat them determines your longevity.", author: "Mark Douglas", book: "Trading in the Zone" },
+  { text: "You have to accept the risk. If you don't, you will hesitate, and hesitation leads to capital leaks.", author: "Mark Douglas", book: "The Disciplined Trader" },
+  { text: "Consistent execution is born from the acceptance of random outcomes.", author: "Mark Douglas", book: "Trading in the Zone" },
+  { text: "The market has no interest in your break-even price. The market only cares about order flow.", author: "Unknown", book: "Trading Wisdom" },
+  { text: "Daring to perform without needing validation from the market is the ultimate edge.", author: "Mark Douglas", book: "Trading in the Zone" },
+  { text: "Expect the unexpected, and act according to pre-defined rules, not raw emotions.", author: "Mark Douglas", book: "The Disciplined Trader" },
+  { text: "A peak performance state of mind is one that is perfectly aligned with the present moment.", author: "Mark Douglas", book: "Trading in the Zone" },
+  { text: "The professional trader manages risk; the amateur focuses on profits.", author: "Jack Schwager", book: "Market Wizards" },
+  { text: "Trade what you see, not what you think.", author: "Legendary Saying", book: "Market Wizards" },
+  { text: "Discipline is not an occasional act; it is a permanent state of readiness.", author: "Mark Douglas", book: "The Disciplined Trader" },
+  { text: "To avoid loss, you must avoid impulsiveness. Let the setup come to you.", author: "Jesse Livermore", book: "How to Trade in Stocks" },
+  { text: "Confidence is not 'I will win this trade.' Confidence is 'I will be okay if this trade is a loss.'", author: "Unknown", book: "Zen in the Markets" }
+];
+
 export default function DashboardPage() {
   const { trades } = useTradeStore();
   const { challenges } = usePropFirmStore();
   const [timeRange, setTimeRange] = useState("1M");
+  const [quoteIndex, setQuoteIndex] = useState(0);
+
+  useEffect(() => {
+    const todayIndex = new Date().getDate() % MINDSET_QUOTES.length;
+    setQuoteIndex(todayIndex);
+  }, []);
+
+  const shuffleQuote = () => {
+    let nextIdx = quoteIndex;
+    while (nextIdx === quoteIndex) {
+      nextIdx = Math.floor(Math.random() * MINDSET_QUOTES.length);
+    }
+    setQuoteIndex(nextIdx);
+  };
+
+  const currentQuote = MINDSET_QUOTES[quoteIndex] || MINDSET_QUOTES[0];
   
   const filteredTrades = useMemo(() => {
     if (timeRange === "ALL") return trades;
@@ -686,6 +723,34 @@ export default function DashboardPage() {
         </motion.div>
       </motion.div>
 
+      {/* Mindset Quote of the Day Panel */}
+      <motion.div variants={itemVariants}>
+        <GlassCard className="border border-border-subtle p-4 relative overflow-hidden flex items-center justify-between gap-6 hover:shadow-[0_8px_32px_rgba(123,97,255,0.04)] bg-bg-card/20 group">
+          <div className="absolute -top-12 -left-12 w-24 h-24 bg-accent-violet/5 rounded-full blur-2xl pointer-events-none" />
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-accent-violet/10 flex items-center justify-center border border-accent-violet/20 flex-shrink-0">
+              <Brain size={18} className="text-accent-violet animate-float" />
+            </div>
+            <div>
+              <p className="text-[9px] text-accent-violet uppercase font-black tracking-widest select-none">MINDSET FOCUS OF THE DAY</p>
+              <p className="text-xs font-semibold text-text-primary italic mt-1 leading-relaxed">
+                “{currentQuote.text}”
+              </p>
+              <p className="text-[10px] text-text-secondary font-bold font-display uppercase mt-1 tracking-wider">
+                — {currentQuote.author}, <span className="text-accent-violet/90">{currentQuote.book}</span>
+              </p>
+            </div>
+          </div>
+          <button 
+            onClick={shuffleQuote}
+            className="flex-shrink-0 p-2 rounded-lg bg-bg-secondary/40 hover:bg-bg-secondary/70 border border-border-subtle hover:border-accent-violet/30 transition-all text-text-muted hover:text-accent-violet"
+            title="Refresh mindset focus"
+          >
+            <Sparkles size={14} className="group-hover:rotate-12 transition-transform duration-300" />
+          </button>
+        </GlassCard>
+      </motion.div>
+
       {/* Row 1: HUD Stats Grid */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
@@ -750,7 +815,7 @@ export default function DashboardPage() {
               <span className="text-accent-green">W:{formatCurrency(metrics.avgWin, false)}</span>
               <span className="text-accent-coral">L:{formatCurrency(metrics.avgLoss, false)}</span>
             </div>
-            <div className="h-1.5 w-full bg-white/[0.02] rounded-full overflow-hidden flex border border-white/[0.04]">
+            <div className="h-1.5 w-full bg-bg-secondary/40 dark:bg-white/[0.02] rounded-full overflow-hidden flex border border-border-subtle/50 dark:border-white/[0.04]">
               <div className="h-full bg-accent-green" style={{ width: `${winRatio}%` }} />
               <div className="h-full bg-accent-coral flex-1" />
             </div>
@@ -801,7 +866,7 @@ export default function DashboardPage() {
             <h2 className="font-[family-name:var(--font-syne)] font-bold text-base flex items-center gap-2">
               <TrendingUp size={16} className="text-accent-green" /> Equity Curve
             </h2>
-            <div className="flex gap-1 bg-white/[0.02] border border-white/[0.04] p-0.5 rounded-lg">
+            <div className="flex gap-1 bg-bg-secondary/40 dark:bg-white/[0.02] border border-border-subtle p-0.5 rounded-lg">
               {["1W", "1M", "3M", "ALL"].map((range) => (
                 <button
                   key={range}
@@ -810,7 +875,7 @@ export default function DashboardPage() {
                     "px-2.5 py-1 text-[10px] font-bold rounded-md transition-colors",
                     timeRange === range
                       ? "bg-accent-green/10 text-accent-green"
-                      : "text-text-secondary hover:text-text-primary hover:bg-white/[0.02]"
+                      : "text-text-secondary hover:text-text-primary hover:bg-bg-secondary/40 dark:hover:bg-white/[0.02]"
                   )}
                 >
                   {range}
@@ -843,7 +908,7 @@ export default function DashboardPage() {
                 const daysUsed = differenceInDays(new Date(), new Date(c.startDate));
                 const daysLeft = c.rules.maxDuration > 0 ? c.rules.maxDuration - daysUsed : null;
                 return (
-                  <Link key={c.id} href="/prop-tracker" className="block p-3 rounded-xl bg-white/[0.01] border border-white/[0.03] hover:border-accent-violet/20 hover:bg-white/[0.03] transition-all">
+                  <Link key={c.id} href="/prop-tracker" className="block p-3 rounded-xl bg-bg-secondary/20 dark:bg-white/[0.01] border border-border-subtle hover:border-accent-violet/30 hover:bg-bg-secondary/40 dark:hover:bg-white/[0.03] transition-all">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <span className="font-[family-name:var(--font-syne)] font-bold text-sm leading-none">{c.firmName}</span>
@@ -859,7 +924,7 @@ export default function DashboardPage() {
                       <span>Target ({c.rules.profitTarget}%)</span>
                       <span>{profitPct.toFixed(1)}%</span>
                     </div>
-                    <div className="h-1 bg-white/[0.02] rounded-full overflow-hidden mb-2">
+                    <div className="h-1 bg-bg-secondary/40 dark:bg-white/[0.02] rounded-full overflow-hidden mb-2">
                       <div className="h-full bg-accent-green rounded-full transition-all" style={{ width: `${Math.max(0, Math.min((profitPct / c.rules.profitTarget) * 100, 100))}%` }} />
                     </div>
 
@@ -868,7 +933,7 @@ export default function DashboardPage() {
                       <span>Drawdown Safety</span>
                       <span className={cn(drawdownProgress > 70 ? "text-accent-coral" : "")}>{drawdownPct.toFixed(1)}% / {c.rules.maxDrawdown}%</span>
                     </div>
-                    <div className="h-1 bg-white/[0.02] rounded-full overflow-hidden mb-2">
+                    <div className="h-1 bg-bg-secondary/40 dark:bg-white/[0.02] rounded-full overflow-hidden mb-2">
                       <div className="h-full bg-accent-coral rounded-full transition-all opacity-40" style={{ width: `${Math.min(drawdownProgress, 100)}%` }} />
                     </div>
 
@@ -889,7 +954,7 @@ export default function DashboardPage() {
           )}
 
           {/* Quick Stats */}
-          <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-white/[0.05] relative z-10 text-center">
+          <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-border-subtle/50 relative z-10 text-center">
             <div>
               <div className="text-[8px] text-text-muted uppercase font-bold tracking-wider">Active</div>
               <div className="font-[family-name:var(--font-space-mono)] font-bold text-accent-green text-sm mt-0.5">{activeChallenges.length}</div>
@@ -905,7 +970,7 @@ export default function DashboardPage() {
       {/* Row 4: Consistency graph & Dynamic Diagnostics */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <GlassCard className="relative overflow-hidden h-full flex flex-col justify-between border border-white/[0.04]">
+          <GlassCard className="relative overflow-hidden h-full flex flex-col justify-between border border-border-subtle">
             <div>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
@@ -956,7 +1021,7 @@ export default function DashboardPage() {
               <Link key={trade.id} href={`/journal/${trade.id}`}>
                 <motion.div
                   className={cn(
-                    "flex items-center justify-between p-3 rounded-xl transition-colors hover:bg-white/[0.02] border border-transparent cursor-pointer",
+                    "flex items-center justify-between p-3 rounded-xl transition-colors hover:bg-bg-secondary/40 dark:hover:bg-white/[0.02] border border-transparent cursor-pointer",
                     trade.result === "win" ? "row-win" : trade.result === "loss" ? "row-loss" : ""
                   )}
                   initial={{ opacity: 0, x: -10 }}

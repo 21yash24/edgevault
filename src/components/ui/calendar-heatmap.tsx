@@ -36,19 +36,19 @@ export function CalendarHeatmap({ trades }: { trades: Trade[] }) {
   const maxWin = Math.max(...data.map(d => d.pnl), 1);
 
   const getColor = (pnl: number) => {
-    if (pnl === 0) return "bg-white/[0.03] border border-white/[0.04]";
+    if (pnl === 0) return "bg-bg-secondary/40 border border-border-subtle/50 dark:bg-white/[0.03] dark:border-white/[0.04]";
     if (pnl > 0) {
       const intensity = Math.min(pnl / maxWin, 1);
-      if (intensity > 0.75) return "bg-[#00FFB2] shadow-[0_0_10px_rgba(0,255,178,0.4)] border border-[#00FFB2]/20";
-      if (intensity > 0.5) return "bg-[#00CC8E] border border-[#00CC8E]/20";
-      if (intensity > 0.25) return "bg-[#00996A] border border-[#00996A]/20";
-      return "bg-[#006647] border border-[#006647]/20";
+      if (intensity > 0.75) return "bg-accent-green shadow-[0_0_10px_var(--border-glow)] border border-accent-green/20 text-white";
+      if (intensity > 0.5) return "bg-accent-green/80 border border-accent-green/20 text-white";
+      if (intensity > 0.25) return "bg-accent-green/50 border border-accent-green/20";
+      return "bg-accent-green/25 border border-accent-green/10";
     } else {
       const intensity = Math.min(Math.abs(pnl) / maxLoss, 1);
-      if (intensity > 0.75) return "bg-[#FF2D55] shadow-[0_0_10px_rgba(255,45,85,0.4)] border border-[#FF2D55]/20";
-      if (intensity > 0.5) return "bg-[#CC2444] border border-[#CC2444]/20";
-      if (intensity > 0.25) return "bg-[#991B33] border border-[#991B33]/20";
-      return "bg-[#661222] border border-[#661222]/20";
+      if (intensity > 0.75) return "bg-accent-coral shadow-[0_0_10px_rgba(255,45,85,0.4)] border border-accent-coral/20 text-white";
+      if (intensity > 0.5) return "bg-accent-coral/80 border border-accent-coral/20 text-white";
+      if (intensity > 0.25) return "bg-accent-coral/50 border border-accent-coral/20";
+      return "bg-accent-coral/25 border border-accent-coral/10";
     }
   };
 
@@ -140,15 +140,15 @@ export function CalendarHeatmap({ trades }: { trades: Trade[] }) {
           <div className="flex items-center justify-end gap-2 mt-4 text-[9px] text-text-muted select-none">
             <span>Loss</span>
             <div className="flex gap-1">
-              <div className="w-2.5 h-2.5 rounded-[2px] bg-[#661222]" />
-              <div className="w-2.5 h-2.5 rounded-[2px] bg-[#991B33]" />
-              <div className="w-2.5 h-2.5 rounded-[2px] bg-[#CC2444]" />
-              <div className="w-2.5 h-2.5 rounded-[2px] bg-[#FF2D55]" />
-              <div className="w-2.5 h-2.5 rounded-[2px] bg-white/[0.03] border border-white/[0.04]" />
-              <div className="w-2.5 h-2.5 rounded-[2px] bg-[#006647]" />
-              <div className="w-2.5 h-2.5 rounded-[2px] bg-[#00996A]" />
-              <div className="w-2.5 h-2.5 rounded-[2px] bg-[#00CC8E]" />
-              <div className="w-2.5 h-2.5 rounded-[2px] bg-[#00FFB2]" />
+              <div className="w-2.5 h-2.5 rounded-[2px] bg-accent-coral/25 border border-accent-coral/10" />
+              <div className="w-2.5 h-2.5 rounded-[2px] bg-accent-coral/50 border border-accent-coral/20" />
+              <div className="w-2.5 h-2.5 rounded-[2px] bg-accent-coral/80 border border-accent-coral/20" />
+              <div className="w-2.5 h-2.5 rounded-[2px] bg-accent-coral shadow-[0_0_10px_rgba(255,45,85,0.2)] border border-accent-coral/20" />
+              <div className="w-2.5 h-2.5 rounded-[2px] bg-bg-secondary/40 border border-border-subtle/50 dark:bg-white/[0.03] dark:border-white/[0.04]" />
+              <div className="w-2.5 h-2.5 rounded-[2px] bg-accent-green/25 border border-accent-green/10" />
+              <div className="w-2.5 h-2.5 rounded-[2px] bg-accent-green/50 border border-accent-green/20" />
+              <div className="w-2.5 h-2.5 rounded-[2px] bg-accent-green/80 border border-accent-green/20" />
+              <div className="w-2.5 h-2.5 rounded-[2px] bg-accent-green shadow-[0_0_10px_var(--border-glow)] border border-accent-green/20" />
             </div>
             <span>Profit</span>
           </div>
@@ -164,7 +164,7 @@ export function CalendarHeatmap({ trades }: { trades: Trade[] }) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 5 }}
             transition={{ type: "spring", stiffness: 500, damping: 28 }}
-            className="absolute z-50 pointer-events-none p-2.5 rounded-xl border border-white/10 shadow-[0_4px_20px_rgba(0,0,0,0.5)] backdrop-blur-md bg-bg-card/95 text-xs flex flex-col gap-0.5"
+            className="absolute z-50 pointer-events-none p-2.5 rounded-xl border border-border-subtle shadow-[0_4px_20px_rgba(15,23,42,0.05)] backdrop-blur-md bg-bg-card/95 text-xs flex flex-col gap-0.5"
             style={{
               left: hoveredDay.left + 15,
               top: hoveredDay.top,

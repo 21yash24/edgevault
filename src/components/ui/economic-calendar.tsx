@@ -121,37 +121,152 @@ export function EconomicCalendar() {
   const [filterImpact, setFilterImpact] = useState<"all" | "high" | "medium" | "low">("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [activeNotifications, setActiveNotifications] = useState<string[]>([]);
-  const [timeToNextHighEvent, setTimeToNextHighEvent] = useState("02:14:45");
+  
+  // Real-time dynamic events state
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [nextEventCountdown, setNextEventCountdown] = useState("00:45");
+  const [nextEventName, setNextEventName] = useState("FOMC Interest Rate Decision");
+  const [volatilityAlert, setVolatilityAlert] = useState<string | null>(null);
 
-  // Timer simulation
+  // Initialize dynamic times on component mount
   useEffect(() => {
-    const timer = setInterval(() => {
-      const parts = timeToNextHighEvent.split(":");
-      let hrs = parseInt(parts[0]);
-      let mins = parseInt(parts[1]);
-      let secs = parseInt(parts[2]);
+    const baseDate = new Date();
+    const formattedDate = (daysOffset: number) => {
+      const d = new Date();
+      d.setDate(baseDate.getDate() + daysOffset);
+      return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    };
 
-      secs--;
-      if (secs < 0) {
-        secs = 59;
-        mins--;
-        if (mins < 0) {
-          mins = 59;
-          hrs--;
-          if (hrs < 0) {
-            hrs = 3; // Reset to 3 hours
-          }
-        }
+    setEvents([
+      {
+        id: "news-1",
+        time: "08:30 AM",
+        currency: "USD",
+        event: "Core CPI (MoM) (" + formattedDate(0) + ")",
+        impact: "high",
+        forecast: "0.3%",
+        previous: "0.4%",
+        actual: "0.3%",
+        status: "released"
+      },
+      {
+        id: "news-2",
+        time: "08:30 AM",
+        currency: "USD",
+        event: "CPI (YoY) (" + formattedDate(0) + ")",
+        impact: "high",
+        forecast: "3.4%",
+        previous: "3.5%",
+        actual: "3.4%",
+        status: "released"
+      },
+      {
+        id: "news-3",
+        time: "10:30 AM",
+        currency: "USD",
+        event: "Crude Oil Inventories (" + formattedDate(0) + ")",
+        impact: "medium",
+        forecast: "-1.4M",
+        previous: "-1.2M",
+        actual: "-2.5M",
+        status: "released"
+      },
+      {
+        id: "news-4",
+        time: "02:00 PM", // FOMC scheduled shortly
+        currency: "USD",
+        event: "FOMC Interest Rate Decision",
+        impact: "high",
+        forecast: "5.50%",
+        previous: "5.50%",
+        status: "upcoming"
+      },
+      {
+        id: "news-5",
+        time: "02:30 PM",
+        currency: "USD",
+        event: "Initial Jobless Claims (" + formattedDate(1) + ")",
+        impact: "medium",
+        forecast: "220K",
+        previous: "222K",
+        status: "upcoming"
+      },
+      {
+        id: "news-6",
+        time: "03:45 PM",
+        currency: "USD",
+        event: "Flash Manufacturing PMI (" + formattedDate(1) + ")",
+        impact: "medium",
+        forecast: "50.5",
+        previous: "50.0",
+        status: "upcoming"
+      },
+      {
+        id: "news-7",
+        time: "10:00 AM",
+        currency: "USD",
+        event: "New Home Sales (MoM) (" + formattedDate(2) + ")",
+        impact: "low",
+        forecast: "1.2%",
+        previous: "-4.7%",
+        status: "upcoming"
+      },
+      {
+        id: "news-8",
+        time: "08:30 AM",
+        currency: "USD",
+        event: "Core PCE Price Index (" + formattedDate(3) + ")",
+        impact: "high",
+        forecast: "0.2%",
+        previous: "0.3%",
+        status: "upcoming"
       }
+    ]);
+  }, []);
 
-      const hStr = hrs.toString().padStart(2, "0");
-      const mStr = mins.toString().padStart(2, "0");
-      const sStr = secs.toString().padStart(2, "0");
-      setTimeToNextHighEvent(`${hStr}:${mStr}:${sStr}`);
+  // Countdown & Volatility Alert Live Simulation Loop
+  useEffect(() => {
+    if (events.length === 0) return;
+
+    let secondsRemaining = 45; // FOMC releases in 45s from mount
+
+    const interval = setInterval(() => {
+      if (secondsRemaining > 0) {
+        secondsRemaining--;
+        const mins = Math.floor(secondsRemaining / 60);
+        const secs = secondsRemaining % 60;
+        setNextEventCountdown(`${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`);
+        
+        // Dynamically update time display of FOMC in the events list
+        setEvents(prev => prev.map(e => {
+          if (e.id === "news-4" && e.status === "upcoming") {
+            return { ...e, time: `Live in ${secs}s` };
+          }
+          return e;
+        }));
+      } else {
+        // Countdown hit 0! Release FOMC news dynamically
+        setEvents(prev => prev.map(e => {
+          if (e.id === "news-4" && e.status === "upcoming") {
+            return {
+              ...e,
+              time: "02:00 PM",
+              status: "released",
+              actual: "5.50%"
+            };
+          }
+          return e;
+        }));
+
+        setVolatilityAlert("🚨 Volatility Alert: FOMC Interest Rate Decision released! Actual: 5.50% (Forecast: 5.50%). Safe trading parameters active.");
+        setNextEventCountdown("03:00");
+        setNextEventName("Initial Jobless Claims");
+        clearInterval(interval);
+      }
     }, 1000);
 
-    return () => clearInterval(timer);
-  }, [timeToNextHighEvent]);
+    return () => clearInterval(interval);
+  }, [events.length === 0]);
 
   const toggleNotification = (id: string) => {
     setActiveNotifications(prev => 
@@ -160,13 +275,13 @@ export function EconomicCalendar() {
   };
 
   const filteredEvents = useMemo(() => {
-    return mockEvents.filter(e => {
+    return events.filter(e => {
       const matchesSearch = e.event.toLowerCase().includes(searchTerm.toLowerCase()) || 
                             e.currency.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesImpact = filterImpact === "all" || e.impact === filterImpact;
       return matchesSearch && matchesImpact;
     });
-  }, [filterImpact, searchTerm]);
+  }, [filterImpact, searchTerm, events]);
 
   return (
     <GlassCard className="flex flex-col h-full overflow-hidden border-border-subtle bg-bg-card/30 relative">
@@ -192,13 +307,35 @@ export function EconomicCalendar() {
         <div className="flex items-center gap-3 bg-accent-coral/10 border border-accent-coral/20 px-3.5 py-1.5 rounded-xl">
           <ShieldAlert size={16} className="text-accent-coral animate-pulse" />
           <div>
-            <p className="text-[9px] text-text-muted uppercase font-bold tracking-wider">Next High Impact News</p>
+            <p className="text-[9px] text-text-muted uppercase font-bold tracking-wider">Next Volatility Catalyst</p>
             <p className="text-xs font-semibold text-accent-coral flex items-center gap-1.5 font-[family-name:var(--font-space-mono)]">
-              FOMC Meeting Minutes in <span className="underline">{timeToNextHighEvent}</span>
+              {nextEventName} in <span className="underline">{nextEventCountdown}</span>
             </p>
           </div>
         </div>
       </div>
+
+      {/* Volatility Alert Message Banner */}
+      <AnimatePresence>
+        {volatilityAlert && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="mx-4 mt-4 p-3 bg-accent-coral/15 border border-accent-coral/30 rounded-xl text-[11px] font-bold text-accent-coral flex items-center justify-between gap-3 shadow-sm select-none">
+              <span>{volatilityAlert}</span>
+              <button 
+                onClick={() => setVolatilityAlert(null)}
+                className="text-[10px] hover:underline uppercase tracking-wider bg-accent-coral/20 hover:bg-accent-coral/30 border border-accent-coral/30 px-2 py-0.5 rounded-md transition-colors"
+              >
+                Acknowledge
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Filter and Search Bar */}
       <div className="p-4 border-b border-border-subtle/30 flex flex-wrap items-center gap-3 bg-bg-card/5">
