@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, BookOpen, BarChart3, Target,
   Shield, TrendingUp, Bell, Settings, ChevronLeft,
-  ChevronRight, Zap, Trophy, PlugZap, Brain, Users2, Store, Notebook
+  ChevronRight, Zap, Trophy, PlugZap, Brain, Notebook
 } from "lucide-react";
 
 const navItems = [
@@ -17,8 +17,6 @@ const navItems = [
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/playbook", label: "Playbook", icon: Target },
   { href: "/ai-coach", label: "AI Trade Coach", icon: Brain },
-  { href: "/community", label: "Trader Arena", icon: Users2 },
-  { href: "/marketplace", label: "Marketplace", icon: Store },
   { href: "/prop-tracker", label: "Prop Tracker", icon: Trophy },
   { href: "/risk", label: "Risk Manager", icon: Shield },
   { href: "/integrations", label: "Integrations", icon: PlugZap },
