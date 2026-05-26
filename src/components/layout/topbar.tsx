@@ -82,11 +82,11 @@ export function Topbar() {
     <header 
       className="h-14 flex items-center justify-between px-6 sticky top-0 z-30 flex-shrink-0"
       style={{ 
-        background: "rgba(4,8,20,0.85)",
-        backdropFilter: "blur(40px)",
-        WebkitBackdropFilter: "blur(40px)",
-        borderBottom: "1px solid rgba(255,255,255,0.05)",
-        boxShadow: "0 1px 40px rgba(0,0,0,0.3)"
+        background: "var(--topbar-bg)",
+        backdropFilter: "blur(32px)",
+        WebkitBackdropFilter: "blur(32px)",
+        borderBottom: "1px solid var(--topbar-border)",
+        boxShadow: "0 1px 12px rgba(0,0,0,0.08)",
       }}
     >
       {/* Left: Page title */}
@@ -105,10 +105,10 @@ export function Topbar() {
         </AnimatePresence>
 
         {/* Live status */}
-        <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: "rgba(0,255,178,0.05)", border: "1px solid rgba(0,255,178,0.1)" }}>
+        <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent-green/5 border border-accent-green/15">
           <div className="relative w-1.5 h-1.5">
             <span className="absolute inset-0 rounded-full bg-accent-green opacity-70 animate-ping" style={{ animationDuration: "2s" }} />
-            <span className="relative block w-1.5 h-1.5 rounded-full bg-accent-green shadow-[0_0_6px_rgba(0,255,178,0.8)]" />
+            <span className="relative block w-1.5 h-1.5 rounded-full bg-accent-green" />
           </div>
           <span className="text-[9px] font-[family-name:var(--font-space-mono)] text-accent-green font-bold uppercase tracking-widest">Live</span>
         </div>
@@ -120,14 +120,8 @@ export function Topbar() {
             animate={{ opacity: 1, scale: 1 }}
             className={cn(
               "hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-[family-name:var(--font-space-mono)] font-bold",
-              todayPnl >= 0 
-                ? "text-accent-green" 
-                : "text-accent-coral"
+              todayPnl >= 0 ? "text-accent-green bg-accent-green/8 border border-accent-green/15" : "text-accent-coral bg-accent-coral/8 border border-accent-coral/15"
             )}
-            style={{ 
-              background: todayPnl >= 0 ? "rgba(0,255,178,0.06)" : "rgba(255,45,85,0.06)",
-              border: todayPnl >= 0 ? "1px solid rgba(0,255,178,0.12)" : "1px solid rgba(255,45,85,0.12)"
-            }}
           >
             Today: {todayPnl >= 0 ? "+" : ""}{formatCurrency(todayPnl)}
           </motion.div>
@@ -136,23 +130,24 @@ export function Topbar() {
 
       {/* Center: Search */}
       <div className="hidden md:flex flex-1 max-w-xs mx-8">
-        <div className={cn("relative w-full transition-all duration-200", searchFocused && "scale-[1.02]")}>
-          <Search size={13} className={cn("absolute left-3 top-1/2 -translate-y-1/2 transition-colors", searchFocused ? "text-accent-green" : "text-text-muted")} />
+        <div className={cn("relative w-full transition-all duration-200", searchFocused && "scale-[1.01]")}>
+          <Search size={13} className={cn("absolute left-3 top-1/2 -translate-y-1/2 transition-colors", searchFocused ? "text-accent-violet" : "text-text-muted")} />
           <input
             id="global-search"
             type="text"
             placeholder="Search trades, symbols..."
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
-            className="w-full rounded-xl pl-9 pr-14 py-2 text-xs text-text-primary placeholder:text-text-muted/60 focus:outline-none transition-all duration-200"
+            className="w-full rounded-xl pl-9 pr-14 py-2 text-xs focus:outline-none transition-all duration-200"
             style={{
-              background: searchFocused ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.025)",
-              border: searchFocused ? "1px solid rgba(0,255,178,0.25)" : "1px solid rgba(255,255,255,0.05)",
-              boxShadow: searchFocused ? "0 0 20px rgba(0,255,178,0.08)" : "none",
+              background: "var(--bg-secondary)",
+              border: searchFocused ? "1px solid rgba(91,63,232,0.35)" : "1px solid var(--border-subtle)",
+              color: "var(--text-primary)",
+              boxShadow: searchFocused ? "0 0 0 3px rgba(91,63,232,0.08)" : "none",
             }}
           />
           <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
-            <kbd className="text-[9px] text-text-muted/50 bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/[0.06] font-bold">⌘K</kbd>
+            <kbd className="text-[9px] text-text-muted/60 px-1.5 py-0.5 rounded border font-bold" style={{ background: "var(--bg-card)", borderColor: "var(--border-subtle)" }}>⌘K</kbd>
           </div>
         </div>
       </div>
