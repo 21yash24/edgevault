@@ -3,6 +3,7 @@ import React from 'react';
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Globe, TrendingUp, Newspaper, BarChart2 } from "lucide-react";
+import { useTheme } from "next-themes";
 
 import EconomicCalendarWidget from "@/components/tradingview/economic-calendar-widget";
 import MarketNewsWidget from "@/components/tradingview/market-news-widget";
@@ -10,6 +11,8 @@ import MarketOverviewWidget from "@/components/tradingview/market-overview-widge
 import ScreenerWidget from "@/components/tradingview/screener-widget";
 
 export default function MarketsHubPage() {
+  const { resolvedTheme } = useTheme();
+
   return (
     <div className="flex-1 overflow-y-auto no-scrollbar relative min-h-screen pb-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-6">
@@ -39,7 +42,7 @@ export default function MarketsHubPage() {
               <h2 className="font-semibold text-text-primary">Global Market Overview</h2>
             </div>
             <div className="flex-1 w-full relative">
-              <MarketOverviewWidget />
+              <MarketOverviewWidget key={resolvedTheme} />
             </div>
           </GlassCard>
 
@@ -49,7 +52,7 @@ export default function MarketsHubPage() {
               <h2 className="font-semibold text-text-primary">Top Market News</h2>
             </div>
             <div className="flex-1 w-full relative">
-              <MarketNewsWidget />
+              <MarketNewsWidget key={resolvedTheme} />
             </div>
           </GlassCard>
         </div>
@@ -62,7 +65,7 @@ export default function MarketsHubPage() {
               <h2 className="font-semibold text-text-primary">Market Screener</h2>
             </div>
             <div className="flex-1 w-full relative">
-              <ScreenerWidget />
+              <ScreenerWidget key={resolvedTheme} />
             </div>
           </GlassCard>
         </div>
@@ -75,7 +78,7 @@ export default function MarketsHubPage() {
               <h2 className="font-semibold text-text-primary">Global Economic Calendar</h2>
             </div>
             <div className="flex-1 w-full relative">
-              <EconomicCalendarWidget />
+              <EconomicCalendarWidget key={resolvedTheme} />
             </div>
           </GlassCard>
         </div>

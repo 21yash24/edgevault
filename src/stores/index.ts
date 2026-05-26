@@ -5,7 +5,7 @@ import { Trade, Playbook, TradingAccount, PropFirmChallenge } from "@/lib/types"
 import { generateMockTrades } from "@/lib/mock-data";
 import { generateId } from "@/lib/utils";
 import { db, auth } from "@/lib/firebase";
-import { collection, onSnapshot, query, doc, setDoc, deleteDoc, writeBatch } from "firebase/firestore";
+import { collection, onSnapshot, query, doc, setDoc, deleteDoc, writeBatch, deleteField } from "firebase/firestore";
 
 const sanitizeForFirestore = (obj: any): any => {
   if (obj === undefined) return null;
@@ -14,10 +14,7 @@ const sanitizeForFirestore = (obj: any): any => {
   const result: any = {};
   for (const [key, value] of Object.entries(obj)) {
     if (value === undefined) {
-      // Omit undefined, or set to null if preferred. Firestore supports null.
-      // We will omit them to simulate delete behavior, but setDoc merge true won't delete unless we use deleteField().
-      // However, the best approach for Next.js/Firestore is deleting undefined keys before send.
-      // We will just not add the key.
+      result[key] = deleteField();
     } else {
       result[key] = sanitizeForFirestore(value);
     }

@@ -12,7 +12,6 @@ import {
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/markets", label: "Markets Hub", icon: Globe },
   { href: "/journal", label: "Journal", icon: BookOpen },
   { href: "/notebook", label: "Trading Notebook", icon: Notebook },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
@@ -22,6 +21,7 @@ const navItems = [
   { href: "/risk", label: "Risk Manager", icon: Shield },
   { href: "/integrations", label: "Integrations", icon: PlugZap },
   { href: "/alerts", label: "Smart Alerts", icon: Bell },
+  { href: "/markets", label: "Markets Hub", icon: Globe },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
