@@ -21,8 +21,7 @@ export function StatCard({ title, value, format, icon: Icon, subtitle, trend, de
 
   return (
     <GlassCard
-      className="flex flex-col justify-between relative overflow-hidden group min-h-[130px] p-5 border border-border-subtle hover:border-accent-violet/30 transition-all duration-500"
-      transition={{ duration: 0.4, delay }}
+      className="flex flex-col justify-between relative overflow-hidden group min-h-[130px] p-5 border border-border-subtle hover:border-accent-violet/30 transition-all duration-300 stat-card"
     >
       {/* Glow orb */}
       <div className={cn(

@@ -36,7 +36,6 @@ function MetricCard({ label, value, format, icon: Icon, color = "text-text-prima
       className="glass p-4 flex items-center gap-3"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay }}
     >
       <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center bg-opacity-10", color.replace("text-", "bg-") + "/10")}>
         <Icon size={18} className={color} />
@@ -582,14 +581,14 @@ export default function AnalyticsPage() {
 
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <GlassCard transition={{ delay: 0.3 }}>
+        <GlassCard>
           <h3 className="font-[family-name:var(--font-syne)] font-bold text-base mb-4">Equity Curve</h3>
           <div className="h-64">
             <EquityCurveChart trades={filteredTrades} />
           </div>
         </GlassCard>
 
-        <GlassCard transition={{ delay: 0.35 }}>
+        <GlassCard>
           <h3 className="font-[family-name:var(--font-syne)] font-bold text-base mb-4">Daily P&L</h3>
           <div className="h-64">
             <DailyPnlChart trades={filteredTrades} />
@@ -599,14 +598,14 @@ export default function AnalyticsPage() {
 
       {/* Charts Row 2 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <GlassCard transition={{ delay: 0.4 }}>
+        <GlassCard>
           <h3 className="font-[family-name:var(--font-syne)] font-bold text-base mb-4">Win Rate by Session</h3>
           <div className="h-64">
             <WinRateChart trades={filteredTrades} />
           </div>
         </GlassCard>
 
-        <GlassCard transition={{ delay: 0.45 }}>
+        <GlassCard>
           <h3 className="font-[family-name:var(--font-syne)] font-bold text-base mb-4">P&L by Symbol</h3>
           <div className="h-64">
             <PnlBySymbolChart trades={filteredTrades} />
@@ -616,14 +615,14 @@ export default function AnalyticsPage() {
 
       {/* Charts Row 3 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <GlassCard transition={{ delay: 0.5 }}>
+        <GlassCard>
           <h3 className="font-[family-name:var(--font-syne)] font-bold text-base mb-4">R-Multiple Distribution</h3>
           <div className="h-64">
             <RDistributionChart trades={filteredTrades} />
           </div>
         </GlassCard>
 
-        <GlassCard transition={{ delay: 0.55 }}>
+        <GlassCard>
           <h3 className="font-[family-name:var(--font-syne)] font-bold text-base mb-4">Hourly Performance Heatmap</h3>
           <div className="h-64 flex flex-col justify-center">
             <HourlyHeatmap trades={filteredTrades} />
@@ -637,7 +636,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Row: Mindset Performance */}
-      <GlassCard transition={{ delay: 0.58 }}>
+      <GlassCard>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Brain size={18} className="text-accent-violet" />
@@ -652,7 +651,7 @@ export default function AnalyticsPage() {
 
       {/* TradeZella Capital Leaks & Days Performance Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <GlassCard transition={{ delay: 0.585 }}>
+        <GlassCard>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <AlertTriangle size={18} className="text-accent-coral" />
@@ -665,7 +664,7 @@ export default function AnalyticsPage() {
           </div>
         </GlassCard>
 
-        <GlassCard transition={{ delay: 0.587 }}>
+        <GlassCard>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Calendar size={18} className="text-accent-violet" />
@@ -680,7 +679,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Charts Row 4: MAE / MFE */}
-      <GlassCard transition={{ delay: 0.59 }}>
+      <GlassCard>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Crosshair size={18} className="text-accent-violet" />
@@ -694,7 +693,7 @@ export default function AnalyticsPage() {
       </GlassCard>
 
       {/* Charts Row 5: Monte Carlo */}
-      <GlassCard transition={{ delay: 0.6 }}>
+      <GlassCard>
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-[family-name:var(--font-syne)] font-bold text-base">Monte Carlo Simulation</h3>
           <span className="text-xs text-text-muted">50 simulations, 50 trades forward</span>
@@ -705,7 +704,7 @@ export default function AnalyticsPage() {
       </GlassCard>
 
       {/* Streaks & Records */}
-      <GlassCard transition={{ delay: 0.65 }}>
+      <GlassCard>
         <h3 className="font-[family-name:var(--font-syne)] font-bold text-base mb-4">Records & Streaks</h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="text-center">

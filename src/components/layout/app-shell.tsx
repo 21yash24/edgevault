@@ -54,7 +54,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [user, loading, isDemoMode, router]);
 
   if (loading && !isDemoMode) {
-    return <div className="min-h-screen bg-bg-base flex items-center justify-center">Loading...</div>;
+    return (
+      <div className="min-h-screen bg-bg-base flex items-center justify-center" style={{ background: "linear-gradient(135deg, #040814 0%, #060b18 50%, #0a0d1f 100%)" }}>
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative w-12 h-12">
+            <div className="absolute inset-0 rounded-xl" style={{ background: "linear-gradient(135deg, rgba(0,255,178,0.2), rgba(143,0,255,0.2))", border: "1px solid rgba(0,255,178,0.2)" }} />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-5 h-5 border-2 border-t-accent-green border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin" />
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="font-[family-name:var(--font-syne)] font-black text-sm tracking-widest" style={{ background: "linear-gradient(90deg, #00FFB2, #8F00FF)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>EDGEVAULT</div>
+            <div className="text-[10px] text-text-muted font-bold mt-1 uppercase tracking-widest">Loading your trading OS...</div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -63,7 +78,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <motion.div
         className="flex flex-col min-h-screen"
         animate={{ marginLeft: sidebarCollapsed ? 72 : 240 }}
-        transition={{ duration: 0.3, ease: "easeInOut" as const }}
+        transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
         <Topbar />
         <main className="flex-1 p-6 gradient-mesh">{children}</main>

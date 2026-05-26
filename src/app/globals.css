@@ -346,4 +346,149 @@ body {
     background: linear-gradient(90deg, rgba(255, 45, 85, 0.04) 0%, transparent 100%);
     border-left: 2px solid var(--accent-coral);
   }
+
+/* ===== PREMIUM BUTTON SYSTEM ===== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  border-radius: 12px;
+  padding: 8px 16px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  user-select: none;
+  position: relative;
+  overflow: hidden;
 }
+
+.btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0);
+  transition: background 0.15s ease;
+}
+
+.btn:hover::before { background: rgba(255,255,255,0.04); }
+.btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+.btn-primary {
+  background: linear-gradient(135deg, #00FFB2 0%, #00D4FF 100%);
+  color: #040814;
+  box-shadow: 0 0 20px rgba(0,255,178,0.2), inset 0 1px 0 rgba(255,255,255,0.25);
+}
+.btn-primary:hover {
+  box-shadow: 0 0 30px rgba(0,255,178,0.35), inset 0 1px 0 rgba(255,255,255,0.25);
+  transform: translateY(-1px);
+}
+
+.btn-danger {
+  background: rgba(255, 45, 85, 0.1);
+  color: var(--accent-coral);
+  border-color: rgba(255, 45, 85, 0.2);
+}
+.btn-danger:hover {
+  background: rgba(255, 45, 85, 0.15);
+  box-shadow: 0 0 20px rgba(255,45,85,0.15);
+}
+
+.btn-ghost {
+  background: rgba(255,255,255,0.025);
+  color: var(--text-secondary);
+  border-color: rgba(255,255,255,0.05);
+}
+.btn-ghost:hover {
+  background: rgba(255,255,255,0.05);
+  color: var(--text-primary);
+  border-color: rgba(255,255,255,0.1);
+}
+
+/* ===== FOCUS RING ===== */
+:focus-visible {
+  outline: 2px solid rgba(0, 255, 178, 0.5);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* ===== INPUT SYSTEM ===== */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+input[type="datetime-local"],
+select,
+textarea {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+/* ===== SELECTION ===== */
+::selection {
+  background: rgba(0, 255, 178, 0.2);
+  color: var(--text-primary);
+}
+
+/* ===== LOADING SKELETON ===== */
+.skeleton {
+  background: linear-gradient(90deg, 
+    rgba(255,255,255,0.03) 0%, 
+    rgba(255,255,255,0.07) 50%, 
+    rgba(255,255,255,0.03) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+/* ===== STAT CARD HOVER ===== */
+.stat-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+/* ===== PREMIUM NUMBER DISPLAY ===== */
+.metric-positive {
+  color: var(--accent-green);
+  text-shadow: 0 0 24px rgba(0, 255, 178, 0.35);
+}
+.metric-negative {
+  color: var(--accent-coral);
+  text-shadow: 0 0 24px rgba(255, 45, 85, 0.35);
+}
+
+/* ===== BADGE ===== */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+.badge-green { background: rgba(0,255,178,0.1); color: var(--accent-green); border-color: rgba(0,255,178,0.2); }
+.badge-coral { background: rgba(255,45,85,0.1); color: var(--accent-coral); border-color: rgba(255,45,85,0.2); }
+.badge-violet { background: rgba(143,0,255,0.1); color: var(--accent-violet); border-color: rgba(143,0,255,0.2); }
+
+/* ===== DIVIDER ===== */
+.divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent); }
+
+/* ===== TEXT GLOW CORAL ===== */
+.text-glow-coral { text-shadow: 0 0 20px rgba(255, 45, 85, 0.5); }
+
+/* ===== SMOOTH ALL TRANSITIONS ===== */
+* { -webkit-tap-highlight-color: transparent; }
+
+a, button { transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease; }
+}
+

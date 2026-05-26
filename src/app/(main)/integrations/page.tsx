@@ -135,7 +135,7 @@ export default function IntegrationsPage() {
         <div className="space-y-4">
           <h2 className="text-sm font-bold text-text-muted uppercase tracking-widest">Direct Sync</h2>
           {brokers.map((broker, i) => (
-            <GlassCard key={broker.id} className="group hover:border-accent-violet/30 transition-all cursor-pointer" transition={{ delay: i * 0.1 }}>
+            <GlassCard key={broker.id} className="group hover:border-accent-violet/30 transition-all cursor-pointer">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-xl bg-bg-secondary border border-border-subtle flex items-center justify-center font-bold text-xl group-hover:bg-accent-violet/10 group-hover:text-accent-violet transition-colors">
