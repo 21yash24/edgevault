@@ -105,7 +105,7 @@ export default function PlaybookPage() {
       {/* Title */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-[family-name:var(--font-syne)] font-bold text-2xl text-text-primary flex items-center gap-2">
+          <h1 className="font-[family-name:var(--font-syne)] font-black text-2xl text-text-primary flex items-center gap-2">
             Execution Playbook <Target size={22} className="text-accent-violet animate-pulse" />
           </h1>
           <p className="text-sm text-text-secondary mt-1">{playbooks.length} documented strategies & custom confluences</p>
@@ -424,7 +424,7 @@ export default function PlaybookPage() {
               <div className="flex justify-end gap-3 mt-6 border-t border-border-subtle/30 pt-4">
                 <button onClick={() => setShowCreate(false)} className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors">Cancel</button>
                 <button onClick={handleCreate} disabled={!name.trim()}
-                  className="bg-accent-green text-bg-base px-6 py-2 rounded-xl text-sm font-semibold hover:shadow-[0_0_20px_rgba(0,255,178,0.2)] transition-all disabled:opacity-40">
+                  className="bg-gradient-to-r from-accent-green to-accent-blue text-bg-base shadow-[0_0_20px_rgba(0,255,178,0.2)] hover:shadow-[0_0_30px_rgba(0,255,178,0.35)] px-6 py-2 rounded-xl text-sm font-semibold hover:shadow-[0_0_20px_rgba(0,255,178,0.2)] transition-all disabled:opacity-40">
                   Create Playbook
                 </button>
               </div>

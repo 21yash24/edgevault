@@ -118,7 +118,7 @@ function LogTradeModal({ challenge, onClose }: { challenge: PropFirmChallenge; o
         <div className="flex justify-end gap-2.5 mt-5">
           <button onClick={onClose} className="px-3 py-1.5 text-xs text-text-secondary">Cancel</button>
           <button onClick={handleSave} disabled={!symbol || !pnl}
-            className="bg-accent-green text-bg-base px-5 py-1.5 rounded-xl text-xs font-bold hover:shadow-[0_0_15px_rgba(0,255,178,0.2)] transition-all disabled:opacity-40">
+            className="bg-gradient-to-r from-accent-green to-accent-blue text-bg-base shadow-[0_0_20px_rgba(0,255,178,0.2)] hover:shadow-[0_0_30px_rgba(0,255,178,0.35)] px-5 py-1.5 rounded-xl text-xs font-bold hover:shadow-[0_0_15px_rgba(0,255,178,0.2)] transition-all disabled:opacity-40">
             Submit Trade
           </button>
         </div>
@@ -195,7 +195,7 @@ function BulkLinkModal({ challenge, onClose }: { challenge: PropFirmChallenge; o
         <div className="flex justify-end gap-2.5 mt-5 pt-3 border-t border-white/[0.05]">
           <button onClick={onClose} className="px-3 py-1.5 text-xs text-text-secondary">Cancel</button>
           <button onClick={handleLink} disabled={selectedIds.length === 0}
-            className="bg-accent-violet text-white px-5 py-1.5 rounded-xl text-xs font-bold hover:shadow-[0_0_15px_rgba(123,97,255,0.2)] transition-all disabled:opacity-40">
+            className="bg-gradient-to-r from-accent-violet to-accent-blue text-white shadow-[0_0_20px_rgba(143,0,255,0.2)] hover:shadow-[0_0_30px_rgba(143,0,255,0.35)] px-5 py-1.5 rounded-xl text-xs font-bold hover:shadow-[0_0_15px_rgba(123,97,255,0.2)] transition-all disabled:opacity-40">
             Link {selectedIds.length} Trade{selectedIds.length !== 1 ? "s" : ""}
           </button>
         </div>
@@ -241,7 +241,7 @@ function ChallengeCard({ challenge }: { challenge: PropFirmChallenge & { hasDail
             <span className={cn("text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider leading-none",
               challenge.status === "active" ? "bg-accent-green/10 text-accent-green animate-pulse" :
               challenge.status === "passed" ? "bg-accent-violet/10 text-accent-violet" :
-              challenge.status === "funded" ? "bg-accent-green/10 text-accent-green border border-accent-green/20" :
+              challenge.status === "funded" ? "bg-accent-green/10 text-accent-green border border-accent-green/25 shadow-[0_0_10px_rgba(0,255,178,0.08)]" :
               "bg-accent-coral/10 text-accent-coral shadow-[0_0_10px_rgba(255,45,85,0.2)]")}>
               {challenge.status}
             </span>
@@ -505,7 +505,7 @@ export default function PropTrackerPage() {
           <p className="text-sm text-text-secondary mt-1 font-semibold">{challenges.length} active challenge account{challenges.length !== 1 ? "s" : ""}</p>
         </div>
         <button onClick={() => setShowAdd(true)}
-          className="flex items-center gap-2 bg-accent-green text-bg-base px-5 py-2.5 rounded-xl text-sm font-bold hover:shadow-[0_0_25px_rgba(0,255,178,0.3)] transition-all">
+          className="flex items-center gap-2 bg-gradient-to-r from-accent-green to-accent-blue text-bg-base shadow-[0_0_20px_rgba(0,255,178,0.2)] hover:shadow-[0_0_30px_rgba(0,255,178,0.35)] px-5 py-2.5 rounded-xl text-sm font-bold hover:shadow-[0_0_25px_rgba(0,255,178,0.3)] transition-all">
           <Plus size={16} className="stroke-[3]" /> Add Account
         </button>
       </div>
@@ -642,7 +642,7 @@ export default function PropTrackerPage() {
               <div className="flex justify-end gap-3 mt-6">
                 <button onClick={() => setShowAdd(false)} className="px-4 py-2 text-sm text-text-secondary">Cancel</button>
                 <button onClick={handleAdd} disabled={!selectedFirm || !selectedPhase}
-                  className="bg-accent-green text-bg-base px-6 py-2 rounded-xl text-sm font-bold hover:shadow-[0_0_20px_rgba(0,255,178,0.2)] transition-all disabled:opacity-40">
+                  className="bg-gradient-to-r from-accent-green to-accent-blue text-bg-base shadow-[0_0_20px_rgba(0,255,178,0.2)] hover:shadow-[0_0_30px_rgba(0,255,178,0.35)] px-6 py-2 rounded-xl text-sm font-bold hover:shadow-[0_0_20px_rgba(0,255,178,0.2)] transition-all disabled:opacity-40">
                   Start Challenge
                 </button>
               </div>

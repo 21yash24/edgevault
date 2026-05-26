@@ -148,7 +148,7 @@ function RRCalculator() {
           <div className="text-2xl text-text-muted">=</div>
           <div className="text-center">
             <div className="text-xs text-text-muted">R:R Ratio</div>
-            <div className="font-[family-name:var(--font-syne)] font-bold text-2xl text-accent-violet">1:{result.rr}</div>
+            <div className="font-[family-name:var(--font-syne)] font-black text-2xl text-accent-violet">1:{result.rr}</div>
           </div>
         </motion.div>
       )}
@@ -399,7 +399,7 @@ export default function RiskPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-[family-name:var(--font-syne)] font-bold text-2xl">Risk Command Center</h1>
+          <h1 className="font-[family-name:var(--font-syne)] font-black text-2xl">Risk Command Center</h1>
           <p className="text-sm text-text-secondary mt-1">{format(new Date(), "EEEE, MMMM d, yyyy")}</p>
         </div>
       </div>
@@ -446,7 +446,7 @@ export default function RiskPage() {
             <TrendingDown size={16} className={todayPnl < 0 ? "text-accent-coral" : "text-accent-green"} />
             <span className="text-xs text-text-muted uppercase">Today&apos;s P&L</span>
           </div>
-          <div className={cn("font-[family-name:var(--font-space-mono)] font-bold text-2xl", todayPnl >= 0 ? "text-accent-green" : "text-accent-coral")}>
+          <div className={cn("font-[family-name:var(--font-space-mono)] font-black text-2xl", todayPnl >= 0 ? "text-accent-green" : "text-accent-coral")}>
             {formatCurrency(todayPnl)}
           </div>
           {todayPnl < 0 && (
@@ -469,7 +469,7 @@ export default function RiskPage() {
             <BarChart3 size={16} className="text-accent-violet" />
             <span className="text-xs text-text-muted uppercase">Trades Today</span>
           </div>
-          <div className="font-[family-name:var(--font-space-mono)] font-bold text-2xl">
+          <div className="font-[family-name:var(--font-space-mono)] font-black text-2xl">
             {todayTrades.length}
             <span className="text-sm text-text-muted font-normal"> / {maxTrades}</span>
           </div>
@@ -484,7 +484,7 @@ export default function RiskPage() {
             <Flame size={16} className={consecutiveLosses >= 3 ? "text-accent-coral" : "text-text-muted"} />
             <span className="text-xs text-text-muted uppercase">Loss Streak</span>
           </div>
-          <div className={cn("font-[family-name:var(--font-space-mono)] font-bold text-2xl", consecutiveLosses >= 3 ? "text-accent-coral" : "")}>
+          <div className={cn("font-[family-name:var(--font-space-mono)] font-black text-2xl", consecutiveLosses >= 3 ? "text-accent-coral" : "")}>
             {consecutiveLosses}
           </div>
           {consecutiveLosses >= 3 && (
@@ -500,7 +500,7 @@ export default function RiskPage() {
             <Shield size={16} className={allChecked ? "text-accent-green" : "text-yellow-500"} />
             <span className="text-xs text-text-muted uppercase">Pre-Market Readiness</span>
           </div>
-          <div className={cn("font-[family-name:var(--font-space-mono)] font-bold text-2xl", allChecked ? "text-accent-green" : "text-yellow-500")}>
+          <div className={cn("font-[family-name:var(--font-space-mono)] font-black text-2xl", allChecked ? "text-accent-green" : "text-yellow-500")}>
             {checkedItems.length}/{checklist.length}
           </div>
           <div className="text-xs text-text-muted mt-1">{allChecked ? "✅ Cleared to Trade" : "⏳ Action Required"}</div>

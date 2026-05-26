@@ -68,7 +68,7 @@ function ProfileSection() {
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="w-16 h-16 rounded-2xl bg-accent-green/10 flex items-center justify-center text-accent-green font-[family-name:var(--font-syne)] font-bold text-2xl">
+        <div className="w-16 h-16 rounded-2xl bg-accent-green/10 flex items-center justify-center text-accent-green font-[family-name:var(--font-syne)] font-black text-2xl">
           {name.split(" ").map(n => n[0]).join("").substring(0,2).toUpperCase()}
         </div>
         <div>
@@ -112,7 +112,7 @@ function ProfileSection() {
         </div>
       </div>
 
-      <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 bg-accent-green text-bg-base px-5 py-2.5 rounded-xl text-sm font-semibold hover:shadow-[0_0_20px_rgba(0,255,178,0.2)] transition-all">
+      <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 bg-gradient-to-r from-accent-green to-accent-blue text-bg-base shadow-[0_0_20px_rgba(0,255,178,0.2)] hover:shadow-[0_0_30px_rgba(0,255,178,0.35)] px-5 py-2.5 rounded-xl text-sm font-semibold hover:shadow-[0_0_20px_rgba(0,255,178,0.2)] transition-all">
         {saving ? <span className="animate-pulse">Saving...</span> : <><Save size={14} /> Save Changes</>}
       </button>
     </div>
@@ -563,7 +563,7 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-[family-name:var(--font-syne)] font-bold text-2xl">Settings</h1>
+        <h1 className="font-[family-name:var(--font-syne)] font-black text-2xl">Settings</h1>
         <p className="text-sm text-text-secondary mt-1">Configure your trading environment</p>
       </div>
 
@@ -573,7 +573,7 @@ export default function SettingsPage() {
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
               className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all text-left",
                 activeTab === tab.id
-                  ? "bg-accent-green/10 text-accent-green border border-accent-green/20"
+                  ? "bg-accent-green/10 text-accent-green border border-accent-green/25 shadow-[0_0_10px_rgba(0,255,178,0.08)]"
                   : "text-text-secondary hover:text-text-primary hover:bg-bg-card")}>
               <tab.icon size={16} />
               {tab.label}

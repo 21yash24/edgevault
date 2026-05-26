@@ -124,7 +124,7 @@ export default function IntegrationsPage() {
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <div>
-        <h1 className="font-[family-name:var(--font-syne)] font-bold text-2xl">Broker Integrations</h1>
+        <h1 className="font-[family-name:var(--font-syne)] font-black text-2xl">Broker Integrations</h1>
         <p className="text-sm text-text-secondary mt-1">
           Connect your futures broker or prop firm to automatically sync trades, or use the Universal Importer.
         </p>
@@ -321,11 +321,11 @@ export default function IntegrationsPage() {
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div className="glass-static p-4 rounded-xl text-center">
                     <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">Trades Found</div>
-                    <div className="font-[family-name:var(--font-space-mono)] font-bold text-2xl">{parsedData.trades.length}</div>
+                    <div className="font-[family-name:var(--font-space-mono)] font-black text-2xl">{parsedData.trades.length}</div>
                   </div>
                   <div className="glass-static p-4 rounded-xl text-center">
                     <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">Total P&L</div>
-                    <div className={cn("font-[family-name:var(--font-space-mono)] font-bold text-2xl", parsedData.trades.reduce((s, t) => s + t.netPnl, 0) >= 0 ? "text-accent-green" : "text-accent-coral")}>
+                    <div className={cn("font-[family-name:var(--font-space-mono)] font-black text-2xl", parsedData.trades.reduce((s, t) => s + t.netPnl, 0) >= 0 ? "text-accent-green" : "text-accent-coral")}>
                       ${parsedData.trades.reduce((s, t) => s + t.netPnl, 0).toFixed(2)}
                     </div>
                   </div>

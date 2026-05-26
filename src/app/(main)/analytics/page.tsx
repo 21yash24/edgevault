@@ -473,7 +473,7 @@ export default function AnalyticsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-[family-name:var(--font-syne)] font-bold text-2xl">Analytics</h1>
+          <h1 className="font-[family-name:var(--font-syne)] font-black text-2xl bg-clip-text text-transparent bg-gradient-to-r from-accent-violet via-accent-blue to-accent-green pb-0.5">Analytics</h1>
           <p className="text-sm text-text-secondary mt-1">Performance insights from {metrics.totalTrades} trades</p>
         </div>
         <div className="flex gap-4 items-center">
@@ -483,7 +483,7 @@ export default function AnalyticsPage() {
                 onClick={() => setActiveTab(tab as any)}
                 className={cn(
                   "px-4 py-1.5 text-xs rounded-md transition-all font-semibold",
-                  activeTab === tab ? "bg-accent-violet/20 text-accent-violet" : "text-text-muted hover:text-text-secondary"
+                  activeTab === tab ? "bg-accent-violet/15 text-accent-violet border border-accent-violet/25 shadow-[0_0_10px_rgba(143,0,255,0.1)]" : "text-text-muted hover:text-text-secondary"
                 )}>
                 {tab}
               </button>
@@ -496,7 +496,7 @@ export default function AnalyticsPage() {
                 onClick={() => setTimeRange(range)}
                 className={cn(
                   "px-3 py-1.5 text-xs rounded-lg transition-all",
-                  timeRange === range ? "bg-accent-green/10 text-accent-green border border-accent-green/20" : "bg-bg-card text-text-muted border border-border-subtle hover:border-accent-violet/20 hover:text-text-secondary"
+                  timeRange === range ? "bg-accent-green/10 text-accent-green border border-accent-green/25 shadow-[0_0_10px_rgba(0,255,178,0.08)]" : "bg-bg-card text-text-muted border border-border-subtle hover:border-accent-violet/20 hover:text-text-secondary"
                 )}>
                 {range}
               </button>

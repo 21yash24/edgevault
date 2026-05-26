@@ -588,7 +588,7 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
           Cancel
         </Link>
         <button onClick={handleSubmit}
-          className="flex items-center gap-2 bg-accent-violet text-white px-8 py-2.5 rounded-xl text-sm font-semibold hover:shadow-[0_0_30px_rgba(123,97,255,0.3)] transition-all disabled:opacity-40"
+          className="flex items-center gap-2 bg-gradient-to-r from-accent-violet to-accent-blue text-white shadow-[0_0_20px_rgba(143,0,255,0.2)] hover:shadow-[0_0_30px_rgba(143,0,255,0.35)] px-8 py-2.5 rounded-xl text-sm font-semibold hover:shadow-[0_0_30px_rgba(123,97,255,0.3)] transition-all disabled:opacity-40"
           disabled={!isReady}>
           <Save size={16} /> Update Trade
         </button>

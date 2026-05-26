@@ -113,7 +113,7 @@ export default function NotebookPage() {
             <BookOpen size={22} className="text-accent-violet animate-pulse" />
           </div>
           <div>
-            <h1 className="font-[family-name:var(--font-syne)] font-bold text-2xl text-text-primary">
+            <h1 className="font-[family-name:var(--font-syne)] font-black text-2xl text-text-primary">
               Trader's Notebook
             </h1>
             <p className="text-xs text-text-muted mt-0.5 leading-relaxed">Document macro setups, mental prep, and detailed post-session reflections</p>

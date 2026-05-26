@@ -203,7 +203,7 @@ export default function AlertsPage() {
       {/* Title section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="font-[family-name:var(--font-syne)] font-bold text-2xl text-text-primary">
+          <h1 className="font-[family-name:var(--font-syne)] font-black text-2xl text-text-primary">
             Smart Alerts & Risk Compliance
           </h1>
           <p className="text-sm text-text-muted mt-1">
