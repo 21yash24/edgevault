@@ -4,80 +4,6 @@ import { createChart, ColorType, CrosshairMode, CandlestickSeries, createSeriesM
 import { Trade } from "@/lib/types";
 import { useTheme } from "next-themes";
 
-// TradingView mini chart widget as fallback when real data isn't available
-function TradingViewFallback({ symbol, trade }: { symbol: string; trade: Trade }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const { resolvedTheme } = useTheme();
-
-  useEffect(() => {
-    if (!containerRef.current) return;
-    containerRef.current.innerHTML = "";
-
-    const script = document.createElement("script");
-    script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
-    script.type = "text/javascript";
-    script.async = true;
-
-    // Map common symbols to TradingView format
-    const tvSymbol = (s: string) => {
-      const upper = s.toUpperCase();
-      if (upper === "NQ" || upper.startsWith("NQ")) return "CME_MINI:NQ1!";
-      if (upper === "ES" || upper.startsWith("ES")) return "CME_MINI:ES1!";
-      if (upper === "YM" || upper.startsWith("YM")) return "CBOT_MINI:YM1!";
-      if (upper === "MNQ" || upper.startsWith("MNQ")) return "CME_MINI:MNQ1!";
-      if (upper === "MES" || upper.startsWith("MES")) return "CME_MINI:MES1!";
-      if (upper === "RTY" || upper.startsWith("RTY")) return "CME_MINI:RTY1!";
-      if (upper === "CL" || upper.startsWith("CL")) return "NYMEX:CL1!";
-      if (upper === "GC" || upper.startsWith("GC")) return "COMEX:GC1!";
-      if (upper === "BTCUSD" || upper === "BTC") return "BINANCE:BTCUSDT";
-      if (upper === "ETHUSD" || upper === "ETH") return "BINANCE:ETHUSDT";
-      if (upper === "EURUSD") return "FX:EURUSD";
-      if (upper === "GBPUSD") return "FX:GBPUSD";
-      return `NASDAQ:${upper}`;
-    };
-
-    const theme = resolvedTheme === "light" ? "light" : "dark";
-    const entryDate = trade.entryDate ? new Date(trade.entryDate) : null;
-
-    script.innerHTML = JSON.stringify({
-      autosize: true,
-      symbol: tvSymbol(symbol),
-      interval: "5",
-      timezone: "Etc/UTC",
-      theme,
-      style: "1",
-      locale: "en",
-      enable_publishing: false,
-      hide_legend: false,
-      hide_top_toolbar: false,
-      hide_side_toolbar: true,
-      allow_symbol_change: false,
-      save_image: false,
-      calendar: false,
-      hide_volume: true,
-      support_host: "https://www.tradingview.com",
-    });
-
-    containerRef.current.appendChild(script);
-  }, [symbol, resolvedTheme, trade]);
-
-  return (
-    <div className="w-full h-full relative flex flex-col">
-      <div ref={containerRef} className="tradingview-widget-container w-full flex-1" style={{ height: "calc(100% - 40px)" }}>
-        <div className="tradingview-widget-container__widget w-full h-full" />
-      </div>
-      <div className="h-10 flex items-center px-4 gap-2 bg-bg-base/50 border-t border-border-subtle/50 flex-shrink-0">
-        <div className="w-2 h-2 rounded-full bg-accent-violet animate-pulse" />
-        <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">TradingView Live Chart</span>
-        {trade.entryPrice && (
-          <span className="ml-auto text-[10px] font-[family-name:var(--font-space-mono)] text-text-muted">
-            Entry: {trade.entryPrice.toLocaleString()} → Exit: {trade.exitPrice?.toLocaleString() ?? "—"}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
 
 // Lightweight-charts powered real-data chart
 function RealDataChart({ candles, entryCandleTime, exitCandleTime, intervalMs, trade }: {
@@ -275,17 +201,66 @@ export function InteractiveChart({ trade }: { trade: Trade }) {
           });
         }
       } catch (err) {
-        console.warn(`Could not fetch real data for ${trade.symbol}, using TradingView widget fallback:`, err);
-        // Instead of ugly simulated candles, use a TradingView widget!
+        console.warn(`Could not fetch real data for ${trade.symbol}, generating simulated replay:`, err);
+        
+        const entryTimeSec = Math.floor(new Date(trade.entryDate).getTime() / 1000);
+        const exitTimeSec = trade.exitDate ? Math.floor(new Date(trade.exitDate).getTime() / 1000) : entryTimeSec + 3600;
+        
+        const entryPrice = trade.entryPrice || 100;
+        const exitPrice = trade.exitPrice || entryPrice;
+        
+        // Generate about 60 candles for smooth playback
+        const numCandles = 60;
+        const intervalMs = Math.max(60000, ((exitTimeSec - entryTimeSec) * 1000) / (numCandles / 2));
+        const intervalSec = Math.floor(intervalMs / 1000);
+        
+        const generatedCandles = [];
+        let currentPrice = entryPrice - (entryPrice * 0.002 * (trade.direction === 'long' ? 1 : -1));
+        const startTimeSec = entryTimeSec - (10 * intervalSec);
+        
+        // 10 pre-entry context candles
+        for (let i = 0; i < 10; i++) {
+          const open = currentPrice;
+          const close = open + (Math.random() - 0.5) * (entryPrice * 0.001);
+          const high = Math.max(open, close) + Math.random() * (entryPrice * 0.0005);
+          const low = Math.min(open, close) - Math.random() * (entryPrice * 0.0005);
+          generatedCandles.push({ time: startTimeSec + (i * intervalSec), open, high, low, close });
+          currentPrice = close;
+        }
+        
+        // Execution path candles
+        const execCandles = 40;
+        const priceStep = (exitPrice - entryPrice) / execCandles;
+        for (let i = 0; i <= execCandles; i++) {
+          const open = currentPrice;
+          let close = open + priceStep + (Math.random() - 0.5) * (entryPrice * 0.001);
+          if (i === 0) close = entryPrice; // Force exact entry
+          if (i === execCandles) close = exitPrice; // Force exact exit
+          const high = Math.max(open, close) + Math.random() * (entryPrice * 0.0005);
+          const low = Math.min(open, close) - Math.random() * (entryPrice * 0.0005);
+          generatedCandles.push({ time: entryTimeSec + (i * intervalSec), open, high, low, close });
+          currentPrice = close;
+        }
+        
+        // 10 post-exit context candles
+        for (let i = 1; i <= 10; i++) {
+          const open = currentPrice;
+          const close = open + (Math.random() - 0.5) * (entryPrice * 0.001);
+          const high = Math.max(open, close) + Math.random() * (entryPrice * 0.0005);
+          const low = Math.min(open, close) - Math.random() * (entryPrice * 0.0005);
+          generatedCandles.push({ time: exitTimeSec + (i * intervalSec), open, high, low, close });
+          currentPrice = close;
+        }
+
         if (active) {
           setChartState({
-            candles: [],
-            entryCandleTime: 0,
-            exitCandleTime: 0,
-            intervalMs: 60000,
+            candles: generatedCandles,
+            entryCandleTime: entryTimeSec,
+            exitCandleTime: exitTimeSec,
+            intervalMs: intervalMs,
             isReal: false,
             isLoading: false,
-            useTradingView: true,
+            useTradingView: false,
           });
         }
       }
@@ -306,12 +281,8 @@ export function InteractiveChart({ trade }: { trade: Trade }) {
     );
   }
 
-  if (useTradingView) {
-    return <TradingViewFallback symbol={trade.symbol} trade={trade} />;
-  }
-
   return (
-    <div className="w-full h-full relative">
+    <div className="w-full h-full relative group">
       <RealDataChart
         candles={candles}
         entryCandleTime={entryCandleTime}
@@ -319,10 +290,17 @@ export function InteractiveChart({ trade }: { trade: Trade }) {
         intervalMs={intervalMs}
         trade={trade}
       />
-      <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold tracking-wider uppercase backdrop-blur-md bg-emerald-500/10 border border-emerald-500/25 text-emerald-400">
-        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-        Real Market Data
-      </div>
+      {isReal ? (
+        <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold tracking-wider uppercase backdrop-blur-md bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 shadow-lg">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          Real Market Data
+        </div>
+      ) : (
+        <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold tracking-wider uppercase backdrop-blur-md bg-accent-violet/10 border border-accent-violet/25 text-accent-violet shadow-lg">
+          <div className="w-1.5 h-1.5 rounded-full bg-accent-violet animate-pulse" />
+          Simulated Execution Replay
+        </div>
+      )}
     </div>
   );
 }
