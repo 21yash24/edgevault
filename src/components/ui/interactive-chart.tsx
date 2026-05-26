@@ -90,71 +90,119 @@ function RealDataChart({ candles, entryCandleTime, exitCandleTime, intervalMs, t
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const { resolvedTheme } = useTheme();
 
+  const [isReplaying, setIsReplaying] = useState(true);
+  const [replayIndex, setReplayIndex] = useState(() => {
+    const idx = candles.findIndex((c) => c.time >= entryCandleTime);
+    // Start replay slightly before the entry point for context
+    return Math.max(0, idx - 10);
+  });
+
+  const seriesRef = useRef<any>(null);
+
+  // 1. Initialize chart and base data
   useEffect(() => {
     if (candles.length === 0 || !chartContainerRef.current) return;
-
     const isDark = resolvedTheme !== "light";
 
     const chart = createChart(chartContainerRef.current, {
-      layout: {
-        background: { type: ColorType.Solid, color: "transparent" },
-        textColor: isDark ? "#8B8FA3" : "#555770",
-      },
-      grid: {
-        vertLines: { color: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.04)" },
-        horzLines: { color: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.04)" },
-      },
+      layout: { background: { type: ColorType.Solid, color: "transparent" }, textColor: isDark ? "#8B8FA3" : "#555770" },
+      grid: { vertLines: { color: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.04)" }, horzLines: { color: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.04)" } },
       crosshair: { mode: CrosshairMode.Normal },
       rightPriceScale: { borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)" },
-      timeScale: {
-        borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
-        timeVisible: true,
-        secondsVisible: intervalMs < 60000,
-      },
+      timeScale: { borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)", timeVisible: true, secondsVisible: intervalMs < 60000 },
       autoSize: true,
     });
 
     const candlestickSeries = chart.addSeries(CandlestickSeries, {
-      upColor: "#00FFB2", downColor: "#FF2D55",
-      borderVisible: false, wickUpColor: "#00FFB2", wickDownColor: "#FF2D55",
+      upColor: "#00FFB2", downColor: "#FF2D55", borderVisible: false, wickUpColor: "#00FFB2", wickDownColor: "#FF2D55",
     });
+    seriesRef.current = candlestickSeries;
 
-    candlestickSeries.setData(candles);
+    // Load initial context (before entry)
+    const initialData = candles.slice(0, replayIndex + 1);
+    candlestickSeries.setData(initialData);
 
-    const markers: any[] = [];
-    if (trade.entryPrice) {
-      markers.push({
-        time: entryCandleTime,
-        position: trade.direction === "long" ? "belowBar" : "aboveBar",
-        color: trade.direction === "long" ? "#00FFB2" : "#FF2D55",
-        shape: trade.direction === "long" ? "arrowUp" : "arrowDown",
-        text: `ENTRY ${trade.entryPrice.toLocaleString()}`,
-      });
-    }
-    if (trade.exitPrice) {
-      markers.push({
-        time: exitCandleTime,
-        position: trade.direction === "long" ? "aboveBar" : "belowBar",
-        color: trade.netPnl >= 0 ? "#00FFB2" : "#FF2D55",
-        shape: trade.direction === "long" ? "arrowDown" : "arrowUp",
-        text: `EXIT ${trade.exitPrice.toLocaleString()}`,
-      });
-    }
-    markers.sort((a, b) => a.time - b.time);
-    createSeriesMarkers(candlestickSeries, markers);
-
-    if (trade.stopLoss) {
-      candlestickSeries.createPriceLine({ price: trade.stopLoss, color: "rgba(255,45,85,0.6)", lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: "SL" });
-    }
-    if (trade.takeProfit) {
-      candlestickSeries.createPriceLine({ price: trade.takeProfit, color: "rgba(0,255,178,0.6)", lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: "TP" });
-    }
+    if (trade.stopLoss) candlestickSeries.createPriceLine({ price: trade.stopLoss, color: "rgba(255,45,85,0.6)", lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: "SL" });
+    if (trade.takeProfit) candlestickSeries.createPriceLine({ price: trade.takeProfit, color: "rgba(0,255,178,0.6)", lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: "TP" });
 
     chart.timeScale().fitContent();
-    return () => { chart.remove(); };
-  }, [candles, entryCandleTime, exitCandleTime, intervalMs, trade, resolvedTheme]);
 
-  return <div className="w-full h-full" ref={chartContainerRef} />;
+    return () => { chart.remove(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [candles, intervalMs, trade, resolvedTheme]);
+
+  // 2. Handle Replay Animation
+  useEffect(() => {
+    if (!isReplaying || !seriesRef.current || replayIndex >= candles.length - 1) {
+      if (replayIndex >= candles.length - 1) setIsReplaying(false);
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setReplayIndex(prev => {
+        const next = prev + 1;
+        if (next >= candles.length) {
+          clearInterval(timer);
+          return prev;
+        }
+
+        const currentCandle = candles[next];
+        seriesRef.current.update(currentCandle);
+
+        // Update markers if entry/exit has been reached
+        const markers: any[] = [];
+        if (trade.entryPrice && currentCandle.time >= entryCandleTime) {
+          markers.push({ time: entryCandleTime, position: trade.direction === "long" ? "belowBar" : "aboveBar", color: trade.direction === "long" ? "#00FFB2" : "#FF2D55", shape: trade.direction === "long" ? "arrowUp" : "arrowDown", text: `ENTRY ${trade.entryPrice.toLocaleString()}` });
+        }
+        if (trade.exitPrice && currentCandle.time >= exitCandleTime) {
+          markers.push({ time: exitCandleTime, position: trade.direction === "long" ? "aboveBar" : "belowBar", color: trade.netPnl >= 0 ? "#00FFB2" : "#FF2D55", shape: trade.direction === "long" ? "arrowDown" : "arrowUp", text: `EXIT ${trade.exitPrice.toLocaleString()}` });
+        }
+        
+        if (markers.length > 0) {
+          markers.sort((a, b) => a.time - b.time);
+          createSeriesMarkers(seriesRef.current, markers);
+        }
+
+        return next;
+      });
+    }, 100);
+
+    return () => clearInterval(timer);
+  }, [isReplaying, replayIndex, candles, entryCandleTime, exitCandleTime, trade]);
+
+  const isFinished = replayIndex >= candles.length - 1;
+
+  return (
+    <div className="w-full h-full relative">
+      <div className="w-full h-full" ref={chartContainerRef} />
+      
+      {/* Replay Controls Overlay */}
+      <div className="absolute bottom-6 right-6 z-10 flex gap-2">
+        <button 
+          onClick={() => setIsReplaying(!isReplaying)}
+          className="bg-bg-card/90 backdrop-blur-md border border-border-subtle text-text-primary px-4 py-2 rounded-xl text-xs font-bold hover:border-accent-green hover:shadow-[0_0_15px_rgba(0,255,178,0.2)] transition-all flex items-center gap-2"
+        >
+          {isFinished ? "Replay Finished" : isReplaying ? (
+            <><div className="w-2 h-2 rounded-sm bg-accent-coral" /> Pause</>
+          ) : (
+            <><div className="w-0 h-0 border-t-[4px] border-t-transparent border-l-[6px] border-l-accent-green border-b-[4px] border-b-transparent" /> Play</>
+          )}
+        </button>
+        {isFinished && (
+          <button 
+            onClick={() => {
+              const idx = candles.findIndex((c) => c.time >= entryCandleTime);
+              setReplayIndex(Math.max(0, idx - 10));
+              setIsReplaying(true);
+            }}
+            className="bg-bg-card/90 backdrop-blur-md border border-border-subtle text-text-primary px-4 py-2 rounded-xl text-xs font-bold hover:border-accent-blue hover:shadow-[0_0_15px_rgba(0,212,255,0.2)] transition-all"
+          >
+            Restart
+          </button>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export function InteractiveChart({ trade }: { trade: Trade }) {
