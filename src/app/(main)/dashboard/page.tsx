@@ -172,7 +172,7 @@ function DailyReportCard({ trades }: { trades: ReturnType<typeof useTradeStore.g
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Sparkles size={16} className="text-accent-violet" />
-            <h2 className="font-[family-name:var(--font-syne)] font-bold text-base">Daily Focus Report Card</h2>
+            <h2 className="font-[family-name:var(--font-inter)] font-bold text-base">Daily Focus Report Card</h2>
           </div>
           <div className={cn("w-10 h-10 rounded-xl border flex items-center justify-center font-black text-xl shadow-lg", gradeColors[report.disciplineGrade])}>
             {report.disciplineGrade}
@@ -291,7 +291,7 @@ function WinLossVisualizer({ trades }: { trades: any[] }) {
         winRate >= 50 ? "bg-accent-green" : "bg-accent-coral"
       )} />
 
-      <h3 className="font-[family-name:var(--font-syne)] font-bold text-sm mb-4 flex items-center gap-2">
+      <h3 className="font-[family-name:var(--font-inter)] font-bold text-sm mb-4 flex items-center gap-2">
         <Trophy size={14} className="text-accent-green" /> Win / Loss Analytics
       </h3>
       
@@ -338,7 +338,7 @@ function WinLossVisualizer({ trades }: { trades: any[] }) {
           </svg>
 
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="font-[family-name:var(--font-syne)] font-black text-xl bg-clip-text text-transparent bg-gradient-to-r from-[#00FFB2] to-accent-blue leading-none">
+            <span className="font-[family-name:var(--font-inter)] font-black text-xl bg-clip-text text-transparent bg-gradient-to-r from-[#00FFB2] to-accent-blue leading-none">
               {winRate.toFixed(0)}%
             </span>
             <span className="text-[7px] text-text-muted uppercase font-bold tracking-widest mt-1">Win Rate</span>
@@ -430,7 +430,7 @@ function PreFlightChecklist() {
       )} />
 
       <div>
-        <h3 className="font-[family-name:var(--font-syne)] font-bold text-sm mb-4 flex items-center justify-between">
+        <h3 className="font-[family-name:var(--font-inter)] font-bold text-sm mb-4 flex items-center justify-between">
           <span className="flex items-center gap-2">
             <Shield size={14} className="text-accent-violet" /> Pre-Flight Checklist
           </span>
@@ -545,7 +545,7 @@ function TraderCognitionRadar({ trades, settings }: { trades: any[]; settings: a
   return (
     <GlassCard className="relative overflow-hidden group flex flex-col justify-between min-h-[295px] border border-border-subtle">
       <div className="absolute -bottom-16 -right-16 w-36 h-36 bg-accent-violet/5 rounded-full blur-[60px] pointer-events-none" />
-      <h3 className="font-[family-name:var(--font-syne)] font-bold text-sm mb-2 flex items-center gap-2 select-none">
+      <h3 className="font-[family-name:var(--font-inter)] font-bold text-sm mb-2 flex items-center gap-2 select-none">
         <Brain size={14} className="text-accent-violet" /> Trader Cognition Baseline
       </h3>
       <div className="h-[190px] w-full flex items-center justify-center relative z-10">
@@ -741,26 +741,8 @@ export default function DashboardPage() {
   return (
     <motion.div className="space-y-6 pb-12" variants={containerVariants} initial="hidden" animate="visible">
       
-      {/* Header */}
-      <motion.div variants={itemVariants} className="flex items-center justify-between">
-        <div>
-          <h1 className="font-[family-name:var(--font-syne)] font-black text-3xl bg-clip-text text-transparent bg-gradient-to-r from-accent-green via-accent-blue to-accent-violet pb-0.5 leading-none">
-            Dashboard
-          </h1>
-          <p className="text-xs text-text-secondary mt-1 font-semibold">
-            {format(new Date(), "EEEE, MMMM d, yyyy")}
-          </p>
-        </div>
-        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.96 }}>
-          <Link
-            href="/journal/new"
-            className="flex items-center gap-2 bg-gradient-to-r from-accent-green to-accent-blue text-bg-base px-5 py-2.5 rounded-xl text-sm font-bold hover:shadow-[0_0_25px_rgba(0,255,178,0.3)] transition-all duration-300 border border-white/10"
-          >
-            <Plus size={16} className="stroke-[3]" />
-            Log Trade
-          </Link>
-        </motion.div>
-      </motion.div>
+      {/* Top spacing */}
+      <div className="pt-2" />
 
       {/* Mindset Quote of the Day Panel */}
       <motion.div variants={itemVariants}>
@@ -902,7 +884,7 @@ export default function DashboardPage() {
         <GlassCard className="lg:col-span-2 relative overflow-hidden flex flex-col justify-between min-h-[340px]">
           <div className="absolute top-0 right-0 w-64 h-64 bg-accent-violet/5 blur-3xl rounded-full pointer-events-none" />
           <div className="flex items-center justify-between mb-4 relative z-10">
-            <h2 className="font-[family-name:var(--font-syne)] font-bold text-base flex items-center gap-2">
+            <h2 className="font-[family-name:var(--font-inter)] font-bold text-base flex items-center gap-2">
               <TrendingUp size={16} className="text-accent-green" /> Equity Curve
             </h2>
             <div className="flex gap-1 bg-bg-secondary/40 dark:bg-white/[0.02] border border-border-subtle p-0.5 rounded-lg">
@@ -931,7 +913,7 @@ export default function DashboardPage() {
         <GlassCard className="relative overflow-hidden flex flex-col justify-between min-h-[340px]">
           <div className="absolute bottom-0 right-0 w-48 h-48 bg-accent-blue/5 blur-3xl rounded-full pointer-events-none" />
           <div className="flex items-center justify-between mb-4 relative z-10">
-            <h2 className="font-[family-name:var(--font-syne)] font-bold text-base">
+            <h2 className="font-[family-name:var(--font-inter)] font-bold text-base">
               <Trophy size={16} className="inline mr-2 text-accent-violet" /> Challenges
             </h2>
             <Link href="/prop-tracker" className="text-xs text-accent-violet hover:text-accent-green transition-colors">
@@ -950,7 +932,7 @@ export default function DashboardPage() {
                   <Link key={c.id} href="/prop-tracker" className="block p-3 rounded-xl bg-bg-secondary/20 dark:bg-white/[0.01] border border-border-subtle hover:border-accent-violet/30 hover:bg-bg-secondary/40 dark:hover:bg-white/[0.03] transition-all">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <span className="font-[family-name:var(--font-syne)] font-bold text-sm leading-none">{c.firmName}</span>
+                        <span className="font-[family-name:var(--font-inter)] font-bold text-sm leading-none">{c.firmName}</span>
                         <span className="text-[8px] px-1.5 py-0.5 rounded bg-accent-green/10 text-accent-green uppercase font-black tracking-wider leading-none">{c.phase}</span>
                       </div>
                       <span className={cn("font-[family-name:var(--font-space-mono)] font-bold text-xs", profitPct >= 0 ? "text-accent-green" : "text-accent-coral")}>
@@ -1014,7 +996,7 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <Calendar size={16} className="text-accent-violet" />
-                  <h2 className="font-[family-name:var(--font-syne)] font-bold text-base">Consistency Calendar</h2>
+                  <h2 className="font-[family-name:var(--font-inter)] font-bold text-base">Consistency Calendar</h2>
                 </div>
                 <span className="text-[9px] px-2 py-0.5 rounded bg-accent-violet/10 text-accent-violet uppercase font-black tracking-widest select-none">
                   Last 371 Days Tracker
@@ -1052,7 +1034,7 @@ export default function DashboardPage() {
         {/* Recent Trades (2 columns) */}
         <GlassCard className="lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-[family-name:var(--font-syne)] font-bold text-base flex items-center gap-2">
+            <h2 className="font-[family-name:var(--font-inter)] font-bold text-base flex items-center gap-2">
               <Zap size={16} className="text-accent-green" /> Recent Execution Logs
             </h2>
             <Link href="/journal" className="text-xs text-accent-violet hover:text-accent-green transition-colors font-semibold">

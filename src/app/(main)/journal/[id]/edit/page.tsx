@@ -255,7 +255,7 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
             <ChevronLeft size={18} />
           </Link>
           <div>
-            <h1 className="font-[family-name:var(--font-syne)] font-bold text-2xl">Edit Trade</h1>
+            <h1 className="font-[family-name:var(--font-inter)] font-bold text-2xl">Edit Trade</h1>
             <p className="text-sm text-text-secondary mt-0.5">Modify your trade details and analysis</p>
           </div>
         </div>
@@ -277,7 +277,7 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Section 1: Trade Setup */}
         <GlassCard>
-          <h2 className="font-[family-name:var(--font-syne)] font-bold text-base mb-4">Trade Setup</h2>
+          <h2 className="font-[family-name:var(--font-inter)] font-bold text-base mb-4">Trade Setup</h2>
           <div className="space-y-4">
             
             {(livePnl !== 0 || isReady) && (
@@ -377,7 +377,7 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
 
         {/* Section 3: Psychology */}
         <GlassCard>
-          <h2 className="font-[family-name:var(--font-syne)] font-bold text-base mb-4">Psychology & Tags</h2>
+          <h2 className="font-[family-name:var(--font-inter)] font-bold text-base mb-4">Psychology & Tags</h2>
           <div className="space-y-4">
             {/* Playbook */}
             <div>
@@ -464,7 +464,7 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
         <GlassCard>
           <div className="flex items-center gap-2 mb-4">
             <Brain size={18} className="text-accent-violet" />
-            <h2 className="font-[family-name:var(--font-syne)] font-bold text-base">Mindset & Analysis</h2>
+            <h2 className="font-[family-name:var(--font-inter)] font-bold text-base">Mindset & Analysis</h2>
           </div>
           <div className="space-y-5">
             <div>
@@ -505,7 +505,7 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
         <GlassCard>
           <div className="flex items-center gap-2 mb-4">
             <ImageIcon size={18} className="text-accent-violet" />
-            <h2 className="font-[family-name:var(--font-syne)] font-bold text-base">Media & Screenshots</h2>
+            <h2 className="font-[family-name:var(--font-inter)] font-bold text-base">Media & Screenshots</h2>
           </div>
           <div className="space-y-4">
             <div className="flex gap-2">

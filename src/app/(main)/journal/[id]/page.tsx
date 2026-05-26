@@ -116,7 +116,7 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
           </Link>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="font-[family-name:var(--font-syne)] font-black text-2xl tracking-tight">{trade.symbol}</h1>
+              <h1 className="font-[family-name:var(--font-inter)] font-black text-2xl tracking-tight">{trade.symbol}</h1>
               <span className={cn("inline-flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-full font-black uppercase tracking-wider",
                 trade.direction === "long" ? "bg-accent-green/10 text-accent-green border border-accent-green/20" : "bg-accent-coral/10 text-accent-coral border border-accent-coral/20")}>
                 {trade.direction === "long" ? <ArrowUpRight size={10} className="stroke-[3]" /> : <ArrowDownRight size={10} className="stroke-[3]" />}
@@ -169,7 +169,7 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
         <div className="lg:col-span-1 space-y-6">
           <GlassCard className="border border-border-subtle p-5 space-y-5">
             <div className="flex items-center justify-between border-b border-border-subtle/50 pb-3">
-              <h3 className="font-[family-name:var(--font-syne)] font-black text-sm flex items-center gap-2">
+              <h3 className="font-[family-name:var(--font-inter)] font-black text-sm flex items-center gap-2">
                 <Brain size={16} className="text-accent-violet" /> Trade Review Board
               </h3>
               
@@ -362,7 +362,7 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
 
           {/* Core Metrics HUD */}
           <GlassCard className="border border-border-subtle p-5 space-y-4">
-            <h3 className="font-[family-name:var(--font-syne)] font-black text-sm flex items-center gap-2 select-none">
+            <h3 className="font-[family-name:var(--font-inter)] font-black text-sm flex items-center gap-2 select-none">
               <Activity size={16} className="text-accent-green" /> execution HUD Metrics
             </h3>
             <div className="grid grid-cols-2 gap-4 text-xs">
@@ -427,7 +427,7 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
           {/* Plan vs Execution Review Panels */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <GlassCard className="border border-border-subtle">
-              <h3 className="font-[family-name:var(--font-syne)] font-black text-sm mb-3 flex items-center gap-1.5 select-none">
+              <h3 className="font-[family-name:var(--font-inter)] font-black text-sm mb-3 flex items-center gap-1.5 select-none">
                 <MessageSquare size={14} className="text-accent-violet" /> Pre-Trade Setup Plan
               </h3>
               <p className="text-xs text-text-secondary bg-bg-secondary/30 dark:bg-white/[0.01] border border-border-subtle rounded-xl p-3.5 leading-relaxed italic border-l-2 border-l-accent-violet">
@@ -436,7 +436,7 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
             </GlassCard>
 
             <GlassCard className="border border-border-subtle">
-              <h3 className="font-[family-name:var(--font-syne)] font-black text-sm mb-3 flex items-center gap-1.5 select-none">
+              <h3 className="font-[family-name:var(--font-inter)] font-black text-sm mb-3 flex items-center gap-1.5 select-none">
                 <CheckCircle size={14} className="text-accent-green" /> Post-Trade Execution Review
               </h3>
               <p className="text-xs text-text-secondary bg-bg-secondary/30 dark:bg-white/[0.01] border border-border-subtle rounded-xl p-3.5 leading-relaxed italic border-l-2 border-l-accent-green">
@@ -448,7 +448,7 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
           {/* AI Coach Analysis */}
           <GlassCard className={cn("border border-border-subtle", analysis ? "border-accent-violet/20" : "")}>
             <div className="flex items-center justify-between mb-4 border-b border-border-subtle/50 pb-3">
-              <h3 className="font-[family-name:var(--font-syne)] font-black text-sm flex items-center gap-2">
+              <h3 className="font-[family-name:var(--font-inter)] font-black text-sm flex items-center gap-2">
                 <Brain size={16} className="text-accent-violet animate-pulse" />
                 AI Execution Diagnostics & Diagnostics
               </h3>

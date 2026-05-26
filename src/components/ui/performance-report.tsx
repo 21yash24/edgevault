@@ -135,7 +135,7 @@ export function PerformanceReport({ trades }: { trades: Trade[] }) {
       {/* Header Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h3 className="font-[family-name:var(--font-syne)] font-bold text-base text-text-primary flex items-center gap-2">
+          <h3 className="font-[family-name:var(--font-inter)] font-bold text-base text-text-primary flex items-center gap-2">
             Performance Metrics & Equity Curve <Sparkles size={16} className="text-accent-green" />
           </h3>
           <p className="text-xs text-text-muted mt-0.5">Statistical equity modeling and playbook diagnostic diagnostics</p>

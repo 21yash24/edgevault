@@ -25,7 +25,7 @@ export function TiltmeterWidget({ recentLosses, avgHoldTimeDeviation, volumeSpik
   return (
     <GlassCard className="relative overflow-hidden group">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="font-[family-name:var(--font-syne)] font-bold text-base flex items-center gap-2">
+        <h2 className="font-[family-name:var(--font-inter)] font-bold text-base flex items-center gap-2">
           <Activity size={16} className={status.color} />
           Tiltmeter
         </h2>

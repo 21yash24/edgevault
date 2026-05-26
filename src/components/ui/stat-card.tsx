@@ -36,7 +36,7 @@ export function StatCard({ title, value, format, icon: Icon, subtitle, trend, de
             <NumberTicker
               value={value}
               format={format}
-              className={cn("text-2xl font-black font-[family-name:var(--font-syne)] tracking-tight", trendColor)}
+              className={cn("text-2xl font-black font-[family-name:var(--font-inter)] tracking-tight", trendColor)}
             />
           </div>
         </div>

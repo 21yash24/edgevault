@@ -203,7 +203,7 @@ export default function AlertsPage() {
       {/* Title section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="font-[family-name:var(--font-syne)] font-black text-2xl text-text-primary">
+          <h1 className="font-[family-name:var(--font-inter)] font-black text-2xl text-text-primary">
             Smart Alerts & Risk Compliance
           </h1>
           <p className="text-sm text-text-muted mt-1">
@@ -391,7 +391,7 @@ export default function AlertsPage() {
         <div className="xl:col-span-1 space-y-6">
           
           <div className="flex items-center justify-between px-1">
-            <span className="font-[family-name:var(--font-syne)] font-bold text-xs uppercase tracking-wider text-text-muted">Smart Rules & Sync</span>
+            <span className="font-[family-name:var(--font-inter)] font-bold text-xs uppercase tracking-wider text-text-muted">Smart Rules & Sync</span>
             <Sliders size={14} className="text-text-muted" />
           </div>
 

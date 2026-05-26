@@ -41,7 +41,7 @@ function PositionSizeCalculator({ currentBalance, defaultRisk }: { currentBalanc
 
   return (
     <GlassCard>
-      <h3 className="font-[family-name:var(--font-syne)] font-bold text-base mb-4 flex items-center gap-2">
+      <h3 className="font-[family-name:var(--font-inter)] font-bold text-base mb-4 flex items-center gap-2">
         <Calculator size={16} className="text-accent-violet" /> Position Size Calculator
       </h3>
       <div className="grid grid-cols-2 gap-3 mb-4">
@@ -113,7 +113,7 @@ function RRCalculator() {
 
   return (
     <GlassCard>
-      <h3 className="font-[family-name:var(--font-syne)] font-bold text-base mb-4 flex items-center gap-2">
+      <h3 className="font-[family-name:var(--font-inter)] font-bold text-base mb-4 flex items-center gap-2">
         <Target size={16} className="text-accent-green" /> R:R Calculator
       </h3>
       <div className="grid grid-cols-3 gap-3 mb-4">
@@ -148,7 +148,7 @@ function RRCalculator() {
           <div className="text-2xl text-text-muted">=</div>
           <div className="text-center">
             <div className="text-xs text-text-muted">R:R Ratio</div>
-            <div className="font-[family-name:var(--font-syne)] font-black text-2xl text-accent-violet">1:{result.rr}</div>
+            <div className="font-[family-name:var(--font-inter)] font-black text-2xl text-accent-violet">1:{result.rr}</div>
           </div>
         </motion.div>
       )}
@@ -256,7 +256,7 @@ function RuinSimulator({ trades }: { trades: any[] }) {
       <div className="absolute top-0 right-0 w-64 h-64 bg-accent-violet/5 blur-3xl rounded-full pointer-events-none" />
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6">
         <div>
-          <h2 className="font-[family-name:var(--font-syne)] font-bold text-lg flex items-center gap-2">
+          <h2 className="font-[family-name:var(--font-inter)] font-bold text-lg flex items-center gap-2">
             <Sparkles size={18} className="text-accent-violet" /> Monte Carlo Ruin & Drawdown Auditor
           </h2>
           <p className="text-xs text-text-muted mt-0.5">Simulate 1,000 parallel series of 100 trades to audit account safety</p>
@@ -399,7 +399,7 @@ export default function RiskPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-[family-name:var(--font-syne)] font-black text-2xl">Risk Command Center</h1>
+          <h1 className="font-[family-name:var(--font-inter)] font-black text-2xl">Risk Command Center</h1>
           <p className="text-sm text-text-secondary mt-1">{format(new Date(), "EEEE, MMMM d, yyyy")}</p>
         </div>
       </div>
@@ -417,7 +417,7 @@ export default function RiskPage() {
               <Lock size={24} className="text-accent-coral" />
             </div>
             <div>
-              <h2 className="font-[family-name:var(--font-syne)] font-bold text-xl text-accent-coral mb-1">Trading Locked for Today</h2>
+              <h2 className="font-[family-name:var(--font-inter)] font-bold text-xl text-accent-coral mb-1">Trading Locked for Today</h2>
               <p className="text-sm text-text-primary max-w-2xl">
                 You have reached your daily risk limits. Stepping away now protects your capital and prevents emotional revenge trading. Come back tomorrow with a clear mind.
               </p>
@@ -514,7 +514,7 @@ export default function RiskPage() {
         {/* Pre-Market Checklist */}
         <GlassCard>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-[family-name:var(--font-syne)] font-bold text-base flex items-center gap-2">
+            <h3 className="font-[family-name:var(--font-inter)] font-bold text-base flex items-center gap-2">
               <CheckSquare size={16} className="text-accent-green" /> Pre-Market Checklist
             </h3>
             <button onClick={() => setCheckedItems([])}
@@ -550,7 +550,7 @@ export default function RiskPage() {
         {/* Risk Settings */}
         <GlassCard>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-[family-name:var(--font-syne)] font-bold text-base flex items-center gap-2">
+            <h3 className="font-[family-name:var(--font-inter)] font-bold text-base flex items-center gap-2">
               <Shield size={16} className="text-accent-coral" /> Risk Limits
             </h3>
             <span className="text-xs text-text-muted">Auto-saves to cloud</span>

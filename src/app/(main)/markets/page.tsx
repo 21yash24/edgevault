@@ -24,7 +24,7 @@ export default function MarketsHubPage() {
               <div className="w-10 h-10 rounded-xl bg-accent-blue/10 flex items-center justify-center border border-accent-blue/20">
                 <Globe className="text-accent-blue" size={20} />
               </div>
-              <h1 className="text-3xl font-bold text-text-primary tracking-tight font-[family-name:var(--font-syne)]">
+              <h1 className="text-3xl font-bold text-text-primary tracking-tight font-[family-name:var(--font-inter)]">
                 Markets Hub
               </h1>
             </div>

@@ -62,7 +62,7 @@ export function Sidebar() {
               transition={{ duration: 0.15 }}
               className="overflow-hidden whitespace-nowrap"
             >
-              <div className="font-[family-name:var(--font-syne)] font-black text-base tracking-widest" style={{ background: "linear-gradient(90deg, #00FFB2, #8F00FF)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+              <div className="font-[family-name:var(--font-inter)] font-black text-base tracking-widest" style={{ background: "linear-gradient(90deg, #00FFB2, #8F00FF)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
                 EDGEVAULT
               </div>
               <div className="text-[8px] text-text-muted font-bold uppercase tracking-[0.2em] -mt-0.5">Pro Trading OS</div>

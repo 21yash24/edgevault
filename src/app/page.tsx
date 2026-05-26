@@ -77,7 +77,7 @@ export default function LandingPage() {
             <div className="w-8 h-8 rounded-lg bg-accent-green/20 flex items-center justify-center">
               <Zap size={18} className="text-accent-green" />
             </div>
-            <span className="font-[family-name:var(--font-syne)] font-bold text-lg tracking-tight text-accent-green">
+            <span className="font-[family-name:var(--font-inter)] font-bold text-lg tracking-tight text-accent-green">
               EDGEVAULT
             </span>
           </div>
@@ -115,7 +115,7 @@ export default function LandingPage() {
           </motion.div>
 
           <motion.h1
-            className="font-[family-name:var(--font-syne)] font-extrabold text-5xl md:text-7xl lg:text-8xl leading-[0.95] mb-6 tracking-tight"
+            className="font-[family-name:var(--font-inter)] font-extrabold text-5xl md:text-7xl lg:text-8xl leading-[0.95] mb-6 tracking-tight"
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.1 }}
@@ -237,7 +237,7 @@ export default function LandingPage() {
           >
             {stats.map((s, i) => (
               <motion.div key={i} className="text-center" variants={fadeUp}>
-                <div className="font-[family-name:var(--font-syne)] font-bold text-3xl md:text-4xl text-accent-green text-glow-green mb-1">{s.value}</div>
+                <div className="font-[family-name:var(--font-inter)] font-bold text-3xl md:text-4xl text-accent-green text-glow-green mb-1">{s.value}</div>
                 <div className="text-sm text-text-secondary">{s.label}</div>
               </motion.div>
             ))}
@@ -249,7 +249,7 @@ export default function LandingPage() {
       <section id="features" className="py-24 px-6">
         <div className="max-w-6xl mx-auto">
           <motion.div className="text-center mb-16" {...fadeUp} viewport={{ once: true }} whileInView="animate" initial="initial">
-            <h2 className="font-[family-name:var(--font-syne)] font-bold text-4xl md:text-5xl mb-4">
+            <h2 className="font-[family-name:var(--font-inter)] font-bold text-4xl md:text-5xl mb-4">
               Everything You Need.{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-green to-accent-violet">
                 Nothing You Don&apos;t.
@@ -276,7 +276,7 @@ export default function LandingPage() {
                 <div className="w-10 h-10 rounded-xl bg-accent-violet/10 flex items-center justify-center mb-4 group-hover:bg-accent-green/10 transition-colors duration-300">
                   <f.icon size={20} className="text-accent-violet group-hover:text-accent-green transition-colors duration-300" />
                 </div>
-                <h3 className="font-[family-name:var(--font-syne)] font-bold text-lg mb-2">{f.title}</h3>
+                <h3 className="font-[family-name:var(--font-inter)] font-bold text-lg mb-2">{f.title}</h3>
                 <p className="text-sm text-text-secondary leading-relaxed">{f.desc}</p>
               </motion.div>
             ))}
@@ -288,7 +288,7 @@ export default function LandingPage() {
       <section id="pricing" className="py-24 px-6 bg-bg-secondary/30">
         <div className="max-w-5xl mx-auto">
           <motion.div className="text-center mb-16" {...fadeUp} viewport={{ once: true }} whileInView="animate" initial="initial">
-            <h2 className="font-[family-name:var(--font-syne)] font-bold text-4xl md:text-5xl mb-4">
+            <h2 className="font-[family-name:var(--font-inter)] font-bold text-4xl md:text-5xl mb-4">
               Simple, Transparent{" "}
               <span className="text-accent-green">Pricing</span>
             </h2>
@@ -318,11 +318,11 @@ export default function LandingPage() {
                   </div>
                 )}
 
-                <h3 className="font-[family-name:var(--font-syne)] font-bold text-xl mb-1">{plan.name}</h3>
+                <h3 className="font-[family-name:var(--font-inter)] font-bold text-xl mb-1">{plan.name}</h3>
                 <p className="text-sm text-text-secondary mb-4">{plan.desc}</p>
 
                 <div className="flex items-baseline gap-1 mb-6">
-                  <span className="font-[family-name:var(--font-syne)] font-extrabold text-4xl">{plan.price}</span>
+                  <span className="font-[family-name:var(--font-inter)] font-extrabold text-4xl">{plan.price}</span>
                   {plan.period && <span className="text-text-secondary text-sm">{plan.period}</span>}
                 </div>
 
@@ -361,7 +361,7 @@ export default function LandingPage() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="font-[family-name:var(--font-syne)] font-bold text-4xl md:text-5xl mb-4">
+          <h2 className="font-[family-name:var(--font-inter)] font-bold text-4xl md:text-5xl mb-4">
             Ready to Trade with an{" "}
             <span className="text-accent-green text-glow-green">Edge?</span>
           </h2>
@@ -385,7 +385,7 @@ export default function LandingPage() {
             <div className="w-7 h-7 rounded-lg bg-accent-green/20 flex items-center justify-center">
               <Zap size={14} className="text-accent-green" />
             </div>
-            <span className="font-[family-name:var(--font-syne)] font-bold text-accent-green">EDGEVAULT</span>
+            <span className="font-[family-name:var(--font-inter)] font-bold text-accent-green">EDGEVAULT</span>
           </div>
           <div className="flex items-center gap-6 text-sm text-text-muted">
             <a href="#" className="hover:text-text-secondary transition-colors">Terms</a>

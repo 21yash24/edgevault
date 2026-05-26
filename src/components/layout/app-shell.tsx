@@ -64,7 +64,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
           <div className="text-center">
-            <div className="font-[family-name:var(--font-syne)] font-black text-sm tracking-widest" style={{ background: "linear-gradient(90deg, #00FFB2, #8F00FF)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>EDGEVAULT</div>
+            <div className="font-[family-name:var(--font-inter)] font-black text-sm tracking-widest" style={{ background: "linear-gradient(90deg, #00FFB2, #8F00FF)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>EDGEVAULT</div>
             <div className="text-[10px] text-text-muted font-bold mt-1 uppercase tracking-widest">Loading your trading OS...</div>
           </div>
         </div>

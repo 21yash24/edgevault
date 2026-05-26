@@ -40,7 +40,7 @@ export default function PublicTradePage({ params }: { params: Promise<{ id: stri
         <div className="w-16 h-16 bg-accent-coral/10 rounded-full flex items-center justify-center mb-4">
           <Shield className="text-accent-coral" size={32} />
         </div>
-        <h2 className="text-xl font-bold font-[family-name:var(--font-syne)] text-text-primary">Trade Private or Not Found</h2>
+        <h2 className="text-xl font-bold font-[family-name:var(--font-inter)] text-text-primary">Trade Private or Not Found</h2>
         <p className="text-text-secondary mt-2 max-w-md text-center text-sm">
           This trade may have been deleted, or the owner has not made it public.
         </p>
@@ -62,7 +62,7 @@ export default function PublicTradePage({ params }: { params: Promise<{ id: stri
           <div className="w-8 h-8 rounded-full bg-accent-violet/20 flex items-center justify-center">
             <Award size={16} className="text-accent-violet" />
           </div>
-          <span className="font-bold font-[family-name:var(--font-syne)] text-xl text-text-primary flex items-center gap-1.5">
+          <span className="font-bold font-[family-name:var(--font-inter)] text-xl text-text-primary flex items-center gap-1.5">
             EdgeVault Share Cockpit <Share2 size={16} className="text-accent-green" />
           </span>
         </div>
@@ -83,7 +83,7 @@ export default function PublicTradePage({ params }: { params: Promise<{ id: stri
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
           <div>
             <div className="flex items-center gap-3 mb-2 flex-wrap">
-              <h1 className="font-[family-name:var(--font-syne)] font-bold text-3xl text-text-primary">{trade.symbol}</h1>
+              <h1 className="font-[family-name:var(--font-inter)] font-bold text-3xl text-text-primary">{trade.symbol}</h1>
               <span className={cn("inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-bold uppercase border",
                 trade.direction === "long" 
                   ? "bg-accent-green/10 text-accent-green border-accent-green/20" 

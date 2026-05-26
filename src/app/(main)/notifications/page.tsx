@@ -191,7 +191,7 @@ export default function NotificationsPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="font-[family-name:var(--font-syne)] font-bold text-2xl text-text-primary flex items-center gap-2">
+          <h1 className="font-[family-name:var(--font-inter)] font-bold text-2xl text-text-primary flex items-center gap-2">
             Notification Center <Bell size={22} className="text-accent-green" />
           </h1>
           <p className="text-sm text-text-muted mt-1">

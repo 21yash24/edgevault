@@ -470,12 +470,8 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-[family-name:var(--font-syne)] font-black text-2xl bg-clip-text text-transparent bg-gradient-to-r from-accent-violet via-accent-blue to-accent-green pb-0.5">Analytics</h1>
-          <p className="text-sm text-text-secondary mt-1">Performance insights from {metrics.totalTrades} trades</p>
-        </div>
+      {/* Header Controls */}
+      <div className="flex items-center justify-end">
         <div className="flex gap-4 items-center">
           <div className="flex gap-1 bg-bg-card p-1 rounded-lg border border-border-subtle">
             {["Overview", "AI Coach"].map((tab) => (
@@ -517,7 +513,7 @@ export default function AnalyticsPage() {
                 </div>
                 <div>
                   <div className="text-[10px] text-accent-green uppercase font-black tracking-widest">Peak Trading Edge Hour</div>
-                  <div className="font-[family-name:var(--font-syne)] font-black text-sm text-text-primary mt-0.5">
+                  <div className="font-[family-name:var(--font-inter)] font-black text-sm text-text-primary mt-0.5">
                     {formatHourLabel(hourlyStats.best.hour)}
                   </div>
                 </div>
@@ -542,7 +538,7 @@ export default function AnalyticsPage() {
                 </div>
                 <div>
                   <div className="text-[10px] text-accent-coral uppercase font-black tracking-widest">Severe Capital Leak Hour</div>
-                  <div className="font-[family-name:var(--font-syne)] font-black text-sm text-text-primary mt-0.5">
+                  <div className="font-[family-name:var(--font-inter)] font-black text-sm text-text-primary mt-0.5">
                     {formatHourLabel(hourlyStats.worst.hour)}
                   </div>
                 </div>
@@ -582,14 +578,14 @@ export default function AnalyticsPage() {
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <GlassCard>
-          <h3 className="font-[family-name:var(--font-syne)] font-bold text-base mb-4">Equity Curve</h3>
+          <h3 className="font-[family-name:var(--font-inter)] font-bold text-base mb-4">Equity Curve</h3>
           <div className="h-64">
             <EquityCurveChart trades={filteredTrades} />
           </div>
         </GlassCard>
 
         <GlassCard>
-          <h3 className="font-[family-name:var(--font-syne)] font-bold text-base mb-4">Daily P&L</h3>
+          <h3 className="font-[family-name:var(--font-inter)] font-bold text-base mb-4">Daily P&L</h3>
           <div className="h-64">
             <DailyPnlChart trades={filteredTrades} />
           </div>
@@ -599,14 +595,14 @@ export default function AnalyticsPage() {
       {/* Charts Row 2 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <GlassCard>
-          <h3 className="font-[family-name:var(--font-syne)] font-bold text-base mb-4">Win Rate by Session</h3>
+          <h3 className="font-[family-name:var(--font-inter)] font-bold text-base mb-4">Win Rate by Session</h3>
           <div className="h-64">
             <WinRateChart trades={filteredTrades} />
           </div>
         </GlassCard>
 
         <GlassCard>
-          <h3 className="font-[family-name:var(--font-syne)] font-bold text-base mb-4">P&L by Symbol</h3>
+          <h3 className="font-[family-name:var(--font-inter)] font-bold text-base mb-4">P&L by Symbol</h3>
           <div className="h-64">
             <PnlBySymbolChart trades={filteredTrades} />
           </div>
@@ -616,14 +612,14 @@ export default function AnalyticsPage() {
       {/* Charts Row 3 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <GlassCard>
-          <h3 className="font-[family-name:var(--font-syne)] font-bold text-base mb-4">R-Multiple Distribution</h3>
+          <h3 className="font-[family-name:var(--font-inter)] font-bold text-base mb-4">R-Multiple Distribution</h3>
           <div className="h-64">
             <RDistributionChart trades={filteredTrades} />
           </div>
         </GlassCard>
 
         <GlassCard>
-          <h3 className="font-[family-name:var(--font-syne)] font-bold text-base mb-4">Hourly Performance Heatmap</h3>
+          <h3 className="font-[family-name:var(--font-inter)] font-bold text-base mb-4">Hourly Performance Heatmap</h3>
           <div className="h-64 flex flex-col justify-center">
             <HourlyHeatmap trades={filteredTrades} />
           </div>
@@ -640,7 +636,7 @@ export default function AnalyticsPage() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Brain size={18} className="text-accent-violet" />
-            <h3 className="font-[family-name:var(--font-syne)] font-bold text-base">Psychological Performance (P&L by Mindset)</h3>
+            <h3 className="font-[family-name:var(--font-inter)] font-bold text-base">Psychological Performance (P&L by Mindset)</h3>
           </div>
           <span className="text-xs text-text-muted">Impact of emotional state on profitability</span>
         </div>
@@ -655,7 +651,7 @@ export default function AnalyticsPage() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <AlertTriangle size={18} className="text-accent-coral" />
-              <h3 className="font-[family-name:var(--font-syne)] font-bold text-base">Cost of Mistakes (Capital Leaks)</h3>
+              <h3 className="font-[family-name:var(--font-inter)] font-bold text-base">Cost of Mistakes (Capital Leaks)</h3>
             </div>
             <span className="text-xs text-text-muted">Cumulative loss per mistake tag</span>
           </div>
@@ -668,7 +664,7 @@ export default function AnalyticsPage() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Calendar size={18} className="text-accent-violet" />
-              <h3 className="font-[family-name:var(--font-syne)] font-bold text-base">Performance by Day of Week</h3>
+              <h3 className="font-[family-name:var(--font-inter)] font-bold text-base">Performance by Day of Week</h3>
             </div>
             <span className="text-xs text-text-muted">Cumulative P&L by trading day</span>
           </div>
@@ -683,7 +679,7 @@ export default function AnalyticsPage() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Crosshair size={18} className="text-accent-violet" />
-            <h3 className="font-[family-name:var(--font-syne)] font-bold text-base">Trade Execution (MAE / MFE)</h3>
+            <h3 className="font-[family-name:var(--font-inter)] font-bold text-base">Trade Execution (MAE / MFE)</h3>
           </div>
           <span className="text-xs text-text-muted">Analyze your stop-losses and take-profits</span>
         </div>
@@ -695,7 +691,7 @@ export default function AnalyticsPage() {
       {/* Charts Row 5: Monte Carlo */}
       <GlassCard>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-[family-name:var(--font-syne)] font-bold text-base">Monte Carlo Simulation</h3>
+          <h3 className="font-[family-name:var(--font-inter)] font-bold text-base">Monte Carlo Simulation</h3>
           <span className="text-xs text-text-muted">50 simulations, 50 trades forward</span>
         </div>
         <div className="h-64">
@@ -705,7 +701,7 @@ export default function AnalyticsPage() {
 
       {/* Streaks & Records */}
       <GlassCard>
-        <h3 className="font-[family-name:var(--font-syne)] font-bold text-base mb-4">Records & Streaks</h3>
+        <h3 className="font-[family-name:var(--font-inter)] font-bold text-base mb-4">Records & Streaks</h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="text-center">
             <Award size={20} className="mx-auto text-accent-green mb-2" />

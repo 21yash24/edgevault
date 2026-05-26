@@ -45,14 +45,14 @@ export default function LoginPage() {
         <div className="w-12 h-12 bg-accent-green/10 rounded-xl flex items-center justify-center border border-accent-green/20">
           <Activity className="text-accent-green" size={24} />
         </div>
-        <span className="font-[family-name:var(--font-syne)] font-bold text-3xl tracking-tight">
+        <span className="font-[family-name:var(--font-inter)] font-bold text-3xl tracking-tight">
           EDGEVAULT
         </span>
       </div>
 
       <GlassCard className="p-8">
         <div className="text-center mb-8">
-          <h1 className="font-[family-name:var(--font-syne)] font-bold text-2xl mb-2">
+          <h1 className="font-[family-name:var(--font-inter)] font-bold text-2xl mb-2">
             {isLogin ? "Welcome back" : "Create your vault"}
           </h1>
           <p className="text-sm text-text-secondary">

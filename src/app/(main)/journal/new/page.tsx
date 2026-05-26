@@ -222,7 +222,7 @@ export default function NewTradePage() {
             <ChevronLeft size={18} />
           </Link>
           <div>
-            <h1 className="font-[family-name:var(--font-syne)] font-black text-2xl bg-clip-text text-transparent bg-gradient-to-r from-accent-green to-accent-blue">Log New Trade</h1>
+            <h1 className="font-[family-name:var(--font-inter)] font-black text-2xl bg-clip-text text-transparent bg-gradient-to-r from-accent-green to-accent-blue">Log New Trade</h1>
             <p className="text-xs text-text-secondary mt-0.5">Record your execution — be honest, be accurate</p>
           </div>
         </div>
@@ -245,7 +245,7 @@ export default function NewTradePage() {
         <div className="absolute -top-8 -right-8 w-32 h-32 bg-accent-violet/5 rounded-full blur-3xl pointer-events-none" />
         <div className="flex items-center gap-2 mb-4">
           <Brain size={18} className="text-accent-violet" />
-          <h2 className="font-[family-name:var(--font-syne)] font-bold text-base">How Are You Feeling Right Now?</h2>
+          <h2 className="font-[family-name:var(--font-inter)] font-bold text-base">How Are You Feeling Right Now?</h2>
           <span className="text-accent-coral text-sm font-black">*</span>
           {currentEmotionData && (
             <motion.span key={emotion} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
@@ -313,7 +313,7 @@ export default function NewTradePage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <GlassCard>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-[family-name:var(--font-syne)] font-bold text-base">Trade Setup</h2>
+            <h2 className="font-[family-name:var(--font-inter)] font-bold text-base">Trade Setup</h2>
             {/* Live P&L Preview */}
             <AnimatePresence>
               {(livePnl !== 0) && (
@@ -474,7 +474,7 @@ export default function NewTradePage() {
 
         {/* Psychology & Tags */}
         <GlassCard>
-          <h2 className="font-[family-name:var(--font-syne)] font-bold text-base mb-4">Psychology & Tags</h2>
+          <h2 className="font-[family-name:var(--font-inter)] font-bold text-base mb-4">Psychology & Tags</h2>
           <div className="space-y-4">
             {/* Playbook */}
             <div>
@@ -551,7 +551,7 @@ export default function NewTradePage() {
         <GlassCard>
           <div className="flex items-center gap-2 mb-4">
             <Brain size={16} className="text-accent-violet" />
-            <h2 className="font-[family-name:var(--font-syne)] font-bold text-base">Mindset & Analysis</h2>
+            <h2 className="font-[family-name:var(--font-inter)] font-bold text-base">Mindset & Analysis</h2>
           </div>
           <div className="space-y-4">
             <div>
@@ -593,7 +593,7 @@ export default function NewTradePage() {
         <GlassCard>
           <div className="flex items-center gap-2 mb-4">
             <ImageIcon size={16} className="text-accent-violet" />
-            <h2 className="font-[family-name:var(--font-syne)] font-bold text-base">Chart Screenshots</h2>
+            <h2 className="font-[family-name:var(--font-inter)] font-bold text-base">Chart Screenshots</h2>
           </div>
           <div className="space-y-3">
             <div className="flex gap-2">
@@ -649,7 +649,7 @@ export default function NewTradePage() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <CheckCircle size={16} className="text-accent-green" />
-              <h2 className="font-[family-name:var(--font-syne)] font-bold text-base">Pre-Trade Checklist</h2>
+              <h2 className="font-[family-name:var(--font-inter)] font-bold text-base">Pre-Trade Checklist</h2>
             </div>
             <span className="text-xs text-text-muted">{checkedItems.length}/{checklistItems.length} verified</span>
           </div>

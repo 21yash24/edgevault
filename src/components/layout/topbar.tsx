@@ -99,7 +99,7 @@ export function Topbar() {
             exit={{ opacity: 0, x: 8 }}
             transition={{ duration: 0.15 }}
           >
-            <h2 className="font-[family-name:var(--font-syne)] font-black text-sm text-text-primary tracking-tight leading-none">{pageInfo.title}</h2>
+            <h2 className="font-[family-name:var(--font-inter)] font-black text-sm text-text-primary tracking-tight leading-none">{pageInfo.title}</h2>
             <p className="text-[10px] text-text-muted font-semibold mt-0.5 leading-none">{pageInfo.subtitle}</p>
           </motion.div>
         </AnimatePresence>
@@ -217,7 +217,7 @@ export function Topbar() {
                 style={{ background: "rgba(10,14,28,0.98)", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.02)" }}
               >
                 <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-                  <span className="text-xs font-black text-text-primary font-[family-name:var(--font-syne)] flex items-center gap-1.5">
+                  <span className="text-xs font-black text-text-primary font-[family-name:var(--font-inter)] flex items-center gap-1.5">
                     Alerts <span className="w-1.5 h-1.5 bg-accent-coral rounded-full animate-pulse" />
                   </span>
                   <Link href="/notifications" onClick={() => setNotifDropdownOpen(false)} className="text-[10px] text-accent-green hover:underline font-semibold">View all</Link>

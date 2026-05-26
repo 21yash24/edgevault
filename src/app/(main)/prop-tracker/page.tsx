@@ -82,7 +82,7 @@ function LogTradeModal({ challenge, onClose }: { challenge: PropFirmChallenge; o
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <motion.div className="glass-static w-full max-w-sm m-4 p-5 rounded-2xl"
         onClick={(e) => e.stopPropagation()} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}>
-        <h3 className="font-[family-name:var(--font-syne)] font-bold text-lg mb-3">Quick Log: {challenge.firmName}</h3>
+        <h3 className="font-[family-name:var(--font-inter)] font-bold text-lg mb-3">Quick Log: {challenge.firmName}</h3>
         <div className="space-y-3">
           <div>
             <label className="text-[10px] text-text-muted uppercase tracking-wider mb-1 block">Contract / Symbol</label>
@@ -155,7 +155,7 @@ function BulkLinkModal({ challenge, onClose }: { challenge: PropFirmChallenge; o
       <motion.div className="glass-static w-full max-w-md max-h-[80vh] overflow-y-auto m-4 p-5 rounded-2xl flex flex-col justify-between"
         onClick={(e) => e.stopPropagation()} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}>
         <div>
-          <h3 className="font-[family-name:var(--font-syne)] font-bold text-lg mb-1">Bulk Link: {challenge.firmName}</h3>
+          <h3 className="font-[family-name:var(--font-inter)] font-bold text-lg mb-1">Bulk Link: {challenge.firmName}</h3>
           <p className="text-xs text-text-secondary mb-3">Select from your unlinked trading logs to load them into this challenge</p>
           
           <div className="space-y-1.5 overflow-y-auto max-h-[45vh] no-scrollbar pr-1">
@@ -237,7 +237,7 @@ function ChallengeCard({ challenge }: { challenge: PropFirmChallenge & { hasDail
       <div className="flex items-start justify-between mb-4">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="font-[family-name:var(--font-syne)] font-bold text-lg leading-none">{challenge.firmName}</h3>
+            <h3 className="font-[family-name:var(--font-inter)] font-bold text-lg leading-none">{challenge.firmName}</h3>
             <span className={cn("text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider leading-none",
               challenge.status === "active" ? "bg-accent-green/10 text-accent-green animate-pulse" :
               challenge.status === "passed" ? "bg-accent-violet/10 text-accent-violet" :
@@ -501,7 +501,7 @@ export default function PropTrackerPage() {
     <div className="space-y-6 pb-12">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-[family-name:var(--font-syne)] font-black text-2xl leading-none">Prop Firm Cockpit</h1>
+          <h1 className="font-[family-name:var(--font-inter)] font-black text-2xl leading-none">Prop Firm Cockpit</h1>
           <p className="text-sm text-text-secondary mt-1 font-semibold">{challenges.length} active challenge account{challenges.length !== 1 ? "s" : ""}</p>
         </div>
         <button onClick={() => setShowAdd(true)}
@@ -545,7 +545,7 @@ export default function PropTrackerPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowAdd(false)}>
             <motion.div className="glass-static w-full max-w-md m-4 p-6 rounded-2xl"
               onClick={(e) => e.stopPropagation()} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}>
-              <h2 className="font-[family-name:var(--font-syne)] font-bold text-xl mb-4">Add Challenge</h2>
+              <h2 className="font-[family-name:var(--font-inter)] font-bold text-xl mb-4">Add Challenge</h2>
               <div className="space-y-4">
                 <div>
                   <label className="text-xs text-text-muted uppercase tracking-wider mb-1.5 block">Prop Firm Type</label>

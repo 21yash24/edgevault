@@ -124,7 +124,7 @@ export default function IntegrationsPage() {
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <div>
-        <h1 className="font-[family-name:var(--font-syne)] font-black text-2xl">Broker Integrations</h1>
+        <h1 className="font-[family-name:var(--font-inter)] font-black text-2xl">Broker Integrations</h1>
         <p className="text-sm text-text-secondary mt-1">
           Connect your futures broker or prop firm to automatically sync trades, or use the Universal Importer.
         </p>
@@ -184,7 +184,7 @@ export default function IntegrationsPage() {
                 )}
               </div>
               
-              <h3 className="font-[family-name:var(--font-syne)] font-bold text-lg mb-1">
+              <h3 className="font-[family-name:var(--font-inter)] font-bold text-lg mb-1">
                 {isDragActive ? "Drop CSV Here" : "Universal CSV Importer"}
               </h3>
               <p className="text-sm text-text-muted text-center max-w-[250px] mb-6">
@@ -234,7 +234,7 @@ export default function IntegrationsPage() {
                 <div className="p-8 text-center min-h-[300px] flex flex-col justify-center">
                   {connectionStep === 0 && selectedBroker?.id === "tradovate" ? (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-start text-left w-full">
-                      <h3 className="text-xl font-bold font-[family-name:var(--font-syne)] mb-4">Tradovate Credentials</h3>
+                      <h3 className="text-xl font-bold font-[family-name:var(--font-inter)] mb-4">Tradovate Credentials</h3>
                       {trError && <div className="w-full p-3 mb-4 rounded-xl bg-accent-coral/10 border border-accent-coral/20 text-accent-coral text-sm">{trError}</div>}
                       
                       <div className="w-full space-y-3">
@@ -262,7 +262,7 @@ export default function IntegrationsPage() {
                   ) : connectionStep === 1 ? (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center">
                       <div className="w-16 h-16 rounded-full border-4 border-accent-violet/20 border-t-accent-violet animate-spin mb-6" />
-                      <h3 className="text-xl font-bold font-[family-name:var(--font-syne)] mb-2">Connecting to {selectedBroker?.name}</h3>
+                      <h3 className="text-xl font-bold font-[family-name:var(--font-inter)] mb-2">Connecting to {selectedBroker?.name}</h3>
                       <p className="text-sm text-text-muted">Establishing secure connection via OAuth...</p>
                     </motion.div>
                   ) : (
@@ -270,7 +270,7 @@ export default function IntegrationsPage() {
                       <div className="w-16 h-16 rounded-full bg-accent-green/10 text-accent-green flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(0,255,178,0.3)]">
                         <CheckCircle2 size={32} />
                       </div>
-                      <h3 className="text-xl font-bold font-[family-name:var(--font-syne)] mb-2 text-accent-green">Connection Successful</h3>
+                      <h3 className="text-xl font-bold font-[family-name:var(--font-inter)] mb-2 text-accent-green">Connection Successful</h3>
                       <p className="text-sm text-text-muted mb-8">
                         Your {selectedBroker?.name} account is now securely linked. Trades will sync automatically.
                       </p>
@@ -309,7 +309,7 @@ export default function IntegrationsPage() {
             >
               <div className="p-6 border-b border-border-subtle flex items-center justify-between">
                 <div>
-                  <h2 className="font-[family-name:var(--font-syne)] font-bold text-xl">Import Summary</h2>
+                  <h2 className="font-[family-name:var(--font-inter)] font-bold text-xl">Import Summary</h2>
                   <p className="text-sm text-text-muted">Detected Format: <span className="text-accent-green">{parsedData.broker}</span></p>
                 </div>
                 <button onClick={() => setIsImportModalOpen(false)} className="p-2 text-text-muted hover:text-white rounded-lg hover:bg-bg-secondary transition-colors">

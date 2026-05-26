@@ -66,7 +66,7 @@ Keep it concise, professional, and punchy. Avoid generic advice; use the data pr
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-accent-violet/10 rounded-full blur-3xl pointer-events-none" />
           
           <Brain size={48} className="text-accent-violet mb-4" />
-          <h3 className="font-[family-name:var(--font-syne)] font-bold text-xl mb-2 text-text-primary">
+          <h3 className="font-[family-name:var(--font-inter)] font-bold text-xl mb-2 text-text-primary">
             EdgeVault AI Coach
           </h3>
           <p className="text-sm text-text-secondary max-w-md mb-6">
@@ -111,7 +111,7 @@ Keep it concise, professional, and punchy. Avoid generic advice; use the data pr
             
             <GlassCard className="md:col-span-1 border-accent-violet/20 flex flex-col items-center justify-center text-center p-6">
               <Brain size={48} className="text-accent-violet mb-4" />
-              <h3 className="font-[family-name:var(--font-syne)] font-bold text-lg mb-2">Analysis Complete</h3>
+              <h3 className="font-[family-name:var(--font-inter)] font-bold text-lg mb-2">Analysis Complete</h3>
               <p className="text-xs text-text-muted mb-6">Based on your recent trades, your psychological profile has been updated.</p>
               <button
                 onClick={handleAnalyze}
@@ -121,7 +121,7 @@ Keep it concise, professional, and punchy. Avoid generic advice; use the data pr
               </button>
             </GlassCard>
 
-            <GlassCard className="md:col-span-2 prose prose-invert max-w-none prose-p:text-sm prose-li:text-sm prose-headings:font-[family-name:var(--font-syne)] prose-headings:text-text-primary prose-a:text-accent-violet prose-strong:text-accent-green">
+            <GlassCard className="md:col-span-2 prose prose-invert max-w-none prose-p:text-sm prose-li:text-sm prose-headings:font-[family-name:var(--font-inter)] prose-headings:text-text-primary prose-a:text-accent-violet prose-strong:text-accent-green">
               <ReactMarkdown>{analysis}</ReactMarkdown>
             </GlassCard>
           </motion.div>

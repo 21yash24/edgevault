@@ -105,7 +105,7 @@ export default function PlaybookPage() {
       {/* Title */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-[family-name:var(--font-syne)] font-black text-2xl text-text-primary flex items-center gap-2">
+          <h1 className="font-[family-name:var(--font-inter)] font-black text-2xl text-text-primary flex items-center gap-2">
             Execution Playbook <Target size={22} className="text-accent-violet animate-pulse" />
           </h1>
           <p className="text-sm text-text-secondary mt-1">{playbooks.length} documented strategies & custom confluences</p>
@@ -133,7 +133,7 @@ export default function PlaybookPage() {
               )}
 
               <div className="flex items-start justify-between mb-2">
-                <h3 className="font-[family-name:var(--font-syne)] font-bold text-sm text-text-primary group-hover:text-accent-violet transition-colors truncate pr-4">{pb.name}</h3>
+                <h3 className="font-[family-name:var(--font-inter)] font-bold text-sm text-text-primary group-hover:text-accent-violet transition-colors truncate pr-4">{pb.name}</h3>
                 <ChevronRight size={14} className={cn("text-text-muted transition-transform", selectedId === pb.id && "rotate-90 text-accent-violet")} />
               </div>
               
@@ -180,7 +180,7 @@ export default function PlaybookPage() {
               {/* Detail Header */}
               <div className="flex items-start justify-between">
                 <div>
-                  <h2 className="font-[family-name:var(--font-syne)] font-bold text-xl text-text-primary">{selected.name}</h2>
+                  <h2 className="font-[family-name:var(--font-inter)] font-bold text-xl text-text-primary">{selected.name}</h2>
                   <p className="text-xs text-text-muted mt-1 leading-relaxed">{selected.description}</p>
                 </div>
                 <button onClick={() => { deletePlaybook(selected.id); setSelectedId(null); }}
@@ -341,7 +341,7 @@ export default function PlaybookPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowCreate(false)}>
             <motion.div className="glass-static w-full max-w-xl max-h-[85vh] overflow-y-auto m-4 p-6 rounded-2xl border border-border-subtle"
               onClick={(e) => e.stopPropagation()} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}>
-              <h2 className="font-[family-name:var(--font-syne)] font-bold text-xl mb-4 text-text-primary flex items-center gap-1.5">
+              <h2 className="font-[family-name:var(--font-inter)] font-bold text-xl mb-4 text-text-primary flex items-center gap-1.5">
                 New Systematic Playbook <Sparkles size={18} className="text-accent-green" />
               </h2>
 

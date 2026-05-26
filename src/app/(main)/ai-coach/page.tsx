@@ -260,7 +260,7 @@ Let's address the exact friction point holding your performance back today.`;
           <div className="w-14 h-14 rounded-2xl bg-accent-violet/20 flex items-center justify-center mb-4 border border-accent-violet/30 animate-pulse">
             <Brain size={28} className="text-accent-violet" />
           </div>
-          <h2 className="font-[family-name:var(--font-syne)] font-bold text-xl text-text-primary flex items-center gap-2">
+          <h2 className="font-[family-name:var(--font-inter)] font-bold text-xl text-text-primary flex items-center gap-2">
             AI Trade Coach <Sparkles size={16} className="text-accent-green" />
           </h2>
           <p className="text-xs text-text-muted mt-1 max-w-sm">
@@ -280,7 +280,7 @@ Let's address the exact friction point holding your performance back today.`;
         {stats ? (
           <div className="space-y-4">
             <div className="flex items-center justify-between px-1">
-              <span className="font-[family-name:var(--font-syne)] font-bold text-xs uppercase tracking-wider text-text-muted">Behavioral Dashboard</span>
+              <span className="font-[family-name:var(--font-inter)] font-bold text-xs uppercase tracking-wider text-text-muted">Behavioral Dashboard</span>
               <span className="text-[10px] text-accent-green flex items-center gap-1"><Check size={10}/> Analyzed {stats.totalTrades} Trades</span>
             </div>
 
@@ -365,7 +365,7 @@ Let's address the exact friction point holding your performance back today.`;
               <span className="absolute inset-0 rounded-full bg-accent-green/60 animate-ping" />
             </div>
             <div>
-              <h3 className="font-[family-name:var(--font-syne)] font-bold text-sm text-text-primary">Interactive Coaching Session</h3>
+              <h3 className="font-[family-name:var(--font-inter)] font-bold text-sm text-text-primary">Interactive Coaching Session</h3>
               <p className="text-[10px] text-text-muted">EdgeVault AI v2.5 • Active Connection</p>
             </div>
           </div>
@@ -407,7 +407,7 @@ Let's address the exact friction point holding your performance back today.`;
                 {/* Message Bubble */}
                 <div className={`p-4 rounded-2xl text-sm leading-relaxed border relative shadow-md ${
                   msg.sender === "bot"
-                    ? "bg-bg-card/40 border-border-subtle rounded-tl-none text-text-secondary prose prose-invert max-w-none prose-p:text-sm prose-li:text-sm prose-headings:font-[family-name:var(--font-syne)] prose-headings:text-text-primary prose-a:text-accent-violet prose-strong:text-accent-green"
+                    ? "bg-bg-card/40 border-border-subtle rounded-tl-none text-text-secondary prose prose-invert max-w-none prose-p:text-sm prose-li:text-sm prose-headings:font-[family-name:var(--font-inter)] prose-headings:text-text-primary prose-a:text-accent-violet prose-strong:text-accent-green"
                     : "bg-accent-green/5 border-accent-green/20 rounded-tr-none text-text-primary"
                 }`}>
                   {msg.sender === "bot" ? (

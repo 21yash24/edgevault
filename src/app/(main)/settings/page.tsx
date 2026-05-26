@@ -63,16 +63,16 @@ function ProfileSection() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="font-[family-name:var(--font-syne)] font-bold text-lg mb-1">Profile</h3>
+        <h3 className="font-[family-name:var(--font-inter)] font-bold text-lg mb-1">Profile</h3>
         <p className="text-sm text-text-muted">Manage your account details</p>
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="w-16 h-16 rounded-2xl bg-accent-green/10 flex items-center justify-center text-accent-green font-[family-name:var(--font-syne)] font-black text-2xl">
+        <div className="w-16 h-16 rounded-2xl bg-accent-green/10 flex items-center justify-center text-accent-green font-[family-name:var(--font-inter)] font-black text-2xl">
           {name.split(" ").map(n => n[0]).join("").substring(0,2).toUpperCase()}
         </div>
         <div>
-          <div className="font-[family-name:var(--font-syne)] font-bold">{name}</div>
+          <div className="font-[family-name:var(--font-inter)] font-bold">{name}</div>
           <div className="text-xs text-text-muted mt-0.5">{user?.email || "No email"}</div>
         </div>
       </div>
@@ -126,7 +126,7 @@ function TradingRulesSection() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="font-[family-name:var(--font-syne)] font-bold text-lg mb-1">Trading Rules</h3>
+        <h3 className="font-[family-name:var(--font-inter)] font-bold text-lg mb-1">Trading Rules</h3>
         <p className="text-sm text-text-muted">Configure risk management defaults</p>
       </div>
 
@@ -170,7 +170,7 @@ function NotificationsSection() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="font-[family-name:var(--font-syne)] font-bold text-lg mb-1">Notifications</h3>
+        <h3 className="font-[family-name:var(--font-inter)] font-bold text-lg mb-1">Notifications</h3>
         <p className="text-sm text-text-muted">Configure alert preferences</p>
       </div>
       <div className="space-y-0 divide-y divide-border-subtle">
@@ -206,7 +206,7 @@ function AppearanceSection() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="font-[family-name:var(--font-syne)] font-bold text-lg mb-1">Appearance</h3>
+        <h3 className="font-[family-name:var(--font-inter)] font-bold text-lg mb-1">Appearance</h3>
         <p className="text-sm text-text-muted">Customize the look and feel</p>
       </div>
 
@@ -440,7 +440,7 @@ function DataSection() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="font-[family-name:var(--font-syne)] font-bold text-lg mb-1">Data & Export</h3>
+        <h3 className="font-[family-name:var(--font-inter)] font-bold text-lg mb-1">Data & Export</h3>
         <p className="text-sm text-text-muted">Manage your trading data</p>
       </div>
 
@@ -497,7 +497,7 @@ function APISection() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="font-[family-name:var(--font-syne)] font-bold text-lg mb-1">API & Integrations</h3>
+        <h3 className="font-[family-name:var(--font-inter)] font-bold text-lg mb-1">API & Integrations</h3>
         <p className="text-sm text-text-muted">Connect external services</p>
       </div>
 
@@ -563,7 +563,7 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-[family-name:var(--font-syne)] font-black text-2xl">Settings</h1>
+        <h1 className="font-[family-name:var(--font-inter)] font-black text-2xl">Settings</h1>
         <p className="text-sm text-text-secondary mt-1">Configure your trading environment</p>
       </div>
 

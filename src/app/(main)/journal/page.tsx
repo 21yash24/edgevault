@@ -297,7 +297,7 @@ function CalendarHeatmapView({ trades }: { trades: Trade[] }) {
           <ChevronLeft size={18} />
         </button>
         <div className="text-center">
-          <h3 className="font-[family-name:var(--font-syne)] font-black text-xl tracking-tight select-none">{format(currentMonth, "MMMM yyyy")}</h3>
+          <h3 className="font-[family-name:var(--font-inter)] font-black text-xl tracking-tight select-none">{format(currentMonth, "MMMM yyyy")}</h3>
           <p className={cn("font-[family-name:var(--font-space-mono)] font-bold text-sm mt-0.5", monthPnl >= 0 ? "text-accent-green" : "text-accent-coral")}>
             Net Month P&L: {monthPnl >= 0 ? "+" : ""}{formatCurrency(monthPnl)}
           </p>
@@ -427,12 +427,8 @@ export default function JournalPage() {
 
   return (
     <motion.div className="space-y-6 pb-12" variants={containerVariants} initial="hidden" animate="visible">
-      {/* Header */}
-      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="font-[family-name:var(--font-syne)] font-black text-3xl bg-clip-text text-transparent bg-gradient-to-r from-accent-green via-accent-blue to-accent-violet pb-0.5 leading-none">Trade Journal</h1>
-          <p className="text-xs text-text-secondary mt-1 font-semibold">{trades.length} executions recorded</p>
-        </div>
+      {/* Header Controls */}
+      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-end sm:items-center justify-end gap-4">
         <div className="flex items-center gap-3">
           {/* View Toggle */}
           <div className="flex bg-bg-secondary/40 dark:bg-white/[0.01] border border-border-subtle rounded-xl p-1">

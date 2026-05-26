@@ -46,7 +46,7 @@ export function ProactiveAIWidget() {
       <div className="absolute top-0 right-0 w-32 h-32 bg-accent-violet/10 rounded-full blur-3xl opacity-50 group-hover:opacity-100 transition-opacity" />
       
       <div className="flex items-center justify-between mb-3">
-        <h2 className="font-[family-name:var(--font-syne)] font-bold text-sm flex items-center gap-2 text-accent-violet">
+        <h2 className="font-[family-name:var(--font-inter)] font-bold text-sm flex items-center gap-2 text-accent-violet">
           <Sparkles size={14} className="animate-pulse" />
           Edge AI Insights
         </h2>
