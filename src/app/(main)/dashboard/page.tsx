@@ -686,6 +686,45 @@ export default function DashboardPage() {
     return Math.max(0, Math.min(100, (Math.abs(todayPnl) / maxLoss) * 100));
   }, [todayPnl, maxLoss]);
 
+  const tiltMetrics = useMemo(() => {
+    if (trades.length === 0) return { recentLosses: 0, avgHoldTimeDeviation: 0, volumeSpike: false };
+    
+    // 1. Calculate consecutive losses
+    let recentLosses = 0;
+    for (let i = trades.length - 1; i >= 0; i--) {
+      if (trades[i].result === "loss") {
+        recentLosses++;
+      } else if (trades[i].result === "win") {
+        break;
+      }
+    }
+
+    // 2. Volume Spike: Compare last trade's risk/size to average
+    const last10 = trades.slice(-10);
+    const validSizes = last10.filter(t => t.positionSize && t.positionSize > 0);
+    const avgSize = validSizes.length > 0 ? validSizes.reduce((s, t) => s + (t.positionSize || 0), 0) / validSizes.length : 0;
+    const lastTradeSize = trades[trades.length - 1].positionSize || 0;
+    const volumeSpike = avgSize > 0 && lastTradeSize > avgSize * 1.8; // 80% larger than normal
+
+    // 3. Holding Time Deviation: Did they cut a winner too early or hold a loser too long?
+    const validDurations = trades.filter(t => t.durationMinutes && t.durationMinutes > 0);
+    const avgDuration = validDurations.length > 0 ? validDurations.reduce((s, t) => s + (t.durationMinutes || 0), 0) / validDurations.length : 0;
+    const lastDuration = trades[trades.length - 1].durationMinutes || 0;
+    
+    let deviation = 0;
+    if (avgDuration > 0 && lastDuration > 0) {
+      const ratio = lastDuration / avgDuration;
+      if (ratio > 2) deviation = ratio - 1; // Holding way too long (e.g. 3x avg = 2 multiplier)
+      else if (ratio < 0.5) deviation = (0.5 - ratio) * 2; // Cutting way too quick (e.g. 0.1x avg = 0.8 multiplier)
+    }
+
+    return { 
+      recentLosses, 
+      avgHoldTimeDeviation: Math.min(deviation, 3), 
+      volumeSpike 
+    };
+  }, [trades]);
+
   const containerVariants: any = {
     hidden: { opacity: 0 },
     visible: {
@@ -989,7 +1028,11 @@ export default function DashboardPage() {
         </div>
         <div className="lg:col-span-1 flex flex-col gap-6">
           <ProactiveAIWidget />
-          <TiltmeterWidget recentLosses={3} avgHoldTimeDeviation={1.5} volumeSpike={false} />
+          <TiltmeterWidget 
+            recentLosses={tiltMetrics.recentLosses} 
+            avgHoldTimeDeviation={tiltMetrics.avgHoldTimeDeviation} 
+            volumeSpike={tiltMetrics.volumeSpike} 
+          />
         </div>
       </motion.div>
 
