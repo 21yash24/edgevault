@@ -1,116 +1,163 @@
 "use client";
-import React, { useEffect, useRef, useMemo, useState } from "react";
+import React, { useEffect, useRef, useMemo, useState, memo } from "react";
 import { createChart, ColorType, CrosshairMode, CandlestickSeries, createSeriesMarkers } from "lightweight-charts";
 import { Trade } from "@/lib/types";
+import { useTheme } from "next-themes";
 
-// Helper to generate realistic-looking candles dynamically scaled based on trade duration
-function generateTradeCandles(trade: Trade) {
-  const entryTime = isNaN(new Date(trade.entryDate).getTime()) ? Date.now() : new Date(trade.entryDate).getTime();
-  const exitTime = isNaN(new Date(trade.exitDate).getTime()) ? (entryTime + 60000) : new Date(trade.exitDate).getTime();
-  const duration = Math.max(exitTime - entryTime, 1000); // minimum 1s duration
+// TradingView mini chart widget as fallback when real data isn't available
+function TradingViewFallback({ symbol, trade }: { symbol: string; trade: Trade }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { resolvedTheme } = useTheme();
 
-  // Select dynamic interval and padding based on trade duration
-  let intervalMs = 60 * 1000;      // default: 1 minute
-  let paddingMs = 30 * 60 * 1000;  // default: 30 minutes
+  useEffect(() => {
+    if (!containerRef.current) return;
+    containerRef.current.innerHTML = "";
 
-  if (duration < 5 * 60 * 1000) {
-    // Under 5 minutes: use 5-second candles, 5 minutes padding
-    intervalMs = 5 * 1000;
-    paddingMs = 5 * 60 * 1000;
-  } else if (duration < 20 * 60 * 1000) {
-    // Under 20 minutes: use 15-second candles, 15 minutes padding
-    intervalMs = 15 * 1000;
-    paddingMs = 15 * 60 * 1000;
-  } else if (duration < 2 * 60 * 60 * 1000) {
-    // Under 2 hours: use 1-minute candles, 30 minutes padding
-    intervalMs = 60 * 1000;
-    paddingMs = 30 * 60 * 1000;
-  } else if (duration < 12 * 60 * 60 * 1000) {
-    // Under 12 hours: use 5-minute candles, 2 hours padding
-    intervalMs = 5 * 60 * 1000;
-    paddingMs = 2 * 60 * 60 * 1000;
-  } else if (duration < 48 * 60 * 60 * 1000) {
-    // Under 2 days: use 15-minute candles, 6 hours padding
-    intervalMs = 15 * 60 * 1000;
-    paddingMs = 6 * 60 * 60 * 1000;
-  } else {
-    // 2 days or more: use 1-hour candles, 24 hours padding
-    intervalMs = 60 * 60 * 1000;
-    paddingMs = 24 * 60 * 60 * 1000;
-  }
+    const script = document.createElement("script");
+    script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
+    script.type = "text/javascript";
+    script.async = true;
 
-  // startTime must be aligned with intervalMs
-  const startTime = entryTime - paddingMs;
-  const endTime = exitTime + paddingMs;
+    // Map common symbols to TradingView format
+    const tvSymbol = (s: string) => {
+      const upper = s.toUpperCase();
+      if (upper === "NQ" || upper.startsWith("NQ")) return "CME_MINI:NQ1!";
+      if (upper === "ES" || upper.startsWith("ES")) return "CME_MINI:ES1!";
+      if (upper === "YM" || upper.startsWith("YM")) return "CBOT_MINI:YM1!";
+      if (upper === "MNQ" || upper.startsWith("MNQ")) return "CME_MINI:MNQ1!";
+      if (upper === "MES" || upper.startsWith("MES")) return "CME_MINI:MES1!";
+      if (upper === "RTY" || upper.startsWith("RTY")) return "CME_MINI:RTY1!";
+      if (upper === "CL" || upper.startsWith("CL")) return "NYMEX:CL1!";
+      if (upper === "GC" || upper.startsWith("GC")) return "COMEX:GC1!";
+      if (upper === "BTCUSD" || upper === "BTC") return "BINANCE:BTCUSDT";
+      if (upper === "ETHUSD" || upper === "ETH") return "BINANCE:ETHUSDT";
+      if (upper === "EURUSD") return "FX:EURUSD";
+      if (upper === "GBPUSD") return "FX:GBPUSD";
+      return `NASDAQ:${upper}`;
+    };
 
-  const candles: any[] = [];
-  let currentPrice = trade.entryPrice ? trade.entryPrice * 0.998 : 100;
-  
-  // Scale volatility based on candle interval (square root of time rule)
-  const timeFactor = Math.sqrt(intervalMs / (60 * 1000));
-  const candleVolatility = (trade.entryPrice ? trade.entryPrice * 0.0005 : 0.5) * timeFactor;
-  const totalSteps = (exitTime - entryTime) / intervalMs;
+    const theme = resolvedTheme === "light" ? "light" : "dark";
+    const entryDate = trade.entryDate ? new Date(trade.entryDate) : null;
 
-  for (let t = startTime; t <= endTime; t += intervalMs) {
-    const isEntry = Math.abs(t - entryTime) < intervalMs / 2;
-    const isExit = Math.abs(t - exitTime) < intervalMs / 2;
-
-    // Force the price to hit entry and exit precisely at the right time
-    if (isEntry && trade.entryPrice) {
-      currentPrice = trade.entryPrice;
-    } else if (isExit && trade.exitPrice) {
-      currentPrice = trade.exitPrice;
-    } else {
-      // Random walk with a slight drift towards exit if we are in the trade
-      const drift = (t >= entryTime && t <= exitTime)
-        ? ((trade.exitPrice || currentPrice) - (trade.entryPrice || currentPrice)) / (totalSteps || 1)
-        : 0;
-      currentPrice += drift + (Math.random() - 0.5) * candleVolatility;
-    }
-
-    const open = currentPrice;
-    const close = currentPrice + (Math.random() - 0.5) * candleVolatility;
-    const high = Math.max(open, close) + Math.random() * candleVolatility * 0.4;
-    const low = Math.min(open, close) - Math.random() * candleVolatility * 0.4;
-
-    candles.push({
-      time: Math.floor(t / 1000), // UNIX timestamp in seconds
-      open,
-      high,
-      low,
-      close
+    script.innerHTML = JSON.stringify({
+      autosize: true,
+      symbol: tvSymbol(symbol),
+      interval: "5",
+      timezone: "Etc/UTC",
+      theme,
+      style: "1",
+      locale: "en",
+      enable_publishing: false,
+      hide_legend: false,
+      hide_top_toolbar: false,
+      hide_side_toolbar: true,
+      allow_symbol_change: false,
+      save_image: false,
+      calendar: false,
+      hide_volume: true,
+      support_host: "https://www.tradingview.com",
     });
 
-    currentPrice = close;
-  }
+    containerRef.current.appendChild(script);
+  }, [symbol, resolvedTheme, trade]);
 
-  // Snap markers to exact candle timestamps so they display properly
-  const entryCandleIndex = Math.round((entryTime - startTime) / intervalMs);
-  let exitCandleIndex = Math.round((exitTime - startTime) / intervalMs);
+  return (
+    <div className="w-full h-full relative flex flex-col">
+      <div ref={containerRef} className="tradingview-widget-container w-full flex-1" style={{ height: "calc(100% - 40px)" }}>
+        <div className="tradingview-widget-container__widget w-full h-full" />
+      </div>
+      <div className="h-10 flex items-center px-4 gap-2 bg-bg-base/50 border-t border-border-subtle/50 flex-shrink-0">
+        <div className="w-2 h-2 rounded-full bg-accent-violet animate-pulse" />
+        <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">TradingView Live Chart</span>
+        {trade.entryPrice && (
+          <span className="ml-auto text-[10px] font-[family-name:var(--font-space-mono)] text-text-muted">
+            Entry: {trade.entryPrice.toLocaleString()} → Exit: {trade.exitPrice?.toLocaleString() ?? "—"}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
 
-  // Guarantee exit is at least 1 candle after entry
-  if (exitCandleIndex <= entryCandleIndex) {
-    exitCandleIndex = entryCandleIndex + 1;
-  }
+// Lightweight-charts powered real-data chart
+function RealDataChart({ candles, entryCandleTime, exitCandleTime, intervalMs, trade }: {
+  candles: any[];
+  entryCandleTime: number;
+  exitCandleTime: number;
+  intervalMs: number;
+  trade: Trade;
+}) {
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const { resolvedTheme } = useTheme();
 
-  // Keep within boundaries of the candles array
-  const finalEntryIndex = Math.max(0, Math.min(entryCandleIndex, candles.length - 1));
-  const finalExitIndex = Math.max(0, Math.min(exitCandleIndex, candles.length - 1));
+  useEffect(() => {
+    if (candles.length === 0 || !chartContainerRef.current) return;
 
-  const entryCandleTime = candles[finalEntryIndex].time;
-  const exitCandleTime = candles[finalExitIndex].time;
+    const isDark = resolvedTheme !== "light";
 
-  return {
-    candles,
-    entryCandleTime,
-    exitCandleTime,
-    intervalMs
-  };
+    const chart = createChart(chartContainerRef.current, {
+      layout: {
+        background: { type: ColorType.Solid, color: "transparent" },
+        textColor: isDark ? "#8B8FA3" : "#555770",
+      },
+      grid: {
+        vertLines: { color: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.04)" },
+        horzLines: { color: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.04)" },
+      },
+      crosshair: { mode: CrosshairMode.Normal },
+      rightPriceScale: { borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)" },
+      timeScale: {
+        borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
+        timeVisible: true,
+        secondsVisible: intervalMs < 60000,
+      },
+      autoSize: true,
+    });
+
+    const candlestickSeries = chart.addSeries(CandlestickSeries, {
+      upColor: "#00FFB2", downColor: "#FF2D55",
+      borderVisible: false, wickUpColor: "#00FFB2", wickDownColor: "#FF2D55",
+    });
+
+    candlestickSeries.setData(candles);
+
+    const markers: any[] = [];
+    if (trade.entryPrice) {
+      markers.push({
+        time: entryCandleTime,
+        position: trade.direction === "long" ? "belowBar" : "aboveBar",
+        color: trade.direction === "long" ? "#00FFB2" : "#FF2D55",
+        shape: trade.direction === "long" ? "arrowUp" : "arrowDown",
+        text: `ENTRY ${trade.entryPrice.toLocaleString()}`,
+      });
+    }
+    if (trade.exitPrice) {
+      markers.push({
+        time: exitCandleTime,
+        position: trade.direction === "long" ? "aboveBar" : "belowBar",
+        color: trade.netPnl >= 0 ? "#00FFB2" : "#FF2D55",
+        shape: trade.direction === "long" ? "arrowDown" : "arrowUp",
+        text: `EXIT ${trade.exitPrice.toLocaleString()}`,
+      });
+    }
+    markers.sort((a, b) => a.time - b.time);
+    createSeriesMarkers(candlestickSeries, markers);
+
+    if (trade.stopLoss) {
+      candlestickSeries.createPriceLine({ price: trade.stopLoss, color: "rgba(255,45,85,0.6)", lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: "SL" });
+    }
+    if (trade.takeProfit) {
+      candlestickSeries.createPriceLine({ price: trade.takeProfit, color: "rgba(0,255,178,0.6)", lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: "TP" });
+    }
+
+    chart.timeScale().fitContent();
+    return () => { chart.remove(); };
+  }, [candles, entryCandleTime, exitCandleTime, intervalMs, trade, resolvedTheme]);
+
+  return <div className="w-full h-full" ref={chartContainerRef} />;
 }
 
 export function InteractiveChart({ trade }: { trade: Trade }) {
-  const chartContainerRef = useRef<HTMLDivElement>(null);
-
   const [chartState, setChartState] = useState<{
     candles: any[];
     entryCandleTime: number;
@@ -118,6 +165,7 @@ export function InteractiveChart({ trade }: { trade: Trade }) {
     intervalMs: number;
     isReal: boolean;
     isLoading: boolean;
+    useTradingView: boolean;
   }>({
     candles: [],
     entryCandleTime: 0,
@@ -125,12 +173,12 @@ export function InteractiveChart({ trade }: { trade: Trade }) {
     intervalMs: 60000,
     isReal: false,
     isLoading: true,
+    useTradingView: false,
   });
 
-  // Fetch real market data or fall back to simulated candles
   useEffect(() => {
     let active = true;
-    setChartState((s) => ({ ...s, isLoading: true }));
+    setChartState(s => ({ ...s, isLoading: true, useTradingView: false }));
 
     async function loadData() {
       try {
@@ -140,46 +188,24 @@ export function InteractiveChart({ trade }: { trade: Trade }) {
           exitDate: trade.exitDate,
         });
         const res = await fetch(`/api/market-data?${queryParams.toString()}`);
-        if (!res.ok) {
-          throw new Error(`API returned status ${res.status}`);
-        }
+        if (!res.ok) throw new Error(`Status ${res.status}`);
         const data = await res.json();
-        if (!data.candles || data.candles.length === 0) {
-          throw new Error("Empty candles list returned");
-        }
+        if (!data.candles || data.candles.length === 0) throw new Error("Empty candles");
 
         const realCandles = data.candles;
         const entryTimeSec = Math.floor(new Date(trade.entryDate).getTime() / 1000);
         const exitTimeSec = Math.floor(new Date(trade.exitDate).getTime() / 1000);
 
-        let entryIdx = 0;
-        let exitIdx = 0;
-        let minEntryDiff = Infinity;
-        let minExitDiff = Infinity;
-
+        let entryIdx = 0, exitIdx = 0;
+        let minEntryDiff = Infinity, minExitDiff = Infinity;
         for (let i = 0; i < realCandles.length; i++) {
           const cTime = realCandles[i].time;
-          const entryDiff = Math.abs(cTime - entryTimeSec);
-          const exitDiff = Math.abs(cTime - exitTimeSec);
-
-          if (entryDiff < minEntryDiff) {
-            minEntryDiff = entryDiff;
-            entryIdx = i;
-          }
-          if (exitDiff < minExitDiff) {
-            minExitDiff = exitDiff;
-            exitIdx = i;
-          }
+          const ed = Math.abs(cTime - entryTimeSec), xd = Math.abs(cTime - exitTimeSec);
+          if (ed < minEntryDiff) { minEntryDiff = ed; entryIdx = i; }
+          if (xd < minExitDiff) { minExitDiff = xd; exitIdx = i; }
         }
+        if (exitIdx <= entryIdx) exitIdx = Math.min(entryIdx + 1, realCandles.length - 1);
 
-        if (exitIdx <= entryIdx) {
-          exitIdx = Math.min(entryIdx + 1, realCandles.length - 1);
-        }
-
-        const entryCandleTime = realCandles[entryIdx].time;
-        const exitCandleTime = realCandles[exitIdx].time;
-
-        // intervalMs estimation for showing/hiding seconds
         let intervalMs = 60000;
         if (data.interval === "1m") intervalMs = 60 * 1000;
         else if (data.interval === "2m") intervalMs = 2 * 60 * 1000;
@@ -192,151 +218,63 @@ export function InteractiveChart({ trade }: { trade: Trade }) {
         if (active) {
           setChartState({
             candles: realCandles,
-            entryCandleTime,
-            exitCandleTime,
+            entryCandleTime: realCandles[entryIdx].time,
+            exitCandleTime: realCandles[exitIdx].time,
             intervalMs,
             isReal: true,
             isLoading: false,
+            useTradingView: false,
           });
         }
       } catch (err) {
-        console.warn(`Failed to fetch real market data for ${trade.symbol}, falling back to simulated candles:`, err);
-        // Fallback to simulated candles
-        const sim = generateTradeCandles(trade);
+        console.warn(`Could not fetch real data for ${trade.symbol}, using TradingView widget fallback:`, err);
+        // Instead of ugly simulated candles, use a TradingView widget!
         if (active) {
           setChartState({
-            candles: sim.candles,
-            entryCandleTime: sim.entryCandleTime,
-            exitCandleTime: sim.exitCandleTime,
-            intervalMs: sim.intervalMs,
+            candles: [],
+            entryCandleTime: 0,
+            exitCandleTime: 0,
+            intervalMs: 60000,
             isReal: false,
             isLoading: false,
+            useTradingView: true,
           });
         }
       }
     }
 
     loadData();
-
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [trade]);
 
-  const { candles, entryCandleTime, exitCandleTime, intervalMs, isReal, isLoading } = chartState;
+  const { candles, entryCandleTime, exitCandleTime, intervalMs, isReal, isLoading, useTradingView } = chartState;
 
-  useEffect(() => {
-    if (isLoading || candles.length === 0 || !chartContainerRef.current) return;
+  if (isLoading) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center gap-3">
+        <div className="w-8 h-8 rounded-full border-2 border-t-accent-green border-r-transparent border-b-transparent border-l-transparent animate-spin" />
+        <p className="text-xs text-text-muted font-bold uppercase tracking-wider">Fetching real market data for {trade.symbol}...</p>
+      </div>
+    );
+  }
 
-    const chart = createChart(chartContainerRef.current, {
-      layout: {
-        background: { type: ColorType.Solid, color: "transparent" },
-        textColor: "#8B8FA3",
-      },
-      grid: {
-        vertLines: { color: "rgba(255, 255, 255, 0.03)" },
-        horzLines: { color: "rgba(255, 255, 255, 0.03)" },
-      },
-      crosshair: {
-        mode: CrosshairMode.Normal,
-      },
-      rightPriceScale: {
-        borderColor: "rgba(255, 255, 255, 0.1)",
-      },
-      timeScale: {
-        borderColor: "rgba(255, 255, 255, 0.1)",
-        timeVisible: true,
-        secondsVisible: intervalMs < 60000, // show seconds for sub-minute candlestick durations
-      },
-      autoSize: true,
-    });
-
-    const candlestickSeries = chart.addSeries(CandlestickSeries, {
-      upColor: "#00FFB2",
-      downColor: "#FF2D55",
-      borderVisible: false,
-      wickUpColor: "#00FFB2",
-      wickDownColor: "#FF2D55",
-    });
-
-    candlestickSeries.setData(candles);
-
-    // Add Markers for Entry and Exit using snapped timestamps
-    const markers: any[] = [];
-    
-    if (trade.entryPrice) {
-      markers.push({
-        time: entryCandleTime,
-        position: trade.direction === "long" ? "belowBar" : "aboveBar",
-        color: trade.direction === "long" ? "#00FFB2" : "#FF2D55",
-        shape: trade.direction === "long" ? "arrowUp" : "arrowDown",
-        text: "ENTRY",
-      });
-    }
-
-    if (trade.exitPrice) {
-      markers.push({
-        time: exitCandleTime,
-        position: trade.direction === "long" ? "aboveBar" : "belowBar",
-        color: trade.netPnl >= 0 ? "#00FFB2" : "#FF2D55",
-        shape: trade.direction === "long" ? "arrowDown" : "arrowUp",
-        text: "EXIT",
-      });
-    }
-
-    // Must sort markers by time as per lightweight-charts requirements
-    markers.sort((a, b) => a.time - b.time);
-    createSeriesMarkers(candlestickSeries, markers);
-
-    // Add Stop Loss Line if exists
-    if (trade.stopLoss) {
-      candlestickSeries.createPriceLine({
-        price: trade.stopLoss,
-        color: "rgba(255, 45, 85, 0.5)",
-        lineWidth: 1,
-        lineStyle: 2, // Dashed
-        axisLabelVisible: true,
-        title: "SL",
-      });
-    }
-
-    // Add Take Profit Line if exists
-    if (trade.takeProfit) {
-      candlestickSeries.createPriceLine({
-        price: trade.takeProfit,
-        color: "rgba(0, 255, 178, 0.5)",
-        lineWidth: 1,
-        lineStyle: 2, // Dashed
-        axisLabelVisible: true,
-        title: "TP",
-      });
-    }
-
-    chart.timeScale().fitContent();
-
-    return () => {
-      chart.remove();
-    };
-  }, [candles, entryCandleTime, exitCandleTime, intervalMs, isLoading, trade]);
+  if (useTradingView) {
+    return <TradingViewFallback symbol={trade.symbol} trade={trade} />;
+  }
 
   return (
-    <div className="w-full h-full relative" ref={chartContainerRef}>
-      {isLoading && (
-        <div className="absolute inset-0 bg-[#0B0F19]/65 backdrop-blur-md flex flex-col items-center justify-center rounded-xl z-20 border border-white/5 animate-fade-in">
-          <div className="w-8 h-8 rounded-full border-2 border-t-emerald-400 border-r-transparent border-b-transparent border-l-transparent animate-spin mb-3"></div>
-          <p className="text-xs text-text-muted font-medium tracking-wide">Syncing real market history for {trade.symbol}...</p>
-        </div>
-      )}
-      {!isLoading && (
-        <div className={`absolute top-3 right-3 z-10 flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold tracking-wider uppercase backdrop-blur-md transition-all duration-300 ${
-          isReal 
-            ? "bg-emerald-500/10 border border-emerald-500/25 text-emerald-400" 
-            : "bg-white/5 border border-white/10 text-text-muted"
-        }`}>
-          {isReal && <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>}
-          {isReal ? "Real Market Data" : "Simulated Replay"}
-        </div>
-      )}
+    <div className="w-full h-full relative">
+      <RealDataChart
+        candles={candles}
+        entryCandleTime={entryCandleTime}
+        exitCandleTime={exitCandleTime}
+        intervalMs={intervalMs}
+        trade={trade}
+      />
+      <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold tracking-wider uppercase backdrop-blur-md bg-emerald-500/10 border border-emerald-500/25 text-emerald-400">
+        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+        Real Market Data
+      </div>
     </div>
   );
 }
