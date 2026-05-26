@@ -27,6 +27,7 @@
     "firebase": "^12.12.1",
     "firebase-admin": "^13.8.0",
     "framer-motion": "^12.40.0",
+    "html2canvas": "^1.4.1",
     "lightweight-charts": "^5.2.0",
     "lucide-react": "^1.14.0",
     "next": "16.2.4",

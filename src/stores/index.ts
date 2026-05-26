@@ -565,15 +565,41 @@ export interface DailyNote {
   sessionGrade: "A" | "B" | "C" | "D" | "F" | "";
 }
 
+export interface NotebookTemplate {
+  id: string;
+  name: string;
+  content: string;
+}
+
+export interface CustomNote {
+  id: string;
+  title: string;
+  content: string;
+  date: string;
+  type: "daily" | "loss-recap" | "custom";
+  linkedTradeIds?: string[];
+}
+
 interface NotebookStore {
   notes: Record<string, DailyNote>;
+  customNotes: Record<string, CustomNote>;
+  templates: NotebookTemplate[];
   saveNote: (date: string, note: Partial<DailyNote>) => void;
+  saveCustomNote: (note: CustomNote) => void;
+  deleteCustomNote: (id: string) => void;
+  saveTemplate: (template: NotebookTemplate) => void;
+  deleteTemplate: (id: string) => void;
 }
 
 export const useNotebookStore = create<NotebookStore>()(
   persist(
     (set, get) => ({
       notes: {},
+      customNotes: {},
+      templates: [
+        { id: "tmpl-loss-recap", name: "Deep Loss Review", content: "### What went wrong?\n\n### Did I follow my rules?\n\n### Emotional State\n\n### Adjustments for next time\n" },
+        { id: "tmpl-weekly-review", name: "Weekly Review", content: "### Best Trade of the Week\n\n### Worst Trade of the Week\n\n### What I learned\n\n### Goals for next week\n" }
+      ],
       saveNote: (date, updatedFields) => {
         set((state) => {
           const existing = state.notes[date] || {
@@ -594,7 +620,15 @@ export const useNotebookStore = create<NotebookStore>()(
             }
           };
         });
-      }
+      },
+      saveCustomNote: (note) => set((state) => ({ customNotes: { ...state.customNotes, [note.id]: note } })),
+      deleteCustomNote: (id) => set((state) => {
+        const next = { ...state.customNotes };
+        delete next[id];
+        return { customNotes: next };
+      }),
+      saveTemplate: (template) => set((state) => ({ templates: [...state.templates.filter(t => t.id !== template.id), template] })),
+      deleteTemplate: (id) => set((state) => ({ templates: state.templates.filter(t => t.id !== id) }))
     }),
     { name: "edgevault-notebook" }
   )

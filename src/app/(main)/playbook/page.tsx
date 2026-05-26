@@ -5,9 +5,11 @@ import { cn, formatCurrency } from "@/lib/utils";
 import { MARKET_CONDITIONS, SESSION_TAGS, MarketCondition, SessionTag, Trade } from "@/lib/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMemo, useState, useEffect } from "react";
-import { Plus, BookOpen, Target, Clock, TrendingUp, ChevronRight, X, Check, BarChart3, Zap, Shield, Sparkles, Activity } from "lucide-react";
+import { Plus, BookOpen, Target, Clock, TrendingUp, ChevronRight, X, Check, BarChart3, Zap, Shield, Sparkles, Activity, Camera } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { format } from "date-fns";
+import html2canvas from "html2canvas";
+import { useRef } from "react";
 
 export default function PlaybookPage() {
   const { playbooks, addPlaybook, deletePlaybook } = usePlaybookStore();
@@ -15,6 +17,23 @@ export default function PlaybookPage() {
   const [mounted, setMounted] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  
+  const playbookRef = useRef<HTMLDivElement>(null);
+
+  const handleExport = async () => {
+    if (!playbookRef.current || !selectedId) return;
+    try {
+      const canvas = await html2canvas(playbookRef.current, { backgroundColor: "#0a0a0a", scale: 2 });
+      const image = canvas.toDataURL("image/png");
+      const link = document.createElement('a');
+      link.href = image;
+      const pb = playbooks.find(p => p.id === selectedId);
+      link.download = `edgevault-playbook-${pb?.name.replace(/\\s+/g, '-').toLowerCase() || 'export'}.png`;
+      link.click();
+    } catch (e) {
+      console.error("Export failed", e);
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -175,19 +194,25 @@ export default function PlaybookPage() {
         {/* Detail Panel */}
         <div className="lg:col-span-2">
           {selected ? (
-            <GlassCard className="border-accent-violet/10 p-6 space-y-6">
-              
-              {/* Detail Header */}
-              <div className="flex items-start justify-between">
-                <div>
-                  <h2 className="font-[family-name:var(--font-inter)] font-bold text-xl text-text-primary">{selected.name}</h2>
-                  <p className="text-xs text-text-muted mt-1 leading-relaxed">{selected.description}</p>
+            <div ref={playbookRef}>
+              <GlassCard className="border-accent-violet/10 p-6 space-y-6">
+                
+                {/* Detail Header */}
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h2 className="font-[family-name:var(--font-inter)] font-bold text-xl text-text-primary">{selected.name}</h2>
+                    <p className="text-xs text-text-muted mt-1 leading-relaxed">{selected.description}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-bg-base border border-border-subtle text-[10px] font-bold text-text-muted hover:text-text-primary hover:border-accent-violet/30 transition-all">
+                      <Camera size={13} /> Export Plan
+                    </button>
+                    <button onClick={() => { deletePlaybook(selected.id); setSelectedId(null); }}
+                      className="p-2 rounded-lg text-text-muted hover:text-accent-coral hover:bg-accent-coral/10 transition-colors">
+                      <X size={16} />
+                    </button>
+                  </div>
                 </div>
-                <button onClick={() => { deletePlaybook(selected.id); setSelectedId(null); }}
-                  className="p-2 rounded-lg text-text-muted hover:text-accent-coral hover:bg-accent-coral/10 transition-colors">
-                  <X size={16} />
-                </button>
-              </div>
 
               {/* Stats Row */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -323,6 +348,7 @@ export default function PlaybookPage() {
               </div>
 
             </GlassCard>
+            </div>
           ) : (
             <GlassCard className="flex flex-col items-center justify-center min-h-[400px] border-border-subtle/50 text-center">
               <BookOpen size={40} className="text-text-muted mb-3 opacity-25" />
