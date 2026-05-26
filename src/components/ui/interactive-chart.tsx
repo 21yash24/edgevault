@@ -209,14 +209,16 @@ export function InteractiveChart({ trade }: { trade: Trade }) {
         const entryPrice = trade.entryPrice || 100;
         const exitPrice = trade.exitPrice || entryPrice;
         
-        // Generate about 60 candles for smooth playback
-        const numCandles = 60;
-        const intervalMs = Math.max(60000, ((exitTimeSec - entryTimeSec) * 1000) / (numCandles / 2));
-        const intervalSec = Math.floor(intervalMs / 1000);
+        // Generate about 60 candles total for smooth playback
+        // 10 pre, 40 exec, 10 post
+        const execDuration = Math.max(60, exitTimeSec - entryTimeSec);
+        const intervalSec = Math.max(1, Math.floor(execDuration / 40));
         
         const generatedCandles = [];
         let currentPrice = entryPrice - (entryPrice * 0.002 * (trade.direction === 'long' ? 1 : -1));
-        const startTimeSec = entryTimeSec - (10 * intervalSec);
+        
+        // Let's use a single running time counter to guarantee strict monotonic time
+        let currentTimeSec = entryTimeSec - (10 * intervalSec);
         
         // 10 pre-entry context candles
         for (let i = 0; i < 10; i++) {
@@ -224,9 +226,13 @@ export function InteractiveChart({ trade }: { trade: Trade }) {
           const close = open + (Math.random() - 0.5) * (entryPrice * 0.001);
           const high = Math.max(open, close) + Math.random() * (entryPrice * 0.0005);
           const low = Math.min(open, close) - Math.random() * (entryPrice * 0.0005);
-          generatedCandles.push({ time: startTimeSec + (i * intervalSec), open, high, low, close });
+          generatedCandles.push({ time: currentTimeSec, open, high, low, close });
           currentPrice = close;
+          currentTimeSec += intervalSec;
         }
+        
+        // Ensure execution starts EXACTLY at entry time
+        currentTimeSec = entryTimeSec;
         
         // Execution path candles
         const execCandles = 40;
@@ -238,9 +244,13 @@ export function InteractiveChart({ trade }: { trade: Trade }) {
           if (i === execCandles) close = exitPrice; // Force exact exit
           const high = Math.max(open, close) + Math.random() * (entryPrice * 0.0005);
           const low = Math.min(open, close) - Math.random() * (entryPrice * 0.0005);
-          generatedCandles.push({ time: entryTimeSec + (i * intervalSec), open, high, low, close });
+          generatedCandles.push({ time: currentTimeSec, open, high, low, close });
           currentPrice = close;
+          currentTimeSec += intervalSec;
         }
+        
+        // Ensure post-exit starts strictly after exit time
+        currentTimeSec = Math.max(currentTimeSec, exitTimeSec + intervalSec);
         
         // 10 post-exit context candles
         for (let i = 1; i <= 10; i++) {
@@ -248,16 +258,17 @@ export function InteractiveChart({ trade }: { trade: Trade }) {
           const close = open + (Math.random() - 0.5) * (entryPrice * 0.001);
           const high = Math.max(open, close) + Math.random() * (entryPrice * 0.0005);
           const low = Math.min(open, close) - Math.random() * (entryPrice * 0.0005);
-          generatedCandles.push({ time: exitTimeSec + (i * intervalSec), open, high, low, close });
+          generatedCandles.push({ time: currentTimeSec, open, high, low, close });
           currentPrice = close;
+          currentTimeSec += intervalSec;
         }
 
         if (active) {
           setChartState({
             candles: generatedCandles,
             entryCandleTime: entryTimeSec,
-            exitCandleTime: exitTimeSec,
-            intervalMs: intervalMs,
+            exitCandleTime: currentTimeSec - (10 * intervalSec), // the exact exit time
+            intervalMs: intervalSec * 1000,
             isReal: false,
             isLoading: false,
             useTradingView: false,
