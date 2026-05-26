@@ -14,6 +14,7 @@ import { motion } from "framer-motion";
 import { TrendingUp, TrendingDown, Target, DollarSign, Clock, Activity, Zap, BarChart3, Award, AlertTriangle, Brain, Crosshair, Calendar } from "lucide-react";
 import { MaeMfeChart } from "@/components/ui/mae-mfe-chart";
 import { AiCoach } from "@/components/ui/ai-coach";
+import { DayHourHeatmap } from "@/components/ui/day-hour-heatmap";
 import { useSettingsStore } from "@/stores";
 
 const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number }>; label?: string }) => {
@@ -609,27 +610,24 @@ export default function AnalyticsPage() {
         </GlassCard>
       </div>
 
-      {/* Charts Row 3 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <GlassCard>
-          <h3 className="font-[family-name:var(--font-inter)] font-bold text-base mb-4">R-Multiple Distribution</h3>
-          <div className="h-64">
-            <RDistributionChart trades={filteredTrades} />
-          </div>
-        </GlassCard>
 
-        <GlassCard>
-          <h3 className="font-[family-name:var(--font-inter)] font-bold text-base mb-4">Hourly Performance Heatmap</h3>
-          <div className="h-64 flex flex-col justify-center">
-            <HourlyHeatmap trades={filteredTrades} />
-          </div>
-          <div className="flex items-center justify-center gap-4 mt-3 text-[9px] text-text-muted">
-            <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm" style={{ backgroundColor: "rgba(255,45,85,0.5)" }} />Loss</div>
-            <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm" style={{ backgroundColor: "rgba(75,80,100,0.2)" }} />No data</div>
-            <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm" style={{ backgroundColor: "rgba(0,255,178,0.5)" }} />Profit</div>
-          </div>
-        </GlassCard>
-      </div>
+        {/* Charts Row 3: R-Distribution + Day×Hour Heatmap */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <GlassCard>
+            <h3 className="font-[family-name:var(--font-inter)] font-bold text-base mb-4">R-Multiple Distribution</h3>
+            <div className="h-64">
+              <RDistributionChart trades={filteredTrades} />
+            </div>
+          </GlassCard>
+
+          <GlassCard>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-[family-name:var(--font-inter)] font-bold text-base">Performance Heatmap</h3>
+              <span className="text-[10px] text-text-muted">Day × Hour • Total P&L per cell</span>
+            </div>
+            <DayHourHeatmap trades={filteredTrades} />
+          </GlassCard>
+        </div>
 
       {/* Row: Mindset Performance */}
       <GlassCard>

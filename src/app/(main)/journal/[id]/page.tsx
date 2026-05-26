@@ -6,9 +6,8 @@ import { cn, formatCurrency, formatDate, formatDuration, formatDateTime, formatR
 import { analyzeTrade } from "@/lib/gemini";
 import { motion } from "framer-motion";
 import { use, useMemo, useState, useEffect } from "react";
-import { ArrowUpRight, ArrowDownRight, ChevronLeft, Clock, Target, DollarSign, Activity, AlertTriangle, Brain, Sparkles, TrendingUp, TrendingDown, MessageSquare, CheckCircle, XCircle, Zap, Settings2, Share2 } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, ChevronLeft, Clock, Target, DollarSign, Activity, AlertTriangle, Brain, Sparkles, TrendingUp, TrendingDown, MessageSquare, CheckCircle, XCircle, Zap, Settings2, Share2, ImageIcon, Upload, X } from "lucide-react";
 import Link from "next/link";
-import { InteractiveChart } from "@/components/ui/interactive-chart";
 import { SETUP_TAGS, MISTAKE_TAGS, MINDSET_TAGS, MistakeTag, Trade } from "@/lib/types";
 
 const emotionLabels: Record<number, { label: string; emoji: string }> = {
@@ -394,35 +393,63 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
           </GlassCard>
         </div>
 
-        {/* Right Column (2/3 Width): Interactive Chart replay & Reviews */}
+        {/* Right Column (2/3 Width): Chart Screenshots & Reviews */}
         <div className="lg:col-span-2 space-y-6">
-          
-          {/* Interactive Trade Replay */}
-          <GlassCard className="h-[430px] p-0 overflow-hidden relative group border-accent-violet/20">
-            <div className="absolute top-4 left-4 z-10 px-3 py-1 bg-bg-base/80 backdrop-blur-md rounded-lg text-xs font-bold text-text-primary border border-border-subtle flex items-center gap-2 select-none shadow-md">
-              <Sparkles size={14} className="text-accent-violet" />
-              Interactive Execution Replay
-            </div>
-            <InteractiveChart trade={trade} />
-          </GlassCard>
 
-          {/* Screenshot Gallery */}
-          {trade.screenshotUrls && trade.screenshotUrls.length > 0 && (
-            <div className="relative group">
-              <div className="flex overflow-x-auto no-scrollbar snap-x snap-mandatory gap-4 pb-2">
+          {/* Screenshot Gallery / Upload */}
+          <GlassCard className="border-border-subtle/70 overflow-hidden">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <ImageIcon size={16} className="text-accent-violet" />
+                <h3 className="font-bold text-sm text-text-primary">Chart Screenshots</h3>
+                <span className="text-[10px] text-text-muted ml-1">({trade.screenshotUrls?.length || 0} attached)</span>
+              </div>
+              <label className="flex items-center gap-1.5 cursor-pointer px-3 py-1.5 rounded-lg bg-accent-violet/10 text-accent-violet text-xs font-bold hover:bg-accent-violet/20 transition-all border border-accent-violet/20">
+                <Upload size={12} />
+                Add Image
+                <input type="file" accept="image/*" multiple className="hidden" onChange={async (e) => {
+                  const files = Array.from(e.target.files || []);
+                  const newUrls: string[] = [];
+                  for (const file of files) {
+                    await new Promise<void>((resolve) => {
+                      const reader = new FileReader();
+                      reader.onload = () => { newUrls.push(reader.result as string); resolve(); };
+                      reader.readAsDataURL(file);
+                    });
+                  }
+                  if (newUrls.length > 0) {
+                    updateTrade(trade.id, { screenshotUrls: [...(trade.screenshotUrls || []), ...newUrls] });
+                  }
+                }} />
+              </label>
+            </div>
+
+            {trade.screenshotUrls && trade.screenshotUrls.length > 0 ? (
+              <div className="grid grid-cols-1 gap-3">
                 {trade.screenshotUrls.map((url, i) => (
-                  <motion.div key={i} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.1 }}
-                    className="flex-shrink-0 w-full aspect-video rounded-2xl overflow-hidden border border-border-subtle group/img snap-center relative">
+                  <div key={i} className="relative group/img rounded-xl overflow-hidden border border-border-subtle/50 aspect-video">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={url} alt={`Chart Screenshot ${i + 1}`} className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-105" />
-                    <div className="absolute top-4 left-4 px-3 py-1 bg-black/40 backdrop-blur-md rounded-lg text-[10px] font-bold text-white uppercase tracking-widest border border-white/10 select-none">
-                      Slide {i + 1} / {trade.screenshotUrls.length}
+                    <img src={url} alt={`Screenshot ${i + 1}`} className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-[1.02]" />
+                    <button
+                      onClick={() => updateTrade(trade.id, { screenshotUrls: trade.screenshotUrls.filter((_, idx) => idx !== i) })}
+                      className="absolute top-2 right-2 w-7 h-7 rounded-lg bg-black/60 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white hover:bg-accent-coral/60 transition-all opacity-0 group-hover/img:opacity-100"
+                    >
+                      <X size={14} />
+                    </button>
+                    <div className="absolute bottom-0 left-0 right-0 px-3 py-2 bg-gradient-to-t from-black/60 to-transparent">
+                      <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">Screenshot {i + 1} of {trade.screenshotUrls.length}</span>
                     </div>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-center bg-bg-secondary/10 rounded-xl border border-dashed border-border-subtle/50">
+                <ImageIcon size={28} className="text-text-muted opacity-30 mb-3" />
+                <p className="text-sm font-semibold text-text-muted">No screenshots attached</p>
+                <p className="text-xs text-text-muted/70 mt-1">Paste your TradingView chart here for a complete trade record</p>
+              </div>
+            )}
+          </GlassCard>
 
           {/* Plan vs Execution Review Panels */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -444,6 +471,47 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
               </p>
             </GlassCard>
           </div>
+
+          {/* Discipline Checklist — Edgewonk Inspired */}
+          <GlassCard className="border border-border-subtle">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-sm flex items-center gap-2">
+                <CheckCircle size={14} className="text-accent-green" /> Discipline Checklist
+              </h3>
+              {(() => {
+                const checks = [
+                  !!trade.playbook,
+                  !!trade.stopLoss,
+                  !trade.mistakeTags.includes("Sized too big"),
+                  !trade.mistakeTags.includes("Moved SL"),
+                  !trade.mistakeTags.includes("Revenge trade"),
+                  !!(trade.preTradeNotes && trade.preTradeNotes.length > 10),
+                ];
+                const score = checks.filter(Boolean).length;
+                const pct = Math.round((score / checks.length) * 100);
+                return (
+                  <div className={cn("text-xs font-black px-2 py-0.5 rounded-full border", pct >= 80 ? "text-accent-green bg-accent-green/10 border-accent-green/30" : pct >= 50 ? "text-accent-violet bg-accent-violet/10 border-accent-violet/30" : "text-accent-coral bg-accent-coral/10 border-accent-coral/30")}>
+                    {pct}% Disciplined
+                  </div>
+                );
+              })()}
+            </div>
+            <div className="space-y-2">
+              {[
+                { label: "Trade tagged to a Playbook", passed: !!trade.playbook },
+                { label: "Stop Loss defined", passed: !!trade.stopLoss },
+                { label: "Normal position size (no oversizing)", passed: !trade.mistakeTags.includes("Sized too big") },
+                { label: "Stop Loss not moved against plan", passed: !trade.mistakeTags.includes("Moved SL") },
+                { label: "Not a revenge trade", passed: !trade.mistakeTags.includes("Revenge trade") },
+                { label: "Pre-trade notes written", passed: !!(trade.preTradeNotes && trade.preTradeNotes.length > 10) },
+              ].map((item, i) => (
+                <div key={i} className={cn("flex items-center gap-3 px-3 py-2 rounded-lg border text-xs font-medium", item.passed ? "bg-accent-green/5 border-accent-green/15 text-text-primary" : "bg-accent-coral/5 border-accent-coral/15 text-text-muted")}>
+                  {item.passed ? <CheckCircle size={14} className="text-accent-green flex-shrink-0" /> : <XCircle size={14} className="text-accent-coral flex-shrink-0" />}
+                  {item.label}
+                </div>
+              ))}
+            </div>
+          </GlassCard>
 
           {/* AI Coach Analysis */}
           <GlassCard className={cn("border border-border-subtle", analysis ? "border-accent-violet/20" : "")}>
