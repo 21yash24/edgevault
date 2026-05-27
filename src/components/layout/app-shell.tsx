@@ -6,7 +6,6 @@ import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useRouter } from "next/navigation";
-import { MarketPulseTicker } from "@/components/ui/market-pulse-ticker";
 import { MarketAlertToastSystem } from "@/components/ui/market-alert-toast";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -83,7 +82,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         animate={{ marginLeft: sidebarCollapsed ? 72 : 240 }}
         transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
-        <MarketPulseTicker />
         <Topbar />
         <main className="flex-1 p-6 gradient-mesh">{children}</main>
       </motion.div>
