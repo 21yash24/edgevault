@@ -10,6 +10,10 @@ import { ArrowUpRight, ArrowDownRight, ChevronLeft, Clock, Target, DollarSign, A
 import Link from "next/link";
 import { format } from "date-fns";
 import { SETUP_TAGS, MISTAKE_TAGS, MINDSET_TAGS, MistakeTag, Trade } from "@/lib/types";
+import dynamic from "next/dynamic";
+import "react-quill/dist/quill.snow.css";
+
+const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
 const emotionLabels: Record<number, { label: string; emoji: string }> = {
   [-5]: { label: "Terrified", emoji: "😰" }, [-4]: { label: "Very Fearful", emoji: "😨" }, [-3]: { label: "Fearful", emoji: "😟" },
@@ -393,11 +397,46 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
             </div>
             
             <div className="space-y-4">
-              <textarea
+              <style jsx global>{`
+                .trade-quill .ql-toolbar {
+                  border: 1px solid rgba(255, 255, 255, 0.1);
+                  border-top-left-radius: 12px;
+                  border-top-right-radius: 12px;
+                  background-color: rgba(0, 0, 0, 0.2);
+                }
+                .trade-quill .ql-container {
+                  border: 1px solid rgba(255, 255, 255, 0.1);
+                  border-bottom-left-radius: 12px;
+                  border-bottom-right-radius: 12px;
+                  font-family: var(--font-inter);
+                  font-size: 14px;
+                  color: rgba(255, 255, 255, 0.8);
+                }
+                .trade-quill .ql-editor {
+                  min-height: 300px;
+                }
+                .trade-quill .ql-editor.ql-blank::before {
+                  color: rgba(255, 255, 255, 0.3);
+                }
+                .trade-quill .ql-stroke { stroke: rgba(255, 255, 255, 0.6) !important; }
+                .trade-quill .ql-fill { fill: rgba(255, 255, 255, 0.6) !important; }
+                .trade-quill .ql-picker-label { color: rgba(255, 255, 255, 0.6) !important; }
+              `}</style>
+              <ReactQuill
+                theme="snow"
                 value={dailyNote.content}
-                onChange={(e) => handleUpdateNote({ content: e.target.value })}
+                onChange={(content) => handleUpdateNote({ content })}
                 placeholder="Write your day's reflections, pre-market plan, or intraday check-ins here. These sync with your main Notebook."
-                className="w-full min-h-[300px] p-4 bg-bg-base border border-border-subtle rounded-xl text-sm text-text-secondary focus:outline-none focus:border-accent-blue/40 resize-y font-[family-name:var(--font-inter)]"
+                className="w-full trade-quill"
+                modules={{
+                  toolbar: [
+                    [{ 'header': [1, 2, 3, false] }],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    ['link', 'image'],
+                    ['clean']
+                  ],
+                }}
               />
             </div>
           </GlassCard>

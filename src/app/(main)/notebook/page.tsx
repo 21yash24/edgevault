@@ -10,6 +10,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useMemo, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { format, isToday, isYesterday } from "date-fns";
+import dynamic from "next/dynamic";
+import "react-quill/dist/quill.snow.css";
+
+const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
 type SidebarView = { type: "folder", id: string } | { type: "tag", id: string };
 
@@ -22,14 +26,23 @@ export default function NotebookPage() {
 
   // Derived filtered notes
   const filteredNotes = useMemo(() => {
-    let result = Object.values(notes).map(n => ({
-      ...n,
-      tags: n.tags || [],
-      title: n.title || "Untitled Note",
-      content: n.content || "",
-      updatedAt: n.updatedAt || Date.now(),
-      folderId: n.folderId || "f-journal",
-    }));
+    let result = Object.values(notes).map((n: any) => {
+      let migratedContent = n.content || "";
+      if (!n.content && (n.preMarketPlan || n.postMarketReview || n.intradayNotes)) {
+        migratedContent += (n.preMarketPlan ? `<h2>Pre-Market Plan</h2><p>${n.preMarketPlan}</p><br/>` : "");
+        migratedContent += (n.intradayNotes ? `<h2>Intraday Notes</h2><p>${n.intradayNotes}</p><br/>` : "");
+        migratedContent += (n.postMarketReview ? `<h2>Post-Market Review</h2><p>${n.postMarketReview}</p>` : "");
+      }
+      return {
+        ...n,
+        id: n.id || `note-${n.date || Date.now()}`,
+        tags: n.tags || [],
+        title: n.title || (n.date ? `Journal: ${n.date}` : "Untitled Note"),
+        content: migratedContent,
+        updatedAt: n.updatedAt || Date.now(),
+        folderId: n.folderId || "f-journal",
+      };
+    });
     
     // Apply View Filter
     if (activeView.type === "folder" && activeView.id !== "all") {
@@ -196,7 +209,7 @@ export default function NotebookPage() {
                 </div>
                 {note.tags.length > 0 && (
                   <div className="flex gap-1 mt-2">
-                    {note.tags.map(tId => {
+                    {note.tags.map((tId: string) => {
                       const tag = tags.find(t => t.id === tId);
                       return tag ? (
                         <div key={tId} className="w-2 h-2 rounded-full" style={{ backgroundColor: tag.color }} title={tag.name} />
@@ -310,11 +323,54 @@ function NoteEditor({ noteId }: { noteId: string }) {
           placeholder="Note Title"
           className="w-full text-4xl font-[family-name:var(--font-inter)] font-black bg-transparent border-none outline-none text-text-primary placeholder:text-text-muted/30 mb-8"
         />
-        <textarea
+        <style jsx global>{`
+          .notebook-quill .ql-toolbar {
+            border: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0;
+            padding: 8px 0;
+            margin-bottom: 20px;
+          }
+          .notebook-quill .ql-container {
+            border: none;
+            font-family: var(--font-inter);
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.8);
+          }
+          .notebook-quill .ql-editor {
+            padding: 0;
+            min-height: 500px;
+          }
+          .notebook-quill .ql-editor.ql-blank::before {
+            left: 0;
+            font-style: normal;
+            color: rgba(255, 255, 255, 0.3);
+          }
+          .notebook-quill .ql-stroke {
+            stroke: rgba(255, 255, 255, 0.6) !important;
+          }
+          .notebook-quill .ql-fill {
+            fill: rgba(255, 255, 255, 0.6) !important;
+          }
+          .notebook-quill .ql-picker-label {
+            color: rgba(255, 255, 255, 0.6) !important;
+          }
+        `}</style>
+        <ReactQuill
+          theme="snow"
           value={content}
-          onChange={(e) => setContent(e.target.value)}
+          onChange={setContent}
           placeholder="Start typing your notes here..."
-          className="w-full min-h-[500px] text-base leading-relaxed bg-transparent border-none outline-none text-text-secondary placeholder:text-text-muted/40 resize-none font-[family-name:var(--font-inter)]"
+          className="w-full notebook-quill"
+          modules={{
+            toolbar: [
+              [{ 'header': [1, 2, 3, false] }],
+              ['bold', 'italic', 'underline', 'strike'],
+              [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+              ['link', 'image'],
+              ['clean']
+            ],
+          }}
         />
       </div>
     </div>
