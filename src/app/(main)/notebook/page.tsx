@@ -22,7 +22,14 @@ export default function NotebookPage() {
 
   // Derived filtered notes
   const filteredNotes = useMemo(() => {
-    let result = Object.values(notes);
+    let result = Object.values(notes).map(n => ({
+      ...n,
+      tags: n.tags || [],
+      title: n.title || "Untitled Note",
+      content: n.content || "",
+      updatedAt: n.updatedAt || Date.now(),
+      folderId: n.folderId || "f-journal",
+    }));
     
     // Apply View Filter
     if (activeView.type === "folder" && activeView.id !== "all") {
