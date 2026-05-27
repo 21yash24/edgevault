@@ -6,7 +6,6 @@ import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useRouter } from "next/navigation";
-import { MarketAlertToastSystem } from "@/components/ui/market-alert-toast";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { sidebarCollapsed } = useUIStore();
@@ -75,7 +74,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-bg-base relative">
-      <MarketAlertToastSystem />
       <Sidebar />
       <motion.div
         className="flex flex-col min-h-screen"

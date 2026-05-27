@@ -553,29 +553,16 @@ export const useRiskStore = create<RiskStore>()(
 // Daily Notebook Store (TradeZella Inspired)
 // ═══════════════════════════════
 
-export interface NotebookFolder {
-  id: string;
-  name: string;
-  icon?: string;
-  defaultTemplateId?: string;
-}
-
-export interface NotebookTag {
-  id: string;
-  name: string;
-  color: string;
-}
-
-export interface NotebookNote {
-  id: string;
-  title: string;
-  content: string;
-  folderId: string;
-  tags: string[];
-  date: string; // ISO string
-  createdAt: number;
-  updatedAt: number;
-  linkedTradeIds?: string[];
+export interface DailyNote {
+  date: string; // YYYY-MM-DD
+  preMarketPlan: string;
+  bias: "bullish" | "bearish" | "neutral" | "";
+  sleepScore: number; // 1 to 5
+  focusScore: number; // 1 to 5
+  postMarketReview: string;
+  intradayNotes: string;
+  checklistComplete: boolean;
+  sessionGrade: "A" | "B" | "C" | "D" | "F" | "";
 }
 
 export interface NotebookTemplate {
@@ -584,60 +571,156 @@ export interface NotebookTemplate {
   content: string;
 }
 
+export interface CustomNote {
+  id: string;
+  title: string;
+  content: string;
+  date: string;
+  type: "daily" | "loss-recap" | "custom";
+  linkedTradeIds?: string[];
+}
+
 interface NotebookStore {
-  folders: NotebookFolder[];
-  tags: NotebookTag[];
-  notes: Record<string, NotebookNote>;
+  notes: Record<string, DailyNote>;
+  customNotes: Record<string, CustomNote>;
   templates: NotebookTemplate[];
-  
-  // Actions
-  addFolder: (folder: Omit<NotebookFolder, "id">) => void;
-  updateFolder: (id: string, updates: Partial<NotebookFolder>) => void;
-  deleteFolder: (id: string) => void;
-
-  addTag: (tag: Omit<NotebookTag, "id">) => void;
-  updateTag: (id: string, updates: Partial<NotebookTag>) => void;
-  deleteTag: (id: string) => void;
-
-  saveNote: (note: NotebookNote) => void;
-  deleteNote: (id: string) => void;
-
+  saveNote: (date: string, note: Partial<DailyNote>) => void;
+  saveCustomNote: (note: CustomNote) => void;
+  deleteCustomNote: (id: string) => void;
   saveTemplate: (template: NotebookTemplate) => void;
   deleteTemplate: (id: string) => void;
 }
 
-const DEFAULT_FOLDERS: NotebookFolder[] = [
-  { id: "f-journal", name: "Daily Journal", icon: "BookOpen", defaultTemplateId: "tmpl-start-day" },
-  { id: "f-weekly", name: "Weekly Recaps", icon: "Calendar", defaultTemplateId: "tmpl-weekly-review" },
-  { id: "f-loss", name: "Loss Reviews", icon: "Flame", defaultTemplateId: "tmpl-loss-recap" },
+export const useNotebookStore = create<NotebookStore>()(
+  persist(
+    (set, get) => ({
+      notes: {},
+      customNotes: {},
+      templates: [
+        { id: "tmpl-loss-recap", name: "Deep Loss Review", content: "### What went wrong?\n\n### Did I follow my rules?\n\n### Emotional State\n\n### Adjustments for next time\n" },
+        { id: "tmpl-weekly-review", name: "Weekly Review", content: "### Best Trade of the Week\n\n### Worst Trade of the Week\n\n### What I learned\n\n### Goals for next week\n" }
+      ],
+      saveNote: (date, updatedFields) => {
+        set((state) => {
+          const existing = state.notes[date] || {
+            date,
+            preMarketPlan: "",
+            bias: "",
+            sleepScore: 3,
+            focusScore: 3,
+            postMarketReview: "",
+            intradayNotes: "",
+            checklistComplete: false,
+            sessionGrade: ""
+          };
+          return {
+            notes: {
+              ...state.notes,
+              [date]: { ...existing, ...updatedFields }
+            }
+          };
+        });
+      },
+      saveCustomNote: (note) => set((state) => ({ customNotes: { ...state.customNotes, [note.id]: note } })),
+      deleteCustomNote: (id) => set((state) => {
+        const next = { ...state.customNotes };
+        delete next[id];
+        return { customNotes: next };
+      }),
+      saveTemplate: (template) => set((state) => ({ templates: [...state.templates.filter(t => t.id !== template.id), template] })),
+      deleteTemplate: (id) => set((state) => ({ templates: state.templates.filter(t => t.id !== id) }))
+    }),
+    { name: "edgevault-notebook" }
+  )
+);
+
+// ═══════════════════════════════
+// Wiki Store (TradeZella Inspired Canvas)
+// ═══════════════════════════════
+
+export interface WikiFolder {
+  id: string;
+  name: string;
+  icon?: string;
+  defaultTemplateId?: string;
+}
+
+export interface WikiTag {
+  id: string;
+  name: string;
+  color: string;
+}
+
+export interface WikiNote {
+  id: string;
+  title: string;
+  content: string;
+  folderId: string;
+  tags: string[];
+  date: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface WikiTemplate {
+  id: string;
+  name: string;
+  content: string;
+}
+
+interface WikiStore {
+  folders: WikiFolder[];
+  tags: WikiTag[];
+  notes: Record<string, WikiNote>;
+  templates: WikiTemplate[];
+  
+  addFolder: (folder: Omit<WikiFolder, "id">) => void;
+  updateFolder: (id: string, updates: Partial<WikiFolder>) => void;
+  deleteFolder: (id: string) => void;
+
+  addTag: (tag: Omit<WikiTag, "id">) => void;
+  updateTag: (id: string, updates: Partial<WikiTag>) => void;
+  deleteTag: (id: string) => void;
+
+  saveNote: (note: WikiNote) => void;
+  deleteNote: (id: string) => void;
+
+  saveTemplate: (template: WikiTemplate) => void;
+  deleteTemplate: (id: string) => void;
+}
+
+const DEFAULT_WIKI_FOLDERS: WikiFolder[] = [
+  { id: "wf-journal", name: "Daily Journal", icon: "BookOpen", defaultTemplateId: "tmpl-start-day" },
+  { id: "wf-weekly", name: "Weekly Recaps", icon: "Calendar", defaultTemplateId: "tmpl-weekly-review" },
+  { id: "wf-loss", name: "Loss Reviews", icon: "Flame", defaultTemplateId: "tmpl-loss-recap" },
 ];
 
-const DEFAULT_TEMPLATES: NotebookTemplate[] = [
-  { id: "tmpl-start-day", name: "Start My Day", content: "## Pre-Market Prep\n\n- Economic Calendar: \n- Key Levels: \n- If/Then Gameplan: \n\n## Mindset Check\n\n- Sleep Score (1-5): \n- Focus Score (1-5): \n- Daily Goal: \n" },
-  { id: "tmpl-intraday", name: "Intraday Check-In", content: "## 10:00 AM Check-In\n\n- Am I following rules? \n- Market conditions: \n\n## 12:00 PM Check-In\n\n- Energy levels: \n- Temptation to overtrade? \n" },
-  { id: "tmpl-loss-recap", name: "Deep Loss Review", content: "### What went wrong?\n\n### Did I follow my rules?\n\n### Emotional State\n\n### Adjustments for next time\n" },
-  { id: "tmpl-weekly-review", name: "Weekly Review", content: "### Best Trade of the Week\n\n### Worst Trade of the Week\n\n### What I learned\n\n### Goals for next week\n" }
+const DEFAULT_WIKI_TEMPLATES: WikiTemplate[] = [
+  { id: "tmpl-start-day", name: "Start My Day", content: "<h2>Pre-Market Prep</h2><p><br/></p><h2>Mindset Check</h2><p><br/></p>" },
+  { id: "tmpl-intraday", name: "Intraday Check-In", content: "<h2>10:00 AM Check-In</h2><p><br/></p>" },
+  { id: "tmpl-loss-recap", name: "Deep Loss Review", content: "<h3>What went wrong?</h3><p><br/></p>" },
+  { id: "tmpl-weekly-review", name: "Weekly Review", content: "<h3>Best Trade of the Week</h3><p><br/></p>" }
 ];
 
-const DEFAULT_TAGS: NotebookTag[] = [
+const DEFAULT_WIKI_TAGS: WikiTag[] = [
   { id: "tag-tilt", name: "Tilt", color: "#FF6B35" },
   { id: "tag-fomo", name: "FOMO", color: "#FF357A" },
   { id: "tag-a-plus", name: "A+ Setup", color: "#00FFB2" },
 ];
 
-export const useNotebookStore = create<NotebookStore>()(
+export const useWikiStore = create<WikiStore>()(
   persist(
     (set, get) => ({
-      folders: DEFAULT_FOLDERS,
-      tags: DEFAULT_TAGS,
+      folders: DEFAULT_WIKI_FOLDERS,
+      tags: DEFAULT_WIKI_TAGS,
       notes: {},
-      templates: DEFAULT_TEMPLATES,
+      templates: DEFAULT_WIKI_TEMPLATES,
 
-      addFolder: (folder) => set((s) => ({ folders: [...s.folders, { ...folder, id: `f-${Date.now()}` }] })),
+      addFolder: (folder) => set((s) => ({ folders: [...s.folders, { ...folder, id: `wf-${Date.now()}` }] })),
       updateFolder: (id, updates) => set((s) => ({ folders: s.folders.map(f => f.id === id ? { ...f, ...updates } : f) })),
       deleteFolder: (id) => set((s) => ({ folders: s.folders.filter(f => f.id !== id) })),
 
-      addTag: (tag) => set((s) => ({ tags: [...s.tags, { ...tag, id: `tag-${Date.now()}` }] })),
+      addTag: (tag) => set((s) => ({ tags: [...s.tags, { ...tag, id: `wtag-${Date.now()}` }] })),
       updateTag: (id, updates) => set((s) => ({ tags: s.tags.map(t => t.id === id ? { ...t, ...updates } : t) })),
       deleteTag: (id) => set((s) => ({ tags: s.tags.filter(t => t.id !== id) })),
 
@@ -651,8 +734,6 @@ export const useNotebookStore = create<NotebookStore>()(
       saveTemplate: (template) => set((s) => ({ templates: [...s.templates.filter(t => t.id !== template.id), template] })),
       deleteTemplate: (id) => set((s) => ({ templates: s.templates.filter(t => t.id !== id) }))
     }),
-    { name: "edgevault-notebook" }
+    { name: "edgevault-wiki" }
   )
 );
-
-

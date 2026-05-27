@@ -7,14 +7,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, BookOpen, BarChart3, Target,
   Shield, Bell, Settings, ChevronRight, Zap,
-  Trophy, PlugZap, Brain, Notebook, Globe
+  Trophy, PlugZap, Brain, Notebook, Globe, Library
 } from "lucide-react";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, color: "text-accent-green" },
   { href: "/journal", label: "Journal", icon: BookOpen, color: "text-accent-blue" },
   { href: "/analytics", label: "Analytics", icon: BarChart3, color: "text-accent-violet" },
-  { href: "/notebook", label: "Notebook", icon: Notebook, color: "text-yellow-500 dark:text-yellow-400" },
+  { href: "/notebook", label: "Daily Log", icon: Notebook, color: "text-yellow-500 dark:text-yellow-400" },
+  { href: "/wiki", label: "Wiki / Canvas", icon: Library, color: "text-accent-violet dark:text-accent-violet" },
   { href: "/playbook", label: "Playbook", icon: Target, color: "text-orange-500 dark:text-orange-400" },
   { href: "/ai-coach", label: "AI Coach", icon: Brain, color: "text-pink-500 dark:text-pink-400" },
   { href: "/prop-tracker", label: "Prop Tracker", icon: Trophy, color: "text-amber-500 dark:text-yellow-500" },

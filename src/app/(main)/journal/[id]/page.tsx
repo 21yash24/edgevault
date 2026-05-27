@@ -6,14 +6,9 @@ import { cn, formatCurrency, formatDate, formatDuration, formatDateTime, formatR
 import { analyzeTrade } from "@/lib/gemini";
 import { motion } from "framer-motion";
 import { use, useMemo, useState, useEffect } from "react";
-import { ArrowUpRight, ArrowDownRight, ChevronLeft, Clock, Target, DollarSign, Activity, AlertTriangle, Brain, Sparkles, TrendingUp, TrendingDown, MessageSquare, CheckCircle, XCircle, Zap, Settings2, Share2, ImageIcon, Upload, X, BookOpen } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, ChevronLeft, Clock, Target, DollarSign, Activity, AlertTriangle, Brain, Sparkles, TrendingUp, TrendingDown, MessageSquare, CheckCircle, XCircle, Zap, Settings2, Share2, ImageIcon, Upload, X } from "lucide-react";
 import Link from "next/link";
-import { format } from "date-fns";
 import { SETUP_TAGS, MISTAKE_TAGS, MINDSET_TAGS, MistakeTag, Trade } from "@/lib/types";
-import dynamic from "next/dynamic";
-import "react-quill/dist/quill.snow.css";
-
-const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
 const emotionLabels: Record<number, { label: string; emoji: string }> = {
   [-5]: { label: "Terrified", emoji: "😰" }, [-4]: { label: "Very Fearful", emoji: "😨" }, [-3]: { label: "Fearful", emoji: "😟" },
@@ -33,22 +28,20 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
   const [syncState, setSyncState] = useState<"idle" | "syncing" | "synced">("idle");
 
   const tradeDateStr = useMemo(() => trade?.entryDate?.split("T")[0] || "", [trade]);
-  const { notes, saveNote, folders } = useNotebookStore();
+  const { notes, saveNote } = useNotebookStore();
   const dailyNote = useMemo(() => {
-    // Find a journal note for this date
-    const foundNote = Object.values(notes).find(n => n.date === tradeDateStr && n.folderId === "f-journal");
-    return foundNote || {
-      id: `note-${tradeDateStr}`,
-      title: `Journal: ${tradeDateStr}`,
-      content: "",
-      folderId: "f-journal",
-      tags: [],
+    return notes[tradeDateStr] || {
       date: tradeDateStr,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      linkedTradeIds: [trade?.id || ""]
+      preMarketPlan: "",
+      bias: "",
+      sleepScore: 3,
+      focusScore: 3,
+      postMarketReview: "",
+      intradayNotes: "",
+      checklistComplete: false,
+      sessionGrade: ""
     };
-  }, [notes, tradeDateStr, trade]);
+  }, [notes, tradeDateStr]);
 
   const triggerSync = () => {
     setSyncState("syncing");
@@ -75,9 +68,9 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
     handleUpdateTrade({ [field]: updatedTags });
   };
 
-  const handleUpdateNote = (fields: { content?: string }) => {
+  const handleUpdateNote = (fields: Partial<typeof dailyNote>) => {
     if (!tradeDateStr) return;
-    saveNote({ ...dailyNote, ...fields, updatedAt: Date.now() });
+    saveNote(tradeDateStr, fields);
     triggerSync();
   };
 
@@ -196,8 +189,82 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
               </div>
             </div>
 
-            {/* Trade Specific Psychology */}
+            {/* Daily Session Review */}
             <div className="space-y-4">
+              <h4 className="text-[10px] text-text-muted uppercase font-black tracking-widest select-none border-b border-border-subtle/50 pb-1">Daily Cognition Overview</h4>
+              
+              {/* Sleep Score Rating Bar */}
+              <div className="space-y-1">
+                <div className="flex justify-between text-[10px] text-text-muted uppercase font-black tracking-wider">
+                  <span>Sleep Quality</span>
+                  <span className="text-text-primary font-[family-name:var(--font-space-mono)]">{dailyNote.sleepScore} / 5</span>
+                </div>
+                <div className="flex gap-1.5">
+                  {[1, 2, 3, 4, 5].map((num) => (
+                    <button
+                      key={num}
+                      onClick={() => handleUpdateNote({ sleepScore: num })}
+                      className={cn("w-7 h-7 rounded-lg border flex items-center justify-center text-[10px] font-black transition-all duration-300",
+                        num <= dailyNote.sleepScore 
+                          ? "bg-accent-violet border-accent-violet text-bg-base shadow-[0_0_8px_rgba(123,97,255,0.3)]" 
+                          : "bg-bg-secondary/20 dark:bg-white/[0.01] border-border-subtle text-text-secondary dark:text-text-muted hover:border-accent-violet/30 hover:bg-bg-secondary/40 dark:hover:border-white/10"
+                      )}
+                    >
+                      {num}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Focus Score Rating Bar */}
+              <div className="space-y-1 mt-3">
+                <div className="flex justify-between text-[10px] text-text-muted uppercase font-black tracking-wider">
+                  <span>Session Focus</span>
+                  <span className="text-text-primary font-[family-name:var(--font-space-mono)]">{dailyNote.focusScore} / 5</span>
+                </div>
+                <div className="flex gap-1.5">
+                  {[1, 2, 3, 4, 5].map((num) => (
+                    <button
+                      key={num}
+                      onClick={() => handleUpdateNote({ focusScore: num })}
+                      className={cn("w-7 h-7 rounded-lg border flex items-center justify-center text-[10px] font-black transition-all duration-300",
+                        num <= dailyNote.focusScore 
+                          ? "bg-accent-violet border-accent-violet text-bg-base shadow-[0_0_8px_rgba(123,97,255,0.3)]" 
+                          : "bg-bg-secondary/20 dark:bg-white/[0.01] border-border-subtle text-text-secondary dark:text-text-muted hover:border-accent-violet/30 hover:bg-bg-secondary/40 dark:hover:border-white/10"
+                      )}
+                    >
+                      {num}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Grade Buttons */}
+              <div className="space-y-1.5 mt-3">
+                <label className="text-[10px] text-text-muted uppercase font-black tracking-wider block">Session Performance Grade</label>
+                <div className="flex gap-2">
+                  {["A", "B", "C", "D", "F"].map((grade) => {
+                    const active = dailyNote.sessionGrade === grade;
+                    return (
+                      <button
+                        key={grade}
+                        onClick={() => handleUpdateNote({ sessionGrade: grade as any })}
+                        className={cn("w-8 h-8 rounded-xl border flex items-center justify-center font-black text-xs transition-all duration-300",
+                          active 
+                            ? "bg-accent-green border-accent-green text-bg-base shadow-[0_0_12px_rgba(0,255,178,0.3)]" 
+                            : "bg-bg-secondary/20 dark:bg-white/[0.01] border-border-subtle text-text-secondary dark:text-text-muted hover:border-accent-green/30 hover:bg-bg-secondary/40 dark:hover:border-white/10"
+                        )}
+                      >
+                        {grade}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Trade Specific Psychology */}
+            <div className="space-y-4 pt-4 border-t border-border-subtle/60">
               <h4 className="text-[10px] text-text-muted uppercase font-black tracking-widest select-none border-b border-border-subtle/50 pb-1">Trade Psychology</h4>
               
               {/* Emotion Slider */}
@@ -382,63 +449,6 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
                 <p className="text-xs text-text-muted/70 mt-1">Paste your TradingView chart here for a complete trade record</p>
               </div>
             )}
-          </GlassCard>
-
-          {/* 6. Notebook / Daily Journal */}
-          <GlassCard className="col-span-1 lg:col-span-3">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2.5 rounded-xl bg-accent-blue/10">
-                <BookOpen size={20} className="text-accent-blue" />
-              </div>
-              <div>
-                <h3 className="font-[family-name:var(--font-inter)] font-black text-lg">Day Notes (TradeZella Notebook Sync)</h3>
-                <p className="text-xs text-text-muted">Synced from your Daily Journal for {format(new Date(trade.entryDate), "MMM dd, yyyy")}</p>
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              <style jsx global>{`
-                .trade-quill .ql-toolbar {
-                  border: 1px solid rgba(255, 255, 255, 0.1);
-                  border-top-left-radius: 12px;
-                  border-top-right-radius: 12px;
-                  background-color: rgba(0, 0, 0, 0.2);
-                }
-                .trade-quill .ql-container {
-                  border: 1px solid rgba(255, 255, 255, 0.1);
-                  border-bottom-left-radius: 12px;
-                  border-bottom-right-radius: 12px;
-                  font-family: var(--font-inter);
-                  font-size: 14px;
-                  color: rgba(255, 255, 255, 0.8);
-                }
-                .trade-quill .ql-editor {
-                  min-height: 300px;
-                }
-                .trade-quill .ql-editor.ql-blank::before {
-                  color: rgba(255, 255, 255, 0.3);
-                }
-                .trade-quill .ql-stroke { stroke: rgba(255, 255, 255, 0.6) !important; }
-                .trade-quill .ql-fill { fill: rgba(255, 255, 255, 0.6) !important; }
-                .trade-quill .ql-picker-label { color: rgba(255, 255, 255, 0.6) !important; }
-              `}</style>
-              <ReactQuill
-                theme="snow"
-                value={dailyNote.content}
-                onChange={(content) => handleUpdateNote({ content })}
-                placeholder="Write your day's reflections, pre-market plan, or intraday check-ins here. These sync with your main Notebook."
-                className="w-full trade-quill"
-                modules={{
-                  toolbar: [
-                    [{ 'header': [1, 2, 3, false] }],
-                    ['bold', 'italic', 'underline', 'strike'],
-                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                    ['link', 'image'],
-                    ['clean']
-                  ],
-                }}
-              />
-            </div>
           </GlassCard>
 
           {/* Plan vs Execution Review Panels */}
