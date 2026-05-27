@@ -1,10 +1,10 @@
 "use client";
 
-import { useTradeStore, usePropFirmStore } from "@/stores";
+import { useTradeStore, usePropFirmStore, useSettingsStore } from "@/stores";
 import { GlassCard } from "@/components/ui/glass-card";
 import { cn, formatCurrency } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   Bell, AlertTriangle, CheckCircle, Shield, TrendingDown,
   Trophy, Clock, Flame, DollarSign, Target, Zap, BellOff,
@@ -208,6 +208,9 @@ const DEFAULT_RULES: CustomRule[] = [
 export default function AlertsPage() {
   const { trades } = useTradeStore();
   const { challenges } = usePropFirmStore();
+  const { settings } = useSettingsStore();
+
+  const [notifiedAlertIds, setNotifiedAlertIds] = useState<Set<string>>(new Set());
 
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [readFilter, setReadFilter] = useState<"all" | "unread">("all");
@@ -252,6 +255,42 @@ export default function AlertsPage() {
 
   const deleteRule = (id: string) => setCustomRules(prev => prev.filter(r => r.id !== id));
   const toggleRule = (id: string) => setCustomRules(prev => prev.map(r => r.id === id ? { ...r, enabled: !r.enabled } : r));
+
+  // Trigger Telegram alerts for new "danger" or "warning" items
+  useEffect(() => {
+    if (!channels.telegram || !settings.api.telegramToken || !settings.api.telegramChatId) return;
+
+    const newHighSeverityAlerts = activeAlerts.filter(
+      (a) => (a.type === "danger" || a.type === "warning") && !notifiedAlertIds.has(a.id)
+    );
+
+    if (newHighSeverityAlerts.length > 0) {
+      newHighSeverityAlerts.forEach(async (alert) => {
+        const icon = alert.type === "danger" ? "🚨" : "⚠️";
+        const message = `${icon} *EDGEVAULT ALERT* ${icon}\n\n*${alert.title}*\n${alert.message}`;
+        
+        try {
+          await fetch("/api/telegram", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              token: settings.api.telegramToken,
+              chatId: settings.api.telegramChatId,
+              message,
+            }),
+          });
+        } catch (err) {
+          console.error("Failed to send telegram alert:", err);
+        }
+      });
+
+      setNotifiedAlertIds((prev) => {
+        const next = new Set(prev);
+        newHighSeverityAlerts.forEach((a) => next.add(a.id));
+        return next;
+      });
+    }
+  }, [activeAlerts, channels.telegram, settings.api, notifiedAlertIds]);
 
   return (
     <div className="space-y-6">

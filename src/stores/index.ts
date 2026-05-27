@@ -470,7 +470,7 @@ export interface UserSettings {
   trading: { maxLoss: number; maxTrades: number; maxRisk: number; enforceRules: boolean; forceChecklist: boolean; cooldownEnabled: boolean; checklist: string[] };
   notifications: { tradeSync: boolean; dailyReport: boolean; ruleViolation: boolean; weeklyDigest: boolean; propAlerts: boolean; browserNotif: boolean };
   appearance: { accentColor: string; compactMode: boolean; animationsEnabled: boolean };
-  api: { geminiKey: string };
+  api: { geminiKey: string; telegramToken: string; telegramChatId: string };
 }
 
 const defaultSettings: UserSettings = {
@@ -478,7 +478,7 @@ const defaultSettings: UserSettings = {
   trading: { maxLoss: 500, maxTrades: 3, maxRisk: 1, enforceRules: true, forceChecklist: false, cooldownEnabled: true, checklist: ["HTF Bias Confirmed", "Liquidity Sweep Detected", "SMT Divergence Present", "displacement & IFVG Formed", "Risk Managed (1% Max)"] },
   notifications: { tradeSync: true, dailyReport: true, ruleViolation: true, weeklyDigest: false, propAlerts: true, browserNotif: false },
   appearance: { accentColor: "#00FFB2", compactMode: false, animationsEnabled: true },
-  api: { geminiKey: "" }
+  api: { geminiKey: "", telegramToken: "", telegramChatId: "" }
 };
 
 interface SettingsStore {

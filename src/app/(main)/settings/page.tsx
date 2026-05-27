@@ -543,6 +543,41 @@ function APISection() {
           </div>
         </div>
       </div>
+
+      <div className="p-4 rounded-xl bg-bg-card border border-border-subtle mt-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-[#0088cc]/10 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#0088cc]">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </div>
+            <div>
+              <div className="text-sm font-medium">Telegram Bot</div>
+              <div className="text-xs text-text-muted">Real-time alerts delivery</div>
+            </div>
+          </div>
+          <span className={cn("text-xs px-2 py-1 rounded-full",
+            settings.api.telegramToken && settings.api.telegramChatId ? "bg-accent-green/10 text-accent-green" : "bg-text-muted/10 text-text-muted")}>
+            {settings.api.telegramToken && settings.api.telegramChatId ? "Connected" : "Not Configured"}
+          </span>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs text-text-muted uppercase tracking-wider mb-1.5 block">Bot Token</label>
+            <input type={showKey ? "text" : "password"} placeholder="e.g. 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11" 
+              value={settings.api.telegramToken || ""} onChange={(e) => updateSettings("api", { telegramToken: e.target.value })}
+              className="w-full bg-bg-base border border-border-subtle rounded-xl px-4 py-2.5 text-sm font-[family-name:var(--font-space-mono)] focus:outline-none focus:border-[#0088cc]/40 transition-colors" />
+          </div>
+          <div>
+            <label className="text-xs text-text-muted uppercase tracking-wider mb-1.5 block">Chat ID</label>
+            <input type="text" placeholder="e.g. 123456789" 
+              value={settings.api.telegramChatId || ""} onChange={(e) => updateSettings("api", { telegramChatId: e.target.value })}
+              className="w-full bg-bg-base border border-border-subtle rounded-xl px-4 py-2.5 text-sm font-[family-name:var(--font-space-mono)] focus:outline-none focus:border-[#0088cc]/40 transition-colors" />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
