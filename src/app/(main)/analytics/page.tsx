@@ -11,7 +11,7 @@ import {
   AreaChart, Area, CartesianGrid, PieChart, Pie,
 } from "recharts";
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, Target, DollarSign, Clock, Activity, Zap, BarChart3, Award, AlertTriangle, Brain, Crosshair, Calendar } from "lucide-react";
+import { TrendingUp, TrendingDown, Target, DollarSign, Clock, Activity, Zap, BarChart3, Award, AlertTriangle, Brain, Crosshair, Calendar, Download } from "lucide-react";
 import { MaeMfeChart } from "@/components/ui/mae-mfe-chart";
 import { AiCoach } from "@/components/ui/ai-coach";
 import { DayHourHeatmap } from "@/components/ui/day-hour-heatmap";
@@ -499,6 +499,24 @@ export default function AnalyticsPage() {
               </button>
             ))}
           </div>
+          <div className="w-[1px] h-6 bg-border-subtle" />
+          {/* PDF Export */}
+          <button
+            onClick={() => {
+              const el = document.getElementById("analytics-print-area");
+              if (el) {
+                const w = window.open("", "_blank");
+                if (w) {
+                  w.document.write(`<html><head><title>EdgeVault Analytics Report</title><style>body{font-family:Inter,sans-serif;padding:24px;background:#fff;color:#0d1117;}</style></head><body>${el.innerHTML}</body></html>`);
+                  w.document.close();
+                  w.print();
+                }
+              }
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-border-subtle bg-bg-card text-text-muted hover:text-accent-violet hover:border-accent-violet/25 transition-all"
+          >
+            <Download size={13} /> Export PDF
+          </button>
         </div>
       </div>
 
@@ -686,7 +704,19 @@ export default function AnalyticsPage() {
         </div>
       </GlassCard>
 
-      {/* Charts Row 5: Monte Carlo */}
+      {/* Day × Hour Heatmap */}
+      <GlassCard>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-[family-name:var(--font-inter)] font-bold text-base">Day × Hour Performance Heatmap</h3>
+            <p className="text-xs text-text-muted mt-0.5">Best and worst time windows across your trading week</p>
+          </div>
+          <span className="text-[9px] font-bold uppercase tracking-wider text-text-muted px-2 py-1 rounded-lg bg-bg-secondary/40 border border-border-subtle">30d data</span>
+        </div>
+        <DayHourHeatmap trades={filteredTrades} />
+      </GlassCard>
+
+      {/* Monte Carlo */}
       <GlassCard>
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-[family-name:var(--font-inter)] font-bold text-base">Monte Carlo Simulation</h3>

@@ -1009,7 +1009,7 @@ export default function DashboardPage() {
           </GlassCard>
         </div>
         <div className="lg:col-span-1 flex flex-col gap-6">
-          <ProactiveAIWidget />
+          <ProactiveAIWidget trades={trades} />
           <TiltmeterWidget 
             recentLosses={tiltMetrics.recentLosses} 
             avgHoldTimeDeviation={tiltMetrics.avgHoldTimeDeviation} 

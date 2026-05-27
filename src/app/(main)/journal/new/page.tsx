@@ -101,6 +101,8 @@ export default function NewTradePage() {
   const [screenshotUrls, setScreenshotUrls] = useState<string[]>([]);
   const [newImageUrl, setNewImageUrl] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [mae, setMae] = useState(""); // Max Adverse Excursion (worst point against you)
+  const [mfe, setMfe] = useState(""); // Max Favorable Excursion (best point in your favor)
 
   const activeChallenges = useMemo(() => challenges.filter(c => c.status === "active"), [challenges]);
   const allPlaybooks = useMemo(() => {
@@ -202,6 +204,8 @@ export default function NewTradePage() {
       trade.stopLoss = isNaN(parseFloat(stopLoss)) ? undefined : parseFloat(stopLoss);
       trade.takeProfit = isNaN(parseFloat(takeProfit)) ? undefined : parseFloat(takeProfit);
       trade.positionSize = isNaN(parseFloat(positionSize)) ? 0 : parseFloat(positionSize);
+      trade.mae = isNaN(parseFloat(mae)) ? undefined : parseFloat(mae);
+      trade.mfe = isNaN(parseFloat(mfe)) ? undefined : parseFloat(mfe);
     }
     addTrade(trade);
     router.push("/journal");
@@ -418,6 +422,46 @@ export default function NewTradePage() {
                             placeholder="0.00" />
                         </div>
                       ))}
+                    </div>
+
+                    {/* MAE / MFE Row */}
+                    <div className="mt-3 pt-3 border-t border-border-subtle">
+                      <div className="flex items-center gap-2 mb-2">
+                        <label className="text-[9px] text-text-muted uppercase tracking-wider font-bold">Excursion Analysis</label>
+                        <span className="text-[9px] text-text-muted/60 italic">How far price moved against/for you</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div>
+                          <label className="text-[9px] uppercase tracking-wider mb-1 block font-bold text-accent-coral/80">MAE — Max Adverse ($)</label>
+                          <input type="number" step="any" value={mae} onChange={e => setMae(e.target.value)}
+                            className="w-full bg-accent-coral/5 border border-accent-coral/20 rounded-xl px-3 py-2 text-sm font-[family-name:var(--font-space-mono)] focus:outline-none focus:border-accent-coral/50 transition-colors text-accent-coral placeholder:text-accent-coral/30"
+                            placeholder="e.g. 120" />
+                          <p className="text-[9px] text-text-muted mt-0.5">Worst drawdown while in trade</p>
+                        </div>
+                        <div>
+                          <label className="text-[9px] uppercase tracking-wider mb-1 block font-bold text-accent-green/80">MFE — Max Favorable ($)</label>
+                          <input type="number" step="any" value={mfe} onChange={e => setMfe(e.target.value)}
+                            className="w-full bg-accent-green/5 border border-accent-green/20 rounded-xl px-3 py-2 text-sm font-[family-name:var(--font-space-mono)] focus:outline-none focus:border-accent-green/50 transition-colors text-accent-green placeholder:text-accent-green/30"
+                            placeholder="e.g. 380" />
+                          <p className="text-[9px] text-text-muted mt-0.5">Best profit point while in trade</p>
+                        </div>
+                      </div>
+                      {(mae && mfe) && (
+                        <div className="mt-2 p-2.5 rounded-lg bg-accent-violet/5 border border-accent-violet/15 flex gap-4">
+                          <div className="text-[10px]">
+                            <span className="text-text-muted">Efficiency: </span>
+                            <span className="font-bold font-[family-name:var(--font-space-mono)] text-accent-violet">
+                              {mfe && parseFloat(mfe) > 0 ? ((livePnl / parseFloat(mfe)) * 100).toFixed(0) : 0}%
+                            </span>
+                          </div>
+                          <div className="text-[10px]">
+                            <span className="text-text-muted">Captured vs available: </span>
+                            <span className="font-bold font-[family-name:var(--font-space-mono)] text-accent-violet">
+                              ${livePnl.toFixed(0)} / ${parseFloat(mfe || "0").toFixed(0)}
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     {detailedCalculations && (
                       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
