@@ -97,13 +97,15 @@ export function calculateMetrics(trades: Trade[]): PerformanceMetrics {
 export function getDailyStats(trades: Trade[]): DailyStats[] {
   const map = new Map<string, DailyStats>();
   for (const t of trades) {
-    const d = format(new Date(t.entryDate), "yyyy-MM-dd");
-    const existing = map.get(d) ?? { date: d, pnl: 0, trades: 0, wins: 0, losses: 0 };
-    existing.pnl += t.netPnl;
-    existing.trades++;
-    if (t.result === "win") existing.wins++;
-    if (t.result === "loss") existing.losses++;
-    map.set(d, existing);
+    try {
+      const d = format(new Date(t.entryDate || new Date().toISOString()), "yyyy-MM-dd");
+      const existing = map.get(d) ?? { date: d, pnl: 0, trades: 0, wins: 0, losses: 0 };
+      existing.pnl += t.netPnl;
+      existing.trades++;
+      if (t.result === "win") existing.wins++;
+      if (t.result === "loss") existing.losses++;
+      map.set(d, existing);
+    } catch (e) { console.warn("Invalid date in getDailyStats", e); }
   }
   return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
 }
@@ -112,7 +114,9 @@ export function getEquityCurve(trades: Trade[]): { time: string; value: number }
   const startEquity = trades.length > 0 ? trades[0].accountEquityAfter - trades[0].netPnl : 50000;
   const points = [{ time: "2025-03-31", value: startEquity }];
   for (const t of trades) {
-    points.push({ time: format(new Date(t.exitDate), "yyyy-MM-dd"), value: t.accountEquityAfter });
+    try {
+      points.push({ time: format(new Date(t.exitDate || new Date().toISOString()), "yyyy-MM-dd"), value: t.accountEquityAfter });
+    } catch (e) { console.warn("Invalid date in getEquityCurve", e); }
   }
   return points;
 }
@@ -166,9 +170,9 @@ export function getRMultipleDistribution(trades: Trade[]): { range: string; coun
 export function getHourlyHeatmap(trades: Trade[]): { day: number; hour: number; avgPnl: number; count: number }[] {
   const map = new Map<string, { total: number; count: number }>();
   for (const t of trades) {
-    const d = new Date(t.entryDate);
-    const day = d.getDay();
-    const hour = d.getHours();
+    const d = new Date(t.entryDate || new Date().toISOString());
+    const day = d.getDay() || 0;
+    const hour = d.getHours() || 0;
     const key = `${day}-${hour}`;
     const existing = map.get(key) ?? { total: 0, count: 0 };
     existing.total += t.netPnl;
@@ -232,7 +236,7 @@ export interface ComputedChallenge {
 
 export function getComputedChallenge(challenge: PropFirmChallenge, trades: Trade[]): ComputedChallenge {
   const challengeTrades = trades.filter((t) => t.propChallengeId === challenge.id);
-  const sorted = [...challengeTrades].sort((a, b) => new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime());
+  const sorted = [...challengeTrades].sort((a, b) => new Date(a.entryDate || 0).getTime() - new Date(b.entryDate || 0).getTime());
 
   let balance = challenge.accountSize;
   let pnl = 0;
@@ -305,7 +309,7 @@ export function getComputedChallenge(challenge: PropFirmChallenge, trades: Trade
         ? ((hwm - balance) / challenge.accountSize) * 100
         : Math.max(0, ((challenge.accountSize - balance) / challenge.accountSize) * 100));
 
-  const daysUsed = differenceInDays(new Date(), new Date(challenge.startDate));
+  const daysUsed = differenceInDays(new Date(), new Date(challenge.startDate || new Date().toISOString()));
   const daysLeft = challenge.rules.maxDuration > 0 ? challenge.rules.maxDuration - daysUsed : null;
 
   const profitTargetReached = isFutures
