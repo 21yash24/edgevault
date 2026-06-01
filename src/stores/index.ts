@@ -287,7 +287,17 @@ export const usePlaybookStore = create<PlaybookStore>()(
           const items: Playbook[] = [];
           snapshot.forEach((doc) => items.push(doc.data() as Playbook));
           
-          set({ playbooks: items });
+          const localPlaybooks = get().playbooks;
+          if (items.length === 0 && localPlaybooks.length > 0 && db) {
+            // Safe upload: push local to cloud to prevent data loss on update
+            const batch = writeBatch(db);
+            localPlaybooks.forEach(p => {
+              if (db) batch.set(doc(db, `users/${userId}/playbooks`, p.id), p);
+            });
+            batch.commit().catch(console.error);
+          } else {
+            set({ playbooks: items });
+          }
         }, (error) => {
           // Silently ignore permission errors until rules are updated
         });
@@ -642,7 +652,18 @@ export const useNotebookStore = create<NotebookStore>()(
         const unsubDaily = onSnapshot(query(collection(db, `users/${userId}/dailyNotes`)), (snapshot) => {
           const cloudNotes: Record<string, DailyNote> = {};
           snapshot.forEach(doc => { cloudNotes[doc.id] = doc.data() as DailyNote; });
-          set({ notes: cloudNotes });
+          
+          const localNotes = get().notes;
+          if (Object.keys(cloudNotes).length === 0 && Object.keys(localNotes).length > 0 && db) {
+            // Upload local daily logs to cloud
+            const batch = writeBatch(db);
+            Object.values(localNotes).forEach(note => {
+              if (db) batch.set(doc(db, `users/${userId}/dailyNotes`, note.date), note);
+            });
+            batch.commit().catch(console.error);
+          } else {
+            set({ notes: cloudNotes });
+          }
         });
         const unsubCustom = onSnapshot(query(collection(db, `users/${userId}/customNotes`)), (snapshot) => {
           const cloudCustom: Record<string, CustomNote> = {};
