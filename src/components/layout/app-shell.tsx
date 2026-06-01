@@ -1,11 +1,12 @@
 "use client";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
-import { useUIStore, useTradeStore, usePlaybookStore, useAccountStore, usePropFirmStore, useSettingsStore } from "@/stores";
+import { useUIStore, useTradeStore, usePlaybookStore, useAccountStore, usePropFirmStore, useSettingsStore, useNotebookStore } from "@/stores";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { sidebarCollapsed } = useUIStore();
@@ -14,6 +15,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { listenToAccounts } = useAccountStore();
   const { listenToChallenges } = usePropFirmStore();
   const { listenToSettings } = useSettingsStore();
+  const { listenToNotebook } = useNotebookStore();
   const { user, loading, isDemoMode } = useAuth();
   const router = useRouter();
 
@@ -37,15 +39,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       const unsubAccounts = listenToAccounts(user.uid);
       const unsubChallenges = listenToChallenges(user.uid);
       const unsubSettings = listenToSettings(user.uid);
+      const unsubNotebook = listenToNotebook(user.uid);
       return () => {
         unsubTrades();
         unsubPlaybooks();
         unsubAccounts();
         unsubChallenges();
         unsubSettings();
+        unsubNotebook();
       };
     }
-  }, [initializeTrades, listenToTrades, listenToPlaybooks, listenToAccounts, listenToChallenges, listenToSettings, user?.uid]);
+  }, [initializeTrades, listenToTrades, listenToPlaybooks, listenToAccounts, listenToChallenges, listenToSettings, listenToNotebook, user?.uid]);
 
   useEffect(() => {
     if (!loading && !isDemoMode && !user) {
@@ -75,14 +79,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-bg-base relative">
       <Sidebar />
-      <motion.div
-        className="flex flex-col min-h-screen"
-        animate={{ marginLeft: sidebarCollapsed ? 72 : 240 }}
-        transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
+      <div 
+        className={cn(
+          "flex flex-col min-h-screen transition-all duration-200 ease-out",
+          sidebarCollapsed ? "md:ml-[72px]" : "md:ml-[240px]"
+        )}
       >
         <Topbar />
-        <main className="flex-1 p-6 gradient-mesh">{children}</main>
-      </motion.div>
+        <main className="flex-1 p-4 md:p-6 gradient-mesh">{children}</main>
+      </div>
     </div>
   );
 }

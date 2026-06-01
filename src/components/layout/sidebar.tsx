@@ -27,19 +27,36 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { sidebarCollapsed, toggleSidebar } = useUIStore();
+  const { sidebarCollapsed, toggleSidebar, mobileMenuOpen, setMobileMenuOpen } = useUIStore();
 
   return (
-    <motion.aside
-      className="fixed left-0 top-0 h-full z-40 flex flex-col"
-      style={{
-        background: "var(--sidebar-bg)",
-        borderRight: "1px solid var(--sidebar-border)",
-        boxShadow: "4px 0 24px rgba(0,0,0,0.15)",
-      }}
-      animate={{ width: sidebarCollapsed ? 68 : 236 }}
-      transition={{ duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
-    >
+    <>
+      {/* Mobile Overlay */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setMobileMenuOpen(false)}
+            className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-sm"
+          />
+        )}
+      </AnimatePresence>
+
+      <motion.aside
+        className={cn(
+          "fixed left-0 top-0 h-full z-50 flex flex-col md:translate-x-0",
+          mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+        style={{
+          background: "var(--sidebar-bg)",
+          borderRight: "1px solid var(--sidebar-border)",
+          boxShadow: "4px 0 24px rgba(0,0,0,0.15)",
+        }}
+        animate={{ width: sidebarCollapsed ? 68 : 236 }}
+        transition={{ duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
+      >
       {/* Logo */}
       <div
         className="h-16 flex items-center px-3.5 gap-3 flex-shrink-0"
@@ -214,5 +231,6 @@ export function Sidebar() {
         </button>
       </div>
     </motion.aside>
+    </>
   );
 }

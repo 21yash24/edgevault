@@ -1,12 +1,12 @@
 "use client";
-import { Bell, Search, Plus, Moon, Sun, ShieldAlert, Trophy, Zap, Info, X, Slash, Command } from "lucide-react";
+import { Bell, Search, Plus, Moon, Sun, ShieldAlert, Trophy, Zap, Info, X, Slash, Command, Menu } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { useTradeStore } from "@/stores";
+import { useTradeStore, useUIStore } from "@/stores";
 import { formatCurrency } from "@/lib/utils";
 
 const pageTitles: Record<string, { title: string; subtitle: string }> = {
@@ -48,6 +48,7 @@ export function Topbar() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const { trades } = useTradeStore();
+  const { setMobileMenuOpen } = useUIStore();
   
   const pageInfo = pageTitles[pathname] ?? { title: "EdgeVault", subtitle: "Pro Trading OS" };
 
@@ -90,7 +91,13 @@ export function Topbar() {
       }}
     >
       {/* Left: Page title */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 md:gap-4">
+        <button
+          onClick={() => setMobileMenuOpen(true)}
+          className="p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-card md:hidden transition-colors"
+        >
+          <Menu size={20} />
+        </button>
         <AnimatePresence mode="wait">
           <motion.div
             key={pathname}

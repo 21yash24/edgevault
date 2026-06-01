@@ -165,19 +165,7 @@ export const useTradeStore = create<TradeStore>()(
           });
           
           const localTrades = get().trades;
-          if (cloudTrades.length === 0 && localTrades.length > 0 && db) {
-            // Upload local trades to cloud instead of letting empty cloud wipe them out
-            const batch = writeBatch(db);
-            localTrades.forEach(trade => {
-              if (db) {
-                const ref = doc(db, `users/${userId}/trades`, trade.id);
-                batch.set(ref, trade);
-              }
-            });
-            batch.commit().catch(err => console.error("Error syncing local trades to cloud:", err));
-          } else {
-            set({ trades: recalculate(cloudTrades) });
-          }
+          set({ trades: recalculate(cloudTrades) });
         }, (error) => {
           // Silently ignore permission errors until rules are updated
         });
@@ -192,6 +180,8 @@ export const useTradeStore = create<TradeStore>()(
 interface UIStore {
   sidebarCollapsed: boolean;
   toggleSidebar: () => void;
+  mobileMenuOpen: boolean;
+  setMobileMenuOpen: (open: boolean) => void;
   journalView: "list" | "calendar";
   setJournalView: (view: "list" | "calendar") => void;
 }
@@ -199,6 +189,8 @@ interface UIStore {
 export const useUIStore = create<UIStore>()((set) => ({
   sidebarCollapsed: false,
   toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
+  mobileMenuOpen: false,
+  setMobileMenuOpen: (open) => set({ mobileMenuOpen: open }),
   journalView: "list",
   setJournalView: (view) => set({ journalView: view }),
 }));
@@ -295,15 +287,7 @@ export const usePlaybookStore = create<PlaybookStore>()(
           const items: Playbook[] = [];
           snapshot.forEach((doc) => items.push(doc.data() as Playbook));
           
-          const localPlaybooks = get().playbooks;
-          if (items.length === 0 && localPlaybooks.length > 0) {
-            // Upload local playbooks to cloud instead of letting empty cloud wipe them out
-            localPlaybooks.forEach(p => {
-              if (db) setDoc(doc(db, `users/${userId}/playbooks`, p.id), p);
-            });
-          } else {
-            set({ playbooks: items });
-          }
+          set({ playbooks: items });
         }, (error) => {
           // Silently ignore permission errors until rules are updated
         });
@@ -589,6 +573,7 @@ interface NotebookStore {
   deleteCustomNote: (id: string) => void;
   saveTemplate: (template: NotebookTemplate) => void;
   deleteTemplate: (id: string) => void;
+  listenToNotebook: (userId: string) => () => void;
 }
 
 export const useNotebookStore = create<NotebookStore>()(
@@ -620,15 +605,57 @@ export const useNotebookStore = create<NotebookStore>()(
             }
           };
         });
+        const user = auth?.currentUser;
+        if (user && db) {
+          try {
+            const nextState = get().notes[date];
+            if (nextState) setDoc(doc(db, `users/${user.uid}/dailyNotes`, date), nextState);
+          } catch (e) { console.error(e); }
+        }
       },
-      saveCustomNote: (note) => set((state) => ({ customNotes: { ...state.customNotes, [note.id]: note } })),
-      deleteCustomNote: (id) => set((state) => {
-        const next = { ...state.customNotes };
-        delete next[id];
-        return { customNotes: next };
-      }),
-      saveTemplate: (template) => set((state) => ({ templates: [...state.templates.filter(t => t.id !== template.id), template] })),
-      deleteTemplate: (id) => set((state) => ({ templates: state.templates.filter(t => t.id !== id) }))
+      saveCustomNote: (note) => {
+        set((state) => ({ customNotes: { ...state.customNotes, [note.id]: note } }));
+        const user = auth?.currentUser;
+        if (user && db) setDoc(doc(db, `users/${user.uid}/customNotes`, note.id), note).catch(console.error);
+      },
+      deleteCustomNote: (id) => {
+        set((state) => {
+          const next = { ...state.customNotes };
+          delete next[id];
+          return { customNotes: next };
+        });
+        const user = auth?.currentUser;
+        if (user && db) deleteDoc(doc(db, `users/${user.uid}/customNotes`, id)).catch(console.error);
+      },
+      saveTemplate: (template) => {
+        set((state) => ({ templates: [...state.templates.filter(t => t.id !== template.id), template] }));
+        const user = auth?.currentUser;
+        if (user && db) setDoc(doc(db, `users/${user.uid}/notebookTemplates`, template.id), template).catch(console.error);
+      },
+      deleteTemplate: (id) => {
+        set((state) => ({ templates: state.templates.filter(t => t.id !== id) }));
+        const user = auth?.currentUser;
+        if (user && db) deleteDoc(doc(db, `users/${user.uid}/notebookTemplates`, id)).catch(console.error);
+      },
+      listenToNotebook: (userId: string) => {
+        if (!userId || !db) return () => {};
+        const unsubDaily = onSnapshot(query(collection(db, `users/${userId}/dailyNotes`)), (snapshot) => {
+          const cloudNotes: Record<string, DailyNote> = {};
+          snapshot.forEach(doc => { cloudNotes[doc.id] = doc.data() as DailyNote; });
+          set({ notes: cloudNotes });
+        });
+        const unsubCustom = onSnapshot(query(collection(db, `users/${userId}/customNotes`)), (snapshot) => {
+          const cloudCustom: Record<string, CustomNote> = {};
+          snapshot.forEach(doc => { cloudCustom[doc.id] = doc.data() as CustomNote; });
+          set({ customNotes: cloudCustom });
+        });
+        const unsubTemplates = onSnapshot(query(collection(db, `users/${userId}/notebookTemplates`)), (snapshot) => {
+          const cloudTemplates: NotebookTemplate[] = [];
+          snapshot.forEach(doc => { cloudTemplates.push(doc.data() as NotebookTemplate); });
+          if (cloudTemplates.length > 0) set({ templates: cloudTemplates });
+        });
+        return () => { unsubDaily(); unsubCustom(); unsubTemplates(); };
+      }
     }),
     { name: "edgevault-notebook" }
   )
