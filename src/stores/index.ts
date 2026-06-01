@@ -23,7 +23,8 @@ const sanitizeForFirestore = (obj: any): any => {
 };
 
 const recalculate = (trades: Trade[]) => {
-  const sorted = [...trades].sort((a, b) => new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime());
+  const validTrades = trades.filter(t => t && t.entryDate && !isNaN(new Date(t.entryDate).getTime()));
+  const sorted = [...validTrades].sort((a, b) => new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime());
   let equity = 50000;
   return sorted.map(t => {
     equity += t.netPnl;

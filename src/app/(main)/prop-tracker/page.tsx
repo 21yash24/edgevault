@@ -177,7 +177,7 @@ function BulkLinkModal({ challenge, onClose }: { challenge: PropFirmChallenge; o
                             {t.direction}
                           </span>
                         </div>
-                        <div className="text-[9px] text-text-muted mt-0.5">{format(new Date(t.entryDate), "MMM d, h:mm a")}</div>
+                        <div className="text-[9px] text-text-muted mt-0.5">{format(new Date(t.entryDate || new Date().toISOString()), "MMM d, h:mm a")}</div>
                       </div>
                     </div>
                     <div className="font-[family-name:var(--font-space-mono)] font-bold text-xs text-text-primary">
@@ -220,7 +220,7 @@ function ChallengeCard({ challenge }: { challenge: PropFirmChallenge & { hasDail
   const drawdownFromHWM = challenge.rules.trailingDrawdown
     ? ((challenge.highWaterMark - challenge.currentBalance) / challenge.accountSize) * 100
     : Math.max(0, ((challenge.accountSize - challenge.currentBalance) / challenge.accountSize) * 100);
-  const daysUsed = differenceInDays(new Date(), new Date(challenge.startDate));
+  const daysUsed = differenceInDays(new Date(), new Date(challenge.startDate || new Date().toISOString()));
   const daysLeft = challenge.rules.maxDuration > 0 ? challenge.rules.maxDuration - daysUsed : null;
 
   const profitTargetReached = challenge.rules.profitTarget > 0 && challenge.currentPnl >= challenge.rules.profitTarget;
@@ -408,7 +408,7 @@ function ChallengeCard({ challenge }: { challenge: PropFirmChallenge & { hasDail
                       <div className="flex items-center gap-2">
                         <span className="font-[family-name:var(--font-space-mono)] font-bold text-xs leading-none">{t.symbol}</span>
                         <span className="text-[8px] text-text-muted font-bold leading-none select-none">
-                          {format(new Date(t.entryDate), "MMM d")}
+                          {format(new Date(t.entryDate || new Date().toISOString()), "MMM d")}
                         </span>
                       </div>
                     </div>

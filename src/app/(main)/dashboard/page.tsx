@@ -133,7 +133,9 @@ function EquityCurveChart({ data }: { data: { time: string; value: number }[] })
 
 function DailyReportCard({ trades }: { trades: ReturnType<typeof useTradeStore.getState>["trades"] }) {
   const [report, setReport] = useState<DailyReport | null>(null);
-  const todayTrades = useMemo(() => trades.filter(t => isToday(new Date(t.entryDate))), [trades]);
+  const todayTrades = useMemo(() => trades.filter(t => {
+    try { return t.entryDate && !isNaN(new Date(t.entryDate).getTime()) && isToday(new Date(t.entryDate)); } catch { return false; }
+  }), [trades]);
 
   useEffect(() => {
     if (todayTrades.length > 0) {
@@ -639,7 +641,9 @@ export default function DashboardPage() {
     if (timeRange === "1M") cutoff = subMonths(now, 1);
     if (timeRange === "3M") cutoff = subMonths(now, 3);
     
-    return trades.filter((t) => isAfter(new Date(t.entryDate), cutoff));
+    return trades.filter((t) => {
+      try { return t.entryDate && !isNaN(new Date(t.entryDate).getTime()) && isAfter(new Date(t.entryDate), cutoff); } catch { return false; }
+    });
   }, [trades, timeRange]);
 
   const metrics = useMemo(() => calculateMetrics(filteredTrades), [filteredTrades]);
@@ -926,7 +930,7 @@ export default function DashboardPage() {
                 const profitPct = (c.currentPnl / c.accountSize) * 100;
                 const drawdownPct = ((c.highWaterMark - c.currentBalance) / c.accountSize) * 100;
                 const drawdownProgress = (drawdownPct / c.rules.maxDrawdown) * 100;
-                const daysUsed = differenceInDays(new Date(), new Date(c.startDate));
+                const daysUsed = differenceInDays(new Date(), new Date(c.startDate || new Date().toISOString()));
                 const daysLeft = c.rules.maxDuration > 0 ? c.rules.maxDuration - daysUsed : null;
                 return (
                   <Link key={c.id} href="/prop-tracker" className="block p-3 rounded-xl bg-bg-secondary/20 dark:bg-white/[0.01] border border-border-subtle hover:border-accent-violet/30 hover:bg-bg-secondary/40 dark:hover:bg-white/[0.03] transition-all">
