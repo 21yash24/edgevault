@@ -75,7 +75,7 @@ export const useTradeStore = create<TradeStore>()(
         if (user && db) {
           try {
             const cleanTrade = sanitizeForFirestore(newTrade);
-            await setDoc(doc(db, `users/${user.uid}/trades`, newTrade.id), cleanTrade);
+            await setDoc(doc(db, `users/${user.uid}/trades`, newTrade.id), cleanTrade, { merge: true });
           } catch (error: any) {
             console.error("Error syncing trade to cloud:", error);
             if (typeof window !== "undefined") {
@@ -102,7 +102,7 @@ export const useTradeStore = create<TradeStore>()(
             newTrades.forEach(trade => {
               if (db) {
                 const ref = doc(db, `users/${user.uid}/trades`, trade.id);
-                batch.set(ref, sanitizeForFirestore(trade));
+                batch.set(ref, sanitizeForFirestore(trade), { merge: true });
               }
             });
             await batch.commit();
@@ -238,7 +238,7 @@ export const usePlaybookStore = create<PlaybookStore>()(
         const user = auth?.currentUser;
         if (user && db) {
           try {
-            await setDoc(doc(db, `users/${user.uid}/playbooks`, newPlaybook.id), newPlaybook);
+            await setDoc(doc(db, `users/${user.uid}/playbooks`, newPlaybook.id), newPlaybook, { merge: true });
           } catch (error) {
             console.error("Error syncing playbook to cloud:", error);
           }
@@ -340,7 +340,7 @@ export const useAccountStore = create<AccountStore>()(
         const user = auth?.currentUser;
         if (user && db) {
           try {
-            await setDoc(doc(db, `users/${user.uid}/accounts`, newAccount.id), sanitizeForFirestore(newAccount));
+            await setDoc(doc(db, `users/${user.uid}/accounts`, newAccount.id), sanitizeForFirestore(newAccount), { merge: true });
           } catch (error) {
             console.error("Error syncing account to cloud:", error);
           }
@@ -416,7 +416,7 @@ export const usePropFirmStore = create<PropFirmStore>()(
         const user = auth?.currentUser;
         if (user && db) {
           try {
-            await setDoc(doc(db, `users/${user.uid}/challenges`, newChallenge.id), sanitizeForFirestore(newChallenge));
+            await setDoc(doc(db, `users/${user.uid}/challenges`, newChallenge.id), sanitizeForFirestore(newChallenge), { merge: true });
           } catch (error) {
             console.error("Error syncing challenge to cloud:", error);
           }
@@ -637,14 +637,14 @@ export const useNotebookStore = create<NotebookStore>()(
         if (user && db) {
           try {
             const nextState = get().notes[date];
-            if (nextState) setDoc(doc(db, `users/${user.uid}/dailyNotes`, date), nextState);
+            if (nextState) setDoc(doc(db, `users/${user.uid}/dailyNotes`, date), nextState, { merge: true });
           } catch (e) { console.error(e); }
         }
       },
       saveCustomNote: (note) => {
         set((state) => ({ customNotes: { ...state.customNotes, [note.id]: note } }));
         const user = auth?.currentUser;
-        if (user && db) setDoc(doc(db, `users/${user.uid}/customNotes`, note.id), note).catch(console.error);
+        if (user && db) setDoc(doc(db, `users/${user.uid}/customNotes`, note.id), note, { merge: true }).catch(console.error);
       },
       deleteCustomNote: (id) => {
         set((state) => {
@@ -658,7 +658,7 @@ export const useNotebookStore = create<NotebookStore>()(
       saveTemplate: (template) => {
         set((state) => ({ templates: [...state.templates.filter(t => t.id !== template.id), template] }));
         const user = auth?.currentUser;
-        if (user && db) setDoc(doc(db, `users/${user.uid}/notebookTemplates`, template.id), template).catch(console.error);
+        if (user && db) setDoc(doc(db, `users/${user.uid}/notebookTemplates`, template.id), template, { merge: true }).catch(console.error);
       },
       deleteTemplate: (id) => {
         set((state) => ({ templates: state.templates.filter(t => t.id !== id) }));
