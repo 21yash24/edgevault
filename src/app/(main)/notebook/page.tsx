@@ -87,7 +87,7 @@ function DailyLogView() {
     }
   };
 
-  const dailyTrades = useMemo(() => trades.filter((t) => t.entryDate.startsWith(selectedDate)), [trades, selectedDate]);
+  const dailyTrades = useMemo(() => trades.filter((t) => t.entryDate?.startsWith(selectedDate)), [trades, selectedDate]);
   const dailyPnL = useMemo(() => dailyTrades.reduce((sum, t) => sum + t.netPnl, 0), [dailyTrades]);
 
   const changeDate = (days: number) => {

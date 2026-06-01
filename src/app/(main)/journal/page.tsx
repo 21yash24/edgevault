@@ -288,7 +288,7 @@ function CalendarHeatmapView({ trades }: { trades: Trade[] }) {
     return result;
   }, [allGridSlots]);
 
-  const selectedTrades = selectedDay ? trades.filter(t => t.entryDate.startsWith(selectedDay)) : [];
+  const selectedTrades = selectedDay ? trades.filter(t => t.entryDate?.startsWith(selectedDay)) : [];
 
   return (
     <div className="space-y-6">
@@ -314,7 +314,7 @@ function CalendarHeatmapView({ trades }: { trades: Trade[] }) {
 
       <div className="space-y-3">
         {weeks.map((week, weekIdx) => {
-          const weekTrades = trades.filter(t => week.some(day => { if (!day) return false; return t.entryDate.startsWith(format(day, "yyyy-MM-dd")); }));
+          const weekTrades = trades.filter(t => week.some(day => { if (!day) return false; return t.entryDate?.startsWith(format(day, "yyyy-MM-dd")); }));
           const weekPnl = weekTrades.reduce((s, t) => s + t.netPnl, 0);
           const weekWins = weekTrades.filter(t => t.result === "win").length;
           const weekWr = weekTrades.length > 0 ? (weekWins / weekTrades.length) * 100 : 0;
@@ -326,7 +326,7 @@ function CalendarHeatmapView({ trades }: { trades: Trade[] }) {
                 const dateStr = format(day, "yyyy-MM-dd");
                 const stat = dailyStats.find(d => d.date === dateStr);
                 const isSelected = selectedDay === dateStr;
-                const dayTrades = trades.filter(t => t.entryDate.startsWith(dateStr));
+                const dayTrades = trades.filter(t => t.entryDate?.startsWith(dateStr));
                 const winCount = dayTrades.filter(t => t.result === "win").length;
                 const winRate = dayTrades.length > 0 ? (winCount / dayTrades.length) * 100 : 0;
 

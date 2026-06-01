@@ -70,7 +70,7 @@ function generateAlerts(
   }
 
   const todayTrades = trades.filter((t) => {
-    try { return t.entryDate.startsWith(format(now, "yyyy-MM-dd")); } catch { return false; }
+    try { return t.entryDate?.startsWith(format(now, "yyyy-MM-dd")); } catch { return false; }
   });
   const todayPnl = todayTrades.reduce((s, t) => s + t.netPnl, 0);
   if (todayPnl < -300) {

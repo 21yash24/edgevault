@@ -646,7 +646,7 @@ export default function DashboardPage() {
   const equityData = useMemo(() => getEquityCurve(filteredTrades), [filteredTrades]);
   const recentTrades = useMemo(() => [...trades].reverse().slice(0, 5), [trades]);
   const todayStr = format(new Date(), "yyyy-MM-dd");
-  const todayTrades = useMemo(() => trades.filter((t) => t.entryDate.startsWith(todayStr)), [trades, todayStr]);
+  const todayTrades = useMemo(() => trades.filter((t) => t.entryDate?.startsWith(todayStr)), [trades, todayStr]);
   const todayPnl = todayTrades.reduce((s, t) => s + t.netPnl, 0);
 
   const computedChallenges = useMemo(() => {
