@@ -76,8 +76,11 @@ export const useTradeStore = create<TradeStore>()(
           try {
             const cleanTrade = sanitizeForFirestore(newTrade);
             await setDoc(doc(db, `users/${user.uid}/trades`, newTrade.id), cleanTrade);
-          } catch (error) {
+          } catch (error: any) {
             console.error("Error syncing trade to cloud:", error);
+            if (typeof window !== "undefined") {
+              alert("Failed to sync trade to cloud: " + error.message);
+            }
           }
         }
       },
@@ -177,11 +180,12 @@ export const useTradeStore = create<TradeStore>()(
     { 
       name: "edgevault-trades",
       merge: (persistedState: any, currentState) => {
-        if (!persistedState) return currentState;
-        const trades = Array.isArray(persistedState.trades) 
-          ? persistedState.trades.filter((t: any) => t && t.id && t.entryDate) 
-          : [];
-        return { ...currentState, ...persistedState, trades };
+        if (!persistedState || typeof persistedState !== "object") return currentState;
+        const state = { ...persistedState };
+        if (Array.isArray(state.trades)) {
+          state.trades = state.trades.filter((t: any) => t && t.id);
+        }
+        return { ...currentState, ...state };
       }
     }
   )
@@ -306,11 +310,12 @@ export const usePlaybookStore = create<PlaybookStore>()(
     { 
       name: "edgevault-playbooks",
       merge: (persistedState: any, currentState) => {
-        if (!persistedState) return currentState;
-        const playbooks = Array.isArray(persistedState.playbooks) 
-          ? persistedState.playbooks.filter((p: any) => p && p.id) 
-          : [];
-        return { ...currentState, ...persistedState, playbooks };
+        if (!persistedState || typeof persistedState !== "object") return currentState;
+        const state = { ...persistedState };
+        if (Array.isArray(state.playbooks)) {
+          state.playbooks = state.playbooks.filter((p: any) => p && p.id);
+        }
+        return { ...currentState, ...state };
       }
     }
   )
@@ -381,11 +386,12 @@ export const useAccountStore = create<AccountStore>()(
     { 
       name: "edgevault-accounts",
       merge: (persistedState: any, currentState) => {
-        if (!persistedState) return currentState;
-        const accounts = Array.isArray(persistedState.accounts) 
-          ? persistedState.accounts.filter((a: any) => a && a.id) 
-          : [];
-        return { ...currentState, ...persistedState, accounts };
+        if (!persistedState || typeof persistedState !== "object") return currentState;
+        const state = { ...persistedState };
+        if (Array.isArray(state.accounts)) {
+          state.accounts = state.accounts.filter((a: any) => a && a.id);
+        }
+        return { ...currentState, ...state };
       }
     }
   )
@@ -456,11 +462,12 @@ export const usePropFirmStore = create<PropFirmStore>()(
     { 
       name: "edgevault-propfirm",
       merge: (persistedState: any, currentState) => {
-        if (!persistedState) return currentState;
-        const challenges = Array.isArray(persistedState.challenges) 
-          ? persistedState.challenges.filter((c: any) => c && c.id) 
-          : [];
-        return { ...currentState, ...persistedState, challenges };
+        if (!persistedState || typeof persistedState !== "object") return currentState;
+        const state = { ...persistedState };
+        if (Array.isArray(state.challenges)) {
+          state.challenges = state.challenges.filter((c: any) => c && c.id);
+        }
+        return { ...currentState, ...state };
       }
     }
   )
@@ -682,13 +689,13 @@ export const useNotebookStore = create<NotebookStore>()(
     { 
       name: "edgevault-notebook",
       merge: (persistedState: any, currentState) => {
-        if (!persistedState) return currentState;
-        const entries = Array.isArray(persistedState.entries) 
-          ? persistedState.entries.filter((e: any) => e && e.id) 
-          : [];
-        return { ...currentState, ...persistedState, entries };
+        if (!persistedState || typeof persistedState !== "object") return currentState;
+        const state = { ...persistedState };
+        if (Array.isArray(state.notes)) {
+          state.notes = state.notes.filter((n: any) => n && n.id);
+        }
+        return { ...currentState, ...state };
       }
     }
   )
 );
-
