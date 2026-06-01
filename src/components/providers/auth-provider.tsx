@@ -40,6 +40,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     if (!isDemoMode && auth) {
       await signOut(auth);
+      const keysToRemove = [
+        "edgevault-trades",
+        "edgevault-playbooks",
+        "edgevault-accounts",
+        "edgevault-propfirm",
+        "edgevault-settings",
+        "edgevault-risk",
+        "edgevault-notebook"
+      ];
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      window.location.href = "/login";
     }
   };
 

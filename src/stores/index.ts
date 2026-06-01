@@ -287,17 +287,7 @@ export const usePlaybookStore = create<PlaybookStore>()(
           const items: Playbook[] = [];
           snapshot.forEach((doc) => items.push(doc.data() as Playbook));
           
-          const localPlaybooks = get().playbooks;
-          if (items.length === 0 && localPlaybooks.length > 0 && db) {
-            // Safe upload: push local to cloud to prevent data loss on update
-            const batch = writeBatch(db);
-            localPlaybooks.forEach(p => {
-              if (db) batch.set(doc(db, `users/${userId}/playbooks`, p.id), p);
-            });
-            batch.commit().catch(console.error);
-          } else {
-            set({ playbooks: items });
-          }
+          set({ playbooks: items });
         }, (error) => {
           // Silently ignore permission errors until rules are updated
         });
@@ -363,15 +353,7 @@ export const useAccountStore = create<AccountStore>()(
           const items: TradingAccount[] = [];
           snapshot.forEach((doc) => items.push(doc.data() as TradingAccount));
           
-          const localAccounts = get().accounts;
-          if (items.length === 0 && localAccounts.length > 0) {
-            // Upload local accounts to cloud
-            localAccounts.forEach(a => {
-              if (db) setDoc(doc(db, `users/${userId}/accounts`, a.id), a);
-            });
-          } else {
-            set({ accounts: items });
-          }
+          set({ accounts: items });
         }, (error) => {
           // Silently ignore permission errors until rules are updated
         });
@@ -437,15 +419,7 @@ export const usePropFirmStore = create<PropFirmStore>()(
           const items: PropFirmChallenge[] = [];
           snapshot.forEach((doc) => items.push(doc.data() as PropFirmChallenge));
           
-          const localChallenges = get().challenges;
-          if (items.length === 0 && localChallenges.length > 0) {
-            // Upload local challenges to cloud
-            localChallenges.forEach(c => {
-              if (db) setDoc(doc(db, `users/${userId}/challenges`, c.id), c);
-            });
-          } else {
-            set({ challenges: items });
-          }
+          set({ challenges: items });
         }, (error) => {
           // Silently ignore permission errors until rules are updated
         });
@@ -653,17 +627,7 @@ export const useNotebookStore = create<NotebookStore>()(
           const cloudNotes: Record<string, DailyNote> = {};
           snapshot.forEach(doc => { cloudNotes[doc.id] = doc.data() as DailyNote; });
           
-          const localNotes = get().notes;
-          if (Object.keys(cloudNotes).length === 0 && Object.keys(localNotes).length > 0 && db) {
-            // Upload local daily logs to cloud
-            const batch = writeBatch(db);
-            Object.values(localNotes).forEach(note => {
-              if (db) batch.set(doc(db, `users/${userId}/dailyNotes`, note.date), note);
-            });
-            batch.commit().catch(console.error);
-          } else {
-            set({ notes: cloudNotes });
-          }
+          set({ notes: cloudNotes });
         });
         const unsubCustom = onSnapshot(query(collection(db, `users/${userId}/customNotes`)), (snapshot) => {
           const cloudCustom: Record<string, CustomNote> = {};
