@@ -247,14 +247,18 @@ export function getComputedChallenge(challenge: PropFirmChallenge, trades: Trade
   let hasDailyLossBreach = false;
   let hasDrawdownBreach = false;
 
-  const isFutures = challenge.rules.isFutures;
+  const rules = challenge.rules || {
+    firmName: challenge.firmName, profitTarget: 0, dailyLossLimit: 0, maxDrawdown: 0,
+    minTradingDays: 0, maxDuration: 0, trailingDrawdown: false, newsRestriction: false, weekendHolding: false
+  };
+  const isFutures = rules.isFutures;
 
-  const dailyLossLimitVal = challenge.rules.dailyLossLimit
-    ? (isFutures ? challenge.rules.dailyLossLimit : challenge.accountSize * (challenge.rules.dailyLossLimit / 100))
+  const dailyLossLimitVal = rules.dailyLossLimit
+    ? (isFutures ? rules.dailyLossLimit : challenge.accountSize * (rules.dailyLossLimit / 100))
     : 0;
 
-  const maxDrawdownVal = challenge.rules.maxDrawdown
-    ? (isFutures ? challenge.rules.maxDrawdown : challenge.accountSize * (challenge.rules.maxDrawdown / 100))
+  const maxDrawdownVal = rules.maxDrawdown
+    ? (isFutures ? rules.maxDrawdown : challenge.accountSize * (rules.maxDrawdown / 100))
     : 0;
 
   for (const t of sorted) {
@@ -265,7 +269,7 @@ export function getComputedChallenge(challenge: PropFirmChallenge, trades: Trade
       hwm = balance;
     }
 
-    const drawdown = challenge.rules.trailingDrawdown
+    const drawdown = rules.trailingDrawdown
       ? hwm - balance
       : challenge.accountSize - balance;
 
@@ -273,7 +277,7 @@ export function getComputedChallenge(challenge: PropFirmChallenge, trades: Trade
       hasDrawdownBreach = true;
     }
 
-    const dateStr = t.entryDate.split("T")[0];
+    const dateStr = (t.entryDate || new Date().toISOString()).split("T")[0];
     uniqueDays.add(dateStr);
     dailyPnls[dateStr] = (dailyPnls[dateStr] || 0) + t.netPnl;
 
@@ -290,11 +294,11 @@ export function getComputedChallenge(challenge: PropFirmChallenge, trades: Trade
     status = "breached";
   } else if (challenge.status === "active") {
     const targetPnl = isFutures
-      ? challenge.rules.profitTarget
-      : challenge.accountSize * (challenge.rules.profitTarget / 100);
+      ? rules.profitTarget
+      : challenge.accountSize * (rules.profitTarget / 100);
 
-    const targetReached = challenge.rules.profitTarget > 0 && pnl >= targetPnl;
-    const minDaysMet = tradingDays >= challenge.rules.minTradingDays;
+    const targetReached = rules.profitTarget > 0 && pnl >= targetPnl;
+    const minDaysMet = tradingDays >= rules.minTradingDays;
     if (targetReached && minDaysMet) {
       status = "passed";
     }
@@ -304,19 +308,19 @@ export function getComputedChallenge(challenge: PropFirmChallenge, trades: Trade
   // For drawdowns, it's raw drawdown and absolute max drawdown limit
   const profitPct = isFutures ? pnl : (pnl / challenge.accountSize) * 100;
   const drawdownPct = isFutures 
-    ? (challenge.rules.trailingDrawdown ? (hwm - balance) : Math.max(0, challenge.accountSize - balance))
-    : (challenge.rules.trailingDrawdown
+    ? (rules.trailingDrawdown ? (hwm - balance) : Math.max(0, challenge.accountSize - balance))
+    : (rules.trailingDrawdown
         ? ((hwm - balance) / challenge.accountSize) * 100
         : Math.max(0, ((challenge.accountSize - balance) / challenge.accountSize) * 100));
 
   const daysUsed = differenceInDays(new Date(), new Date(challenge.startDate || new Date().toISOString()));
-  const daysLeft = challenge.rules.maxDuration > 0 ? challenge.rules.maxDuration - daysUsed : null;
+  const daysLeft = rules.maxDuration > 0 ? rules.maxDuration - daysUsed : null;
 
   const profitTargetReached = isFutures
-    ? (challenge.rules.profitTarget > 0 && pnl >= challenge.rules.profitTarget)
-    : (challenge.rules.profitTarget > 0 && profitPct >= challenge.rules.profitTarget);
+    ? (rules.profitTarget > 0 && pnl >= rules.profitTarget)
+    : (rules.profitTarget > 0 && profitPct >= rules.profitTarget);
 
-  const minDaysMet = tradingDays >= challenge.rules.minTradingDays;
+  const minDaysMet = tradingDays >= rules.minTradingDays;
 
   return {
     currentBalance: parseFloat(balance.toFixed(2)),

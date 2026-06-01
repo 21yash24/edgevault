@@ -216,17 +216,22 @@ function ChallengeCard({ challenge }: { challenge: PropFirmChallenge & { hasDail
     return allTrades.filter((t) => t.propChallengeId === challenge.id);
   }, [allTrades, challenge.id]);
 
+  const rules = challenge.rules || {
+    firmName: challenge.firmName, profitTarget: 0, dailyLossLimit: 0, maxDrawdown: 0,
+    minTradingDays: 0, maxDuration: 0, trailingDrawdown: false, newsRestriction: false, weekendHolding: false
+  };
+
   const profitPct = (challenge.currentPnl / challenge.accountSize) * 100;
-  const drawdownFromHWM = challenge.rules.trailingDrawdown
+  const drawdownFromHWM = rules.trailingDrawdown
     ? ((challenge.highWaterMark - challenge.currentBalance) / challenge.accountSize) * 100
     : Math.max(0, ((challenge.accountSize - challenge.currentBalance) / challenge.accountSize) * 100);
   const daysUsed = differenceInDays(new Date(), new Date(challenge.startDate || new Date().toISOString()));
-  const daysLeft = challenge.rules.maxDuration > 0 ? challenge.rules.maxDuration - daysUsed : null;
+  const daysLeft = rules.maxDuration > 0 ? rules.maxDuration - daysUsed : null;
 
-  const profitTargetReached = challenge.rules.profitTarget > 0 && challenge.currentPnl >= challenge.rules.profitTarget;
+  const profitTargetReached = rules.profitTarget > 0 && challenge.currentPnl >= rules.profitTarget;
   const dailyLimitBreached = challenge.hasDailyLossBreach;
   const drawdownBreached = challenge.hasDrawdownBreach;
-  const minDaysMet = challenge.tradingDays >= challenge.rules.minTradingDays;
+  const minDaysMet = challenge.tradingDays >= rules.minTradingDays;
 
   return (
     <GlassCard className={cn(
@@ -245,7 +250,7 @@ function ChallengeCard({ challenge }: { challenge: PropFirmChallenge & { hasDail
               "bg-accent-coral/10 text-accent-coral shadow-[0_0_10px_rgba(255,45,85,0.2)]")}>
               {challenge.status}
             </span>
-            {challenge.rules.isFutures && (
+            {rules.isFutures && (
               <span className="text-[8px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider leading-none bg-accent-blue/10 text-accent-blue border border-accent-blue/20">
                 FUTURES
               </span>
@@ -269,31 +274,31 @@ function ChallengeCard({ challenge }: { challenge: PropFirmChallenge & { hasDail
       {/* Progress Bars */}
       <div className="space-y-3.5 mb-4">
         <ProgressBar 
-          value={challenge.rules.isFutures ? challenge.currentPnl : profitPct} 
-          max={challenge.rules.profitTarget} 
+          value={rules.isFutures ? challenge.currentPnl : profitPct} 
+          max={rules.profitTarget} 
           label="Profit Target" 
           color="bg-accent-green" 
-          isCurrency={challenge.rules.isFutures} 
+          isCurrency={rules.isFutures} 
         />
         <ProgressBar 
-          value={challenge.rules.isFutures 
-            ? (challenge.rules.trailingDrawdown ? (challenge.highWaterMark - challenge.currentBalance) : Math.max(0, challenge.accountSize - challenge.currentBalance)) 
+          value={rules.isFutures 
+            ? (rules.trailingDrawdown ? (challenge.highWaterMark - challenge.currentBalance) : Math.max(0, challenge.accountSize - challenge.currentBalance)) 
             : drawdownFromHWM} 
-          max={challenge.rules.maxDrawdown} 
-          label={challenge.rules.trailingDrawdown ? "Trailing Drawdown" : "Max Drawdown"} 
+          max={rules.maxDrawdown} 
+          label={rules.trailingDrawdown ? "Trailing Drawdown" : "Max Drawdown"} 
           color="bg-accent-coral" 
           danger 
-          isCurrency={challenge.rules.isFutures} 
+          isCurrency={rules.isFutures} 
         />
       </div>
 
       {/* Stats Grid */}
-      <div className={cn("grid gap-3 mb-4 select-none", challenge.rules.maxContracts ? "grid-cols-2 sm:grid-cols-5" : "grid-cols-2 sm:grid-cols-4")}>
+      <div className={cn("grid gap-3 mb-4 select-none", rules.maxContracts ? "grid-cols-2 sm:grid-cols-5" : "grid-cols-2 sm:grid-cols-4")}>
         <div className="glass-static p-2.5 rounded-xl text-center">
           <Calendar size={12} className="mx-auto text-accent-violet mb-1" />
           <div className="text-[8px] text-text-muted uppercase font-bold tracking-wider">Trading Days</div>
           <div className="font-[family-name:var(--font-space-mono)] text-xs font-black mt-0.5">
-            {challenge.tradingDays}/{challenge.rules.minTradingDays}
+            {challenge.tradingDays}/{rules.minTradingDays}
           </div>
         </div>
         {daysLeft !== null && (
@@ -313,11 +318,11 @@ function ChallengeCard({ challenge }: { challenge: PropFirmChallenge & { hasDail
           <div className="text-[8px] text-text-muted uppercase font-bold tracking-wider">HWM</div>
           <div className="font-[family-name:var(--font-space-mono)] text-xs font-black mt-0.5">${challenge.highWaterMark.toLocaleString()}</div>
         </div>
-        {challenge.rules.maxContracts && (
+        {rules.maxContracts && (
           <div className="glass-static p-2.5 rounded-xl text-center">
             <Zap size={12} className="mx-auto text-accent-blue mb-1" />
             <div className="text-[8px] text-text-muted uppercase font-bold tracking-wider">Max Size</div>
-            <div className="font-[family-name:var(--font-space-mono)] text-xs font-black mt-0.5">{challenge.rules.maxContracts} Contracts</div>
+            <div className="font-[family-name:var(--font-space-mono)] text-xs font-black mt-0.5">{rules.maxContracts} Contracts</div>
           </div>
         )}
       </div>
@@ -327,22 +332,22 @@ function ChallengeCard({ challenge }: { challenge: PropFirmChallenge & { hasDail
         <div className="text-[8px] text-text-muted uppercase tracking-wider mb-1 font-bold">Rule Compliance Status</div>
         {[
           { 
-            label: `Profit target: ${challenge.rules.isFutures ? formatCurrency(challenge.rules.profitTarget) : `${challenge.rules.profitTarget}%`}`, 
+            label: `Profit target: ${rules.isFutures ? formatCurrency(rules.profitTarget) : `${rules.profitTarget}%`}`, 
             ok: profitTargetReached, 
             icon: Target 
           },
           { 
-            label: `Min trading days: ${challenge.rules.minTradingDays}`, 
+            label: `Min trading days: ${rules.minTradingDays}`, 
             ok: minDaysMet, 
             icon: Calendar 
           },
           { 
-            label: `Daily loss limit: ${challenge.rules.isFutures ? (challenge.rules.dailyLossLimit > 0 ? formatCurrency(challenge.rules.dailyLossLimit) : "None") : `${challenge.rules.dailyLossLimit}%`}`, 
+            label: `Daily loss limit: ${rules.isFutures ? (rules.dailyLossLimit > 0 ? formatCurrency(rules.dailyLossLimit) : "None") : `${rules.dailyLossLimit}%`}`, 
             ok: !dailyLimitBreached, 
             icon: Shield 
           },
           { 
-            label: `Max drawdown: ${challenge.rules.isFutures ? formatCurrency(challenge.rules.maxDrawdown) : `${challenge.rules.maxDrawdown}%`}${challenge.rules.trailingDrawdown ? " (trailing)" : ""}`, 
+            label: `Max drawdown: ${rules.isFutures ? formatCurrency(rules.maxDrawdown) : `${rules.maxDrawdown}%`}${rules.trailingDrawdown ? " (trailing)" : ""}`, 
             ok: !drawdownBreached, 
             icon: AlertTriangle 
           },
@@ -352,10 +357,10 @@ function ChallengeCard({ challenge }: { challenge: PropFirmChallenge & { hasDail
             <span className="text-text-secondary font-medium">{rule.label}</span>
           </div>
         ))}
-        {challenge.rules.newsRestriction && (
+        {rules.newsRestriction && (
           <div className="flex items-center gap-2 text-xs"><AlertTriangle size={12} className="text-yellow-500" /><span className="text-text-secondary font-medium">News trading restricted</span></div>
         )}
-        {!challenge.rules.weekendHolding && (
+        {!rules.weekendHolding && (
           <div className="flex items-center gap-2 text-xs"><AlertTriangle size={12} className="text-yellow-500" /><span className="text-text-secondary font-medium">No weekend holding</span></div>
         )}
       </div>
