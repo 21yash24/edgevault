@@ -174,7 +174,16 @@ export const useTradeStore = create<TradeStore>()(
         return unsubscribe;
       },
     }),
-    { name: "edgevault-trades" }
+    { 
+      name: "edgevault-trades",
+      merge: (persistedState: any, currentState) => {
+        if (!persistedState) return currentState;
+        const trades = Array.isArray(persistedState.trades) 
+          ? persistedState.trades.filter((t: any) => t && t.id && t.entryDate) 
+          : [];
+        return { ...currentState, ...persistedState, trades };
+      }
+    }
   )
 );
 
@@ -294,7 +303,16 @@ export const usePlaybookStore = create<PlaybookStore>()(
         });
       },
     }),
-    { name: "edgevault-playbooks" }
+    { 
+      name: "edgevault-playbooks",
+      merge: (persistedState: any, currentState) => {
+        if (!persistedState) return currentState;
+        const playbooks = Array.isArray(persistedState.playbooks) 
+          ? persistedState.playbooks.filter((p: any) => p && p.id) 
+          : [];
+        return { ...currentState, ...persistedState, playbooks };
+      }
+    }
   )
 );
 
@@ -360,7 +378,16 @@ export const useAccountStore = create<AccountStore>()(
         });
       },
     }),
-    { name: "edgevault-accounts" }
+    { 
+      name: "edgevault-accounts",
+      merge: (persistedState: any, currentState) => {
+        if (!persistedState) return currentState;
+        const accounts = Array.isArray(persistedState.accounts) 
+          ? persistedState.accounts.filter((a: any) => a && a.id) 
+          : [];
+        return { ...currentState, ...persistedState, accounts };
+      }
+    }
   )
 );
 
@@ -426,7 +453,16 @@ export const usePropFirmStore = create<PropFirmStore>()(
         });
       },
     }),
-    { name: "edgevault-propfirm" }
+    { 
+      name: "edgevault-propfirm",
+      merge: (persistedState: any, currentState) => {
+        if (!persistedState) return currentState;
+        const challenges = Array.isArray(persistedState.challenges) 
+          ? persistedState.challenges.filter((c: any) => c && c.id) 
+          : [];
+        return { ...currentState, ...persistedState, challenges };
+      }
+    }
   )
 );
 
@@ -643,7 +679,16 @@ export const useNotebookStore = create<NotebookStore>()(
         return () => { unsubDaily(); unsubCustom(); unsubTemplates(); };
       }
     }),
-    { name: "edgevault-notebook" }
+    { 
+      name: "edgevault-notebook",
+      merge: (persistedState: any, currentState) => {
+        if (!persistedState) return currentState;
+        const entries = Array.isArray(persistedState.entries) 
+          ? persistedState.entries.filter((e: any) => e && e.id) 
+          : [];
+        return { ...currentState, ...persistedState, entries };
+      }
+    }
   )
 );
 
