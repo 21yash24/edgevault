@@ -11,6 +11,70 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { cn, formatCurrency } from "@/lib/utils";
 import { format, isToday, subDays } from "date-fns";
 import html2canvas from "html2canvas";
+import { RichCanvas } from "@/components/ui/rich-canvas";
+
+// ----------------------------------------------------------------------
+// Mini Calendar Component
+// ----------------------------------------------------------------------
+function MiniCalendar({ selectedDate, onSelect }: { selectedDate: string, onSelect: (date: string) => void }) {
+  const { notes } = useNotebookStore();
+  const current = new Date(selectedDate);
+  const monthStart = new Date(current.getFullYear(), current.getMonth(), 1);
+  const monthEnd = new Date(current.getFullYear(), current.getMonth() + 1, 0);
+  
+  const daysInMonth = monthEnd.getDate();
+  const startDayOfWeek = monthStart.getDay(); // 0 is Sunday
+  
+  const days = Array.from({ length: 42 }, (_, i) => {
+    const dayNumber = i - startDayOfWeek + 1;
+    if (dayNumber <= 0 || dayNumber > daysInMonth) return null;
+    const d = new Date(current.getFullYear(), current.getMonth(), dayNumber);
+    return { date: d.toISOString().split("T")[0], dayNumber };
+  });
+
+  const weekDays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+  return (
+    <div className="bg-bg-card border border-border-subtle rounded-2xl p-4 shadow-sm w-full">
+      <div className="flex justify-between items-center mb-4">
+        <button onClick={() => {
+          const prev = new Date(current.getFullYear(), current.getMonth() - 1, 1);
+          onSelect(prev.toISOString().split("T")[0]);
+        }} className="text-text-muted hover:text-text-primary p-1"><ArrowLeft size={14}/></button>
+        <span className="text-sm font-bold text-text-primary">{format(current, "MMMM yyyy")}</span>
+        <button onClick={() => {
+          const next = new Date(current.getFullYear(), current.getMonth() + 1, 1);
+          onSelect(next.toISOString().split("T")[0]);
+        }} className="text-text-muted hover:text-text-primary p-1"><ArrowRight size={14}/></button>
+      </div>
+      
+      <div className="grid grid-cols-7 gap-1 mb-2">
+        {weekDays.map(d => <div key={d} className="text-[10px] font-black text-text-muted text-center uppercase">{d}</div>)}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {days.map((day, i) => {
+          if (!day) return <div key={i} className="aspect-square"></div>;
+          const isSelected = day.date === selectedDate;
+          const hasNote = !!notes[day.date] && Object.values(notes[day.date]).some(v => v !== "" && v !== 3 && v !== false);
+          return (
+            <button
+              key={i}
+              onClick={() => onSelect(day.date)}
+              className={cn(
+                "aspect-square flex items-center justify-center rounded-lg text-xs font-medium transition-all relative group",
+                isSelected ? "bg-accent-violet text-white shadow-md shadow-accent-violet/20" : "hover:bg-bg-secondary text-text-secondary hover:text-text-primary",
+                isToday(new Date(day.date)) && !isSelected && "text-accent-blue font-bold border border-accent-blue/30"
+              )}
+            >
+              {day.dayNumber}
+              {hasNote && !isSelected && <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-accent-green"></span>}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 // ----------------------------------------------------------------------
 // Sub-component: The Daily Log View
@@ -38,6 +102,8 @@ function DailyLogView() {
   const intraTextareaRef = useRef<HTMLTextAreaElement>(null);
   const postTextareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const [isGeneratingBriefing, setIsGeneratingBriefing] = useState(false);
 
   const activeNote = useMemo(() => {
     return notes[selectedDate] || {
@@ -96,6 +162,27 @@ function DailyLogView() {
     setSelectedDate(parsed.toISOString().split("T")[0]);
   };
 
+  const handleGenerateBriefing = async () => {
+    setIsGeneratingBriefing(true);
+    try {
+      const recentTrades = trades.slice(-5);
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "daily-briefing", recentTrades, date: selectedDate })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const updatedPlan = preMarketPlan + (preMarketPlan ? "<br><br>" : "") + "<h3>Zella AI Briefing</h3><p>" + data.text.replace(/\n/g, "<br>") + "</p>";
+        setPreMarketPlan(updatedPlan);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsGeneratingBriefing(false);
+    }
+  };
+
   return (
     <div className="w-full relative" ref={containerRef}>
       {/* Date Navigation */}
@@ -131,8 +218,32 @@ function DailyLogView() {
         </div>
       </div>
 
-      <div className="space-y-16">
-        <section className="space-y-6">
+      <div className="flex flex-col lg:flex-row gap-8">
+        {/* Left Sidebar (Calendar & AI) */}
+        <div className="w-full lg:w-72 flex-shrink-0 space-y-6">
+          <MiniCalendar selectedDate={selectedDate} onSelect={setSelectedDate} />
+          
+          <div className="bg-bg-card border border-border-subtle rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="flex items-center gap-2 text-accent-blue">
+              <Brain size={18} />
+              <h3 className="font-bold text-sm tracking-wide">Zella AI</h3>
+            </div>
+            <p className="text-xs text-text-muted leading-relaxed">
+              Generate a "Start My Day" briefing based on your recent trades and current market conditions.
+            </p>
+            <button 
+              onClick={handleGenerateBriefing}
+              disabled={isGeneratingBriefing}
+              className="w-full py-2.5 rounded-xl bg-accent-blue/10 text-accent-blue border border-accent-blue/20 hover:bg-accent-blue/20 transition-all font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {isGeneratingBriefing ? <span className="animate-pulse">Analyzing...</span> : "Generate Briefing"}
+            </button>
+          </div>
+        </div>
+
+        {/* Main Canvas Area */}
+        <div className="flex-1 min-w-0 space-y-16">
+          <section className="space-y-6">
           <div className="flex items-center gap-3 text-text-primary border-b border-border-subtle/30 pb-2">
             <CloudSun size={20} className="text-accent-violet" />
             <h2 className="text-xl font-bold tracking-tight">Morning Context</h2>
@@ -176,7 +287,7 @@ function DailyLogView() {
             <Target size={20} className="text-accent-blue" />
             <h2 className="text-xl font-bold tracking-tight">Pre-Market Gameplan</h2>
           </div>
-          <textarea ref={preTextareaRef} value={preMarketPlan} onChange={(e) => setPreMarketPlan(e.target.value)} placeholder="What is the roadmap for today?" className="w-full min-h-[100px] bg-transparent border-none p-0 text-sm md:text-base text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:ring-0 resize-none leading-relaxed" />
+          <RichCanvas value={preMarketPlan} onChange={setPreMarketPlan} placeholder="What is the roadmap for today?" minHeight="120px" />
         </section>
 
         <section className="space-y-4 group">
@@ -184,7 +295,7 @@ function DailyLogView() {
             <Sun size={20} className="text-accent-coral" />
             <h2 className="text-xl font-bold tracking-tight">Intraday Observations</h2>
           </div>
-          <textarea ref={intraTextareaRef} value={intradayNotes} onChange={(e) => setIntradayNotes(e.target.value)} placeholder="Live thoughts, emotional state changes..." className="w-full min-h-[100px] bg-transparent border-none p-0 text-sm md:text-base text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:ring-0 resize-none leading-relaxed" />
+          <RichCanvas value={intradayNotes} onChange={setIntradayNotes} placeholder="Live thoughts, emotional state changes..." minHeight="120px" />
         </section>
 
         <section className="space-y-6 group">
@@ -206,7 +317,7 @@ function DailyLogView() {
               })}
             </div>
           </div>
-          <textarea ref={postTextareaRef} value={postMarketReview} onChange={(e) => setPostMarketReview(e.target.value)} placeholder="Lessons learned today? Adjustments?" className="w-full min-h-[150px] bg-transparent border-none p-0 text-sm md:text-base text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:ring-0 resize-none leading-relaxed" />
+          <RichCanvas value={postMarketReview} onChange={setPostMarketReview} placeholder="How did the execution align with the gameplan? What did you learn?" minHeight="120px" />
         </section>
 
         <section className="space-y-6 pt-8 border-t border-border-subtle/30">
@@ -244,6 +355,7 @@ function DailyLogView() {
              <div className="text-center py-10 bg-bg-card/20 rounded-2xl border border-dashed border-border-subtle/50"><Flame size={24} className="mx-auto opacity-20 mb-3" /><p className="text-sm font-semibold text-text-muted">No trades logged.</p></div>
           )}
         </section>
+        </div>
       </div>
 
       <div className="fixed bottom-8 right-8 z-50">

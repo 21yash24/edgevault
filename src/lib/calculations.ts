@@ -10,6 +10,7 @@ export function calculateMetrics(trades: Trade[]): PerformanceMetrics {
       sharpeRatio: 0, sortinoRatio: 0, expectancy: 0,
       bestDay: { date: "", pnl: 0 }, worstDay: { date: "", pnl: 0 },
       currentWinStreak: 0, currentLossStreak: 0, maxWinStreak: 0, maxLossStreak: 0,
+      edgevaultScore: 0,
     };
   }
 
@@ -68,11 +69,20 @@ export function calculateMetrics(trades: Trade[]): PerformanceMetrics {
   const avgWin = wins.length > 0 ? grossWins / wins.length : 0;
   const avgLoss = losses.length > 0 ? grossLosses / losses.length : 0;
   const expectancy = (winRate / 100) * avgWin - ((100 - winRate) / 100) * avgLoss;
+  const profitFactor = grossLosses > 0 ? (grossWins / grossLosses) : grossWins > 0 ? 999 : 0;
+
+  // EdgeVault Score (1-100)
+  let score = 50;
+  score += Math.min(20, (winRate / 100) * 20); // Up to 20pts for win rate
+  score += Math.min(20, profitFactor * 10); // Up to 20pts for PF (peaks at 2.0+)
+  if (maxDD > 5) score -= Math.min(15, (maxDD - 5)); // Penalize DD over 5%
+  score += Math.min(15, expectancy > 0 ? 15 : 0); // Reward positive expectancy
+  score = Math.max(1, Math.min(100, Math.round(score))); // Clamp 1-100
 
   return {
     totalNetPnl: parseFloat(totalPnl.toFixed(2)),
     winRate: parseFloat(winRate.toFixed(1)),
-    profitFactor: grossLosses > 0 ? parseFloat((grossWins / grossLosses).toFixed(2)) : grossWins > 0 ? 999 : 0,
+    profitFactor: parseFloat(profitFactor.toFixed(2)),
     avgWin: parseFloat(avgWin.toFixed(2)),
     avgLoss: parseFloat(avgLoss.toFixed(2)),
     maxDrawdown: parseFloat(maxDD.toFixed(2)),
@@ -91,6 +101,7 @@ export function calculateMetrics(trades: Trade[]): PerformanceMetrics {
     currentLossStreak: curLoss,
     maxWinStreak: maxWin,
     maxLossStreak: maxLoss,
+    edgevaultScore: score,
   };
 }
 

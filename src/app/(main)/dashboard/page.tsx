@@ -19,6 +19,7 @@ import { ProactiveAIWidget } from "@/components/ui/proactive-ai";
 import { CalendarHeatmap } from "@/components/ui/calendar-heatmap";
 import { EconomicCalendar } from "@/components/ui/economic-calendar";
 import { PerformanceReport } from "@/components/ui/performance-report";
+import { ScoreWidget } from "@/components/ui/score-widget";
 import { useMemo, useEffect, useRef, useState } from "react";
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from "recharts";
 
@@ -846,32 +847,12 @@ export default function DashboardPage() {
             </div>
           </div>
         </StatCard>
-        <StatCard
-          title="Account Balance"
-          value={currentBalance}
-          format={(v) => `$${v.toLocaleString("en-US", { maximumFractionDigits: 0 })}`}
-          icon={Wallet}
-          trend="up"
-          subtitle={formatCurrency(metrics.totalNetPnl) + " all time"}
-          delay={0.09}
-        >
-          {sparklinePoints ? (
-            <svg viewBox="0 0 70 35" className="w-16 h-8 select-none">
-              <polyline 
-                fill="none" 
-                stroke="#7B61FF" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                points={sparklinePoints} 
-                className="transition-all duration-1000 ease-out"
-                style={{ filter: "drop-shadow(0 0 3px rgba(123,97,255,0.4))" }} 
-              />
-            </svg>
-          ) : (
-            <div className="text-[8px] text-text-muted font-bold">No history</div>
-          )}
-        </StatCard>
+        <ScoreWidget
+          score={metrics.edgevaultScore}
+          winRate={metrics.winRate}
+          profitFactor={metrics.profitFactor}
+          maxDrawdown={metrics.maxDrawdown}
+        />
       </motion.div>
 
       {/* Row 2: Tactical HUD (Win/Loss, Pre-Flight, AI diagnostics) */}

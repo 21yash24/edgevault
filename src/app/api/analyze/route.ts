@@ -30,6 +30,24 @@ export async function POST(req: Request) {
       const mapping = JSON.parse(text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1));
       return NextResponse.json(mapping);
     }
+    
+    if (type === "daily-briefing") {
+      const { recentTrades, date } = await req.json();
+      const aiPrompt = `
+        You are "Zella AI", an elite professional trading coach providing a "Start My Day" morning briefing for the trader.
+        Date of briefing: ${date}
+        Trader's recent performance (last 5 trades): ${JSON.stringify(recentTrades)}
+        
+        Write a concise, highly motivational 3-paragraph morning briefing. 
+        Format your response in plain text (no markdown, just raw text) that can be inserted into a rich text editor.
+        - Paragraph 1: Analyze their recent performance trends.
+        - Paragraph 2: Set the mental framing and risk management goals for today.
+        - Paragraph 3: A final motivating sentence.
+      `;
+      const result = await model.generateContent(aiPrompt);
+      const text = result.response.text();
+      return NextResponse.json({ text });
+    }
 
     // Default: Trade Analysis
     const tradePrompt = `

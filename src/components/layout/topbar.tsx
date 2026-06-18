@@ -17,6 +17,7 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   "/notebook": { title: "Trading Notebook", subtitle: "Session plans & daily notes" },
   "/playbook": { title: "Playbook", subtitle: "Your strategy library" },
   "/ai-coach": { title: "AI Trade Coach", subtitle: "Personalized coaching" },
+  "/backtesting": { title: "Simulator", subtitle: "Replay & Backtest" },
   "/prop-tracker": { title: "Prop Tracker", subtitle: "Challenge monitoring" },
   "/risk": { title: "Risk Manager", subtitle: "Position & risk controls" },
   "/integrations": { title: "Integrations", subtitle: "Connect your broker" },

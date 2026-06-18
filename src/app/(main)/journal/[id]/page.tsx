@@ -451,6 +451,54 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
             )}
           </GlassCard>
 
+          {/* Trade Excursion Timeline */}
+          {(trade.mae !== undefined || trade.mfe !== undefined) && (
+            <GlassCard className="border border-border-subtle p-5">
+              <h3 className="font-bold text-sm mb-4 flex items-center gap-2 select-none">
+                <Activity size={16} className="text-accent-blue" /> Trade Excursion Timeline
+              </h3>
+              <div className="relative pt-6 pb-2 px-4">
+                <div className="h-2 w-full bg-bg-secondary/50 dark:bg-white/[0.05] rounded-full relative">
+                  {/* Base reference line */}
+                  <div className="absolute top-1/2 -translate-y-1/2 w-[2px] h-4 bg-text-muted left-[20%]" />
+                  <span className="absolute -top-6 left-[20%] -translate-x-1/2 text-[10px] text-text-muted font-bold">Entry</span>
+                  
+                  {/* MAE (Red Zone) */}
+                  {trade.mae !== undefined && (
+                    <>
+                      <div className="absolute top-0 h-full bg-accent-coral/30 rounded-l-full" style={{ left: "5%", width: "15%" }} />
+                      <div className="absolute top-1/2 -translate-y-1/2 w-[2px] h-4 bg-accent-coral left-[5%]" />
+                      <span className="absolute -bottom-6 left-[5%] -translate-x-1/2 text-[10px] text-accent-coral font-bold flex flex-col items-center">
+                        MAE
+                        <span className="text-[8px] opacity-70">${Math.abs(trade.mae)}</span>
+                      </span>
+                    </>
+                  )}
+
+                  {/* MFE (Green Zone) */}
+                  {trade.mfe !== undefined && (
+                    <>
+                      <div className="absolute top-0 h-full bg-accent-green/30 rounded-r-full" style={{ left: "20%", width: "60%" }} />
+                      <div className="absolute top-1/2 -translate-y-1/2 w-[2px] h-4 bg-accent-green left-[80%]" />
+                      <span className="absolute -top-6 left-[80%] -translate-x-1/2 text-[10px] text-accent-green font-bold flex flex-col items-center">
+                        MFE
+                        <span className="text-[8px] opacity-70">${trade.mfe}</span>
+                      </span>
+                    </>
+                  )}
+
+                  {/* Exit */}
+                  <div className="absolute top-1/2 -translate-y-1/2 w-[2px] h-4 left-[60%]" style={{ backgroundColor: trade.netPnl >= 0 ? "#00FFB2" : "#FF2D55" }} />
+                  <span className="absolute -bottom-6 left-[60%] -translate-x-1/2 text-[10px] font-bold flex flex-col items-center" style={{ color: trade.netPnl >= 0 ? "#00FFB2" : "#FF2D55" }}>
+                    Exit
+                    <span className="text-[8px] opacity-70">${Math.abs(trade.netPnl)}</span>
+                  </span>
+                </div>
+              </div>
+              <p className="text-[10px] text-text-muted mt-8 text-center italic">Visual representation of how far the trade went into profit vs drawdown relative to your exit.</p>
+            </GlassCard>
+          )}
+
           {/* Plan vs Execution Review Panels */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <GlassCard className="border border-border-subtle">
@@ -469,6 +517,17 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
               <p className="text-xs text-text-secondary bg-bg-secondary/30 dark:bg-white/[0.01] border border-border-subtle rounded-xl p-3.5 leading-relaxed italic border-l-2 border-l-accent-green">
                 {trade.postTradeReview ? `“${trade.postTradeReview}”` : "No post-trade review compiled for this trade bias."}
               </p>
+            </GlassCard>
+            <GlassCard className="border border-border-subtle md:col-span-2">
+              <h3 className="font-[family-name:var(--font-inter)] font-black text-sm mb-3 flex items-center gap-1.5 select-none">
+                <Brain size={14} className="text-accent-blue" /> Lessons Learned & Rules to Update
+              </h3>
+              <textarea 
+                className="w-full bg-bg-secondary/30 dark:bg-white/[0.01] border border-border-subtle rounded-xl p-3.5 text-xs text-text-secondary leading-relaxed focus:outline-none focus:border-accent-blue/40 transition-colors resize-none min-h-[100px]"
+                placeholder="What is the #1 takeaway from this trade? Will you adjust your playbook based on this?"
+                defaultValue={trade.lessonsLearned || (trade.mistakeTags.length > 0 ? `I need to work on: ${trade.mistakeTags.join(", ")}.` : "")}
+                onBlur={(e) => handleUpdateTrade({ lessonsLearned: e.target.value })}
+              />
             </GlassCard>
           </div>
 

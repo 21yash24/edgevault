@@ -23,6 +23,7 @@ export interface Trade {
   emotion: number; // -5 to +5
   preTradeNotes: string;
   postTradeReview: string;
+  lessonsLearned?: string;
   setupTags: string[];
   sessionTag: SessionTag;
   marketCondition: MarketCondition;
@@ -70,6 +71,7 @@ export interface PerformanceMetrics {
   currentLossStreak: number;
   maxWinStreak: number;
   maxLossStreak: number;
+  edgevaultScore: number;
 }
 
 export const SYMBOLS = [
