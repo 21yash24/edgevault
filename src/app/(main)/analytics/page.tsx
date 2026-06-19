@@ -16,6 +16,7 @@ import { TrendingUp, TrendingDown, Target, DollarSign, Clock, Activity, Zap, Bar
 import { MaeMfeChart } from "@/components/ui/mae-mfe-chart";
 import { AiCoach } from "@/components/ui/ai-coach";
 import { DayHourHeatmap } from "@/components/ui/day-hour-heatmap";
+import { WhatIfSimulator } from "@/components/ui/what-if-simulator";
 import { useSettingsStore } from "@/stores";
 
 const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number }>; label?: string }) => {
@@ -847,7 +848,7 @@ export default function AnalyticsPage() {
   const { trades } = useTradeStore();
   const { settings } = useSettingsStore();
   const [timeRange, setTimeRange] = useState("ALL");
-  const [activeTab, setActiveTab] = useState<"Overview" | "AI Coach">("Overview");
+  const [activeTab, setActiveTab] = useState<"Overview" | "What-If" | "AI Coach">("Overview");
   const [viewMode, setViewMode] = useState<ViewMode>("$");
   
   const filteredTrades = useMemo(() => {
@@ -913,7 +914,7 @@ export default function AnalyticsPage() {
       <div className="flex items-center justify-end">
         <div className="flex gap-4 items-center">
           <div className="flex gap-1 bg-bg-card p-1 rounded-lg border border-border-subtle">
-            {["Overview", "AI Coach"].map((tab) => (
+            {["Overview", "What-If", "AI Coach"].map((tab) => (
               <button key={tab}
                 onClick={() => setActiveTab(tab as any)}
                 className={cn(
@@ -1028,6 +1029,8 @@ export default function AnalyticsPage() {
 
       {activeTab === "AI Coach" ? (
         <AiCoach trades={filteredTrades} geminiKey={settings.api.geminiKey} />
+      ) : activeTab === "What-If" ? (
+        <WhatIfSimulator trades={filteredTrades} />
       ) : (
         <>
           {/* Metrics Grid */}
