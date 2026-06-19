@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, BookOpen, BarChart3, Target,
   Shield, Bell, Settings, ChevronRight, Zap,
-  Trophy, PlugZap, Brain, Notebook, Globe, FastForward
+  Trophy, PlugZap, Brain, Notebook, Globe
 } from "lucide-react";
 
 const navItems = [
@@ -17,7 +17,6 @@ const navItems = [
   { href: "/notebook", label: "Daily Log", icon: Notebook, color: "text-yellow-500 dark:text-yellow-400" },
   { href: "/playbook", label: "Playbook", icon: Target, color: "text-orange-500 dark:text-orange-400" },
   { href: "/ai-coach", label: "AI Coach", icon: Brain, color: "text-pink-500 dark:text-pink-400" },
-  { href: "/backtesting", label: "Simulator", icon: FastForward, color: "text-accent-blue" },
   { href: "/prop-tracker", label: "Prop Tracker", icon: Trophy, color: "text-amber-500 dark:text-yellow-500" },
   { href: "/risk", label: "Risk Manager", icon: Shield, color: "text-accent-coral" },
   { href: "/integrations", label: "Integrations", icon: PlugZap, color: "text-accent-blue" },

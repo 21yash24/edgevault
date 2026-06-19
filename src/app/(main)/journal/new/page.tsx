@@ -103,6 +103,7 @@ export default function NewTradePage() {
   const [isUploading, setIsUploading] = useState(false);
   const [mae, setMae] = useState(""); // Max Adverse Excursion (worst point against you)
   const [mfe, setMfe] = useState(""); // Max Favorable Excursion (best point in your favor)
+  const [resultOverride, setResultOverride] = useState<"auto" | "win" | "loss" | "be">("auto");
 
   const activeChallenges = useMemo(() => challenges.filter(c => c.status === "active"), [challenges]);
   const allPlaybooks = useMemo(() => {
@@ -190,7 +191,9 @@ export default function NewTradePage() {
       netPnl: parseFloat(netPnl.toFixed(2)),
       rMultiple: mode === "quick" ? parseFloat((netPnl / 200).toFixed(2)) : parseFloat((detailedCalculations?.rMultiple || (netPnl / 200)).toFixed(2)),
       rr: mode === "quick" ? parseFloat(Math.abs(netPnl / 200).toFixed(2)) : parseFloat((detailedCalculations?.rr || Math.abs(netPnl / 200)).toFixed(2)),
-      result: netPnl >= 0 ? "win" : "loss",
+      result: resultOverride !== "auto"
+        ? resultOverride
+        : (netPnl > 1 ? "win" : netPnl < -1 ? "loss" : "be"),
       emotion: emotion || 0, preTradeNotes: preNotes, postTradeReview: postReview,
       setupTags, sessionTag, marketCondition, mistakeTags,
       playbook: playbook || undefined, propChallengeId: propChallengeId || undefined,
@@ -397,6 +400,30 @@ export default function NewTradePage() {
                     direction === "short" ? "bg-accent-coral/15 text-accent-coral border-2 border-accent-coral/40 shadow-[0_0_20px_rgba(255,45,85,0.12)]" : "bg-bg-card text-text-muted border border-border-subtle hover:border-accent-coral/20")}>
                   <ArrowDownRight size={16} /> Short
                 </button>
+              </div>
+            </div>
+
+            {/* Result Override */}
+            <div>
+              <label className="text-[10px] text-text-muted uppercase tracking-wider mb-1.5 block font-bold">Result Override <span className="text-text-muted/50 normal-case font-normal">(auto-detected from P&L)</span></label>
+              <div className="flex gap-2">
+                {(["auto", "win", "be", "loss"] as const).map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setResultOverride(r)}
+                    className={cn(
+                      "flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all border",
+                      r === "auto" && resultOverride === "auto" && "bg-accent-violet/10 border-accent-violet/40 text-accent-violet",
+                      r === "win" && resultOverride === "win" && "bg-accent-green/10 border-accent-green/40 text-accent-green",
+                      r === "be" && resultOverride === "be" && "bg-accent-blue/10 border-accent-blue/40 text-accent-blue",
+                      r === "loss" && resultOverride === "loss" && "bg-accent-coral/10 border-accent-coral/40 text-accent-coral",
+                      resultOverride !== r && "bg-bg-card border-border-subtle text-text-muted hover:text-text-primary hover:border-border-subtle/80"
+                    )}
+                  >
+                    {r === "auto" ? "Auto" : r === "be" ? "⚖️ BE" : r === "win" ? "✓ Win" : "✗ Loss"}
+                  </button>
+                ))}
               </div>
             </div>
 

@@ -3,17 +3,18 @@ import { useTradeStore, useUIStore } from "@/stores";
 import { GlassCard } from "@/components/ui/glass-card";
 import { cn, formatCurrency, formatDate, formatDuration, getHeatmapColor } from "@/lib/utils";
 import { getDailyStats } from "@/lib/calculations";
-import { Trade } from "@/lib/types";
+import { Trade, SETUP_TAGS, SESSION_TAGS } from "@/lib/types";
 import { motion, AnimatePresence } from "framer-motion";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, subMonths, addMonths } from "date-fns";
-import { ArrowUpRight, ArrowDownRight, List, CalendarDays, Plus, Download, Filter, ChevronLeft, ChevronRight, Flame, Trophy, Skull, Trash2, CheckSquare, Search, X, TrendingUp, TrendingDown, Clock, Target, BarChart2, Zap } from "lucide-react";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, subMonths, addMonths, parseISO } from "date-fns";
+import { ArrowUpRight, ArrowDownRight, List, CalendarDays, Plus, Download, Filter, ChevronLeft, ChevronRight, Flame, Trophy, Skull, Trash2, CheckSquare, Search, X, TrendingUp, TrendingDown, Minus, Clock, Target, BarChart2, Zap, SlidersHorizontal, Tag, AlertCircle, ChevronDown, Eye, EyeOff, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 function TradeCard({ trade, index, isSelected, onSelect }: { trade: Trade; index: number; isSelected: boolean; onSelect: (e: React.MouseEvent) => void }) {
   const router = useRouter();
   const isWin = trade.result === "win";
+  const isBe = trade.result === "be";
   const isLong = trade.direction === "long";
 
   return (
@@ -29,13 +30,17 @@ function TradeCard({ trade, index, isSelected, onSelect }: { trade: Trade; index
           ? "border-accent-green/40 shadow-[0_0_20px_rgba(0,255,178,0.08)]"
           : isWin
           ? "border-border-subtle hover:border-accent-green/30 bg-bg-card"
+          : isBe
+          ? "border-border-subtle hover:border-accent-blue/30 bg-bg-card"
           : "border-border-subtle hover:border-accent-coral/30 bg-bg-card"
       )}
     >
       {/* Left Accent Bar */}
       <div className={cn(
         "w-1 flex-shrink-0 transition-all duration-300",
-        isWin ? "bg-accent-green/60 group-hover:bg-accent-green" : "bg-accent-coral/60 group-hover:bg-accent-coral"
+        isWin ? "bg-accent-green/60 group-hover:bg-accent-green" 
+        : isBe ? "bg-accent-blue/60 group-hover:bg-accent-blue"
+        : "bg-accent-coral/60 group-hover:bg-accent-coral"
       )} />
 
       {/* Checkbox */}
@@ -74,13 +79,13 @@ function TradeCard({ trade, index, isSelected, onSelect }: { trade: Trade; index
         <div className="flex-shrink-0 w-28 text-right">
           <div className={cn(
             "font-[family-name:var(--font-space-mono)] font-black text-xl tracking-tight leading-none",
-            isWin ? "text-accent-green" : "text-accent-coral"
+            isWin ? "text-accent-green" : isBe ? "text-accent-blue" : "text-accent-coral"
           )}>
             {trade.netPnl >= 0 ? "+" : ""}{formatCurrency(trade.netPnl)}
           </div>
           <div className={cn(
             "text-[10px] font-bold mt-0.5",
-            isWin ? "text-accent-green/70" : "text-accent-coral/70"
+            isWin ? "text-accent-green/70" : isBe ? "text-accent-blue/70" : "text-accent-coral/70"
           )}>
             {(trade.rMultiple || 0) >= 0 ? "+" : ""}{(trade.rMultiple || 0).toFixed(2)}R
           </div>
@@ -110,10 +115,12 @@ function TradeCard({ trade, index, isSelected, onSelect }: { trade: Trade; index
             "inline-flex items-center gap-1 text-[9px] px-2.5 py-1 rounded-full font-black uppercase tracking-wider border",
             isWin
               ? "bg-accent-green/10 text-accent-green border-accent-green/20 shadow-[0_0_8px_rgba(0,255,178,0.1)]"
+              : isBe
+              ? "bg-accent-blue/10 text-accent-blue border-accent-blue/20"
               : "bg-accent-coral/10 text-accent-coral border-accent-coral/20 shadow-[0_0_8px_rgba(255,45,85,0.1)]"
           )}>
-            {isWin ? <TrendingUp size={9} /> : <TrendingDown size={9} />}
-            {trade.result}
+            {isWin ? <TrendingUp size={9} /> : isBe ? <Minus size={9} /> : <TrendingDown size={9} />}
+            {trade.result === "be" ? "B/E" : trade.result}
           </span>
         </div>
       </div>
@@ -122,19 +129,92 @@ function TradeCard({ trade, index, isSelected, onSelect }: { trade: Trade; index
 }
 
 function TradeListView({ trades }: { trades: Trade[] }) {
-  const { deleteTrades } = useTradeStore();
+  const { deleteTrades, updateTrade } = useTradeStore();
   const [sortField, setSortField] = useState<keyof Trade>("entryDate");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [filterDir, setFilterDir] = useState<"all" | "long" | "short">("all");
-  const [filterResult, setFilterResult] = useState<"all" | "win" | "loss">("all");
+  const [filterResult, setFilterResult] = useState<"all" | "win" | "loss" | "be">("all");
+
+  // Advanced filter state
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [filterSymbols, setFilterSymbols] = useState<string[]>([]);
+  const [filterSetupTags, setFilterSetupTags] = useState<string[]>([]);
+  const [filterSessions, setFilterSessions] = useState<string[]>([]);
+  const [filterPlaybooks, setFilterPlaybooks] = useState<string[]>([]);
+  const [filterRMin, setFilterRMin] = useState("");
+  const [filterRMax, setFilterRMax] = useState("");
+  const [filterDateStart, setFilterDateStart] = useState("");
+  const [filterDateEnd, setFilterDateEnd] = useState("");
+  const [showUnreviewed, setShowUnreviewed] = useState(false);
+
+  // Bulk tag state
+  const [showBulkTag, setShowBulkTag] = useState(false);
+  const bulkTagRef = useRef<HTMLDivElement>(null);
+
+  // Close bulk tag dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (bulkTagRef.current && !bulkTagRef.current.contains(e.target as Node)) setShowBulkTag(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // Derive unique symbols and playbooks from trades
+  const uniqueSymbols = useMemo(() => [...new Set(trades.map(t => t.symbol))].sort(), [trades]);
+  const uniquePlaybooks = useMemo(() => [...new Set(trades.map(t => t.playbook).filter(Boolean) as string[])].sort(), [trades]);
+
+  // Count unreviewed trades
+  const unreviewedCount = useMemo(() => trades.filter(t => !t.postTradeReview || t.postTradeReview.trim() === "").length, [trades]);
+
+  // Count active advanced filters
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (filterSymbols.length > 0) count++;
+    if (filterSetupTags.length > 0) count++;
+    if (filterSessions.length > 0) count++;
+    if (filterPlaybooks.length > 0) count++;
+    if (filterRMin) count++;
+    if (filterRMax) count++;
+    if (filterDateStart) count++;
+    if (filterDateEnd) count++;
+    if (showUnreviewed) count++;
+    return count;
+  }, [filterSymbols, filterSetupTags, filterSessions, filterPlaybooks, filterRMin, filterRMax, filterDateStart, filterDateEnd, showUnreviewed]);
+
+  const clearAllAdvancedFilters = useCallback(() => {
+    setFilterSymbols([]);
+    setFilterSetupTags([]);
+    setFilterSessions([]);
+    setFilterPlaybooks([]);
+    setFilterRMin("");
+    setFilterRMax("");
+    setFilterDateStart("");
+    setFilterDateEnd("");
+    setShowUnreviewed(false);
+  }, []);
+
+  const togglePill = (arr: string[], setArr: React.Dispatch<React.SetStateAction<string[]>>, val: string) => {
+    setArr(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]);
+  };
 
   const filtered = useMemo(() => {
     let list = [...trades];
     if (search) list = list.filter(t => t.symbol.toLowerCase().includes(search.toLowerCase()) || (t.setupTags || []).some(s => s.toLowerCase().includes(search.toLowerCase())));
     if (filterDir !== "all") list = list.filter(t => t.direction === filterDir);
     if (filterResult !== "all") list = list.filter(t => t.result === filterResult);
+    // Advanced filters
+    if (filterSymbols.length > 0) list = list.filter(t => filterSymbols.includes(t.symbol));
+    if (filterSetupTags.length > 0) list = list.filter(t => (t.setupTags || []).some(tag => filterSetupTags.includes(tag)));
+    if (filterSessions.length > 0) list = list.filter(t => filterSessions.includes(t.sessionTag));
+    if (filterPlaybooks.length > 0) list = list.filter(t => t.playbook && filterPlaybooks.includes(t.playbook));
+    if (filterRMin) { const min = parseFloat(filterRMin); if (!isNaN(min)) list = list.filter(t => (t.rMultiple || 0) >= min); }
+    if (filterRMax) { const max = parseFloat(filterRMax); if (!isNaN(max)) list = list.filter(t => (t.rMultiple || 0) <= max); }
+    if (filterDateStart) list = list.filter(t => t.entryDate >= filterDateStart);
+    if (filterDateEnd) list = list.filter(t => t.entryDate <= filterDateEnd + "T23:59:59");
+    if (showUnreviewed) list = list.filter(t => !t.postTradeReview || t.postTradeReview.trim() === "");
     return list.sort((a, b) => {
       const aVal = a[sortField];
       const bVal = b[sortField];
@@ -142,7 +222,7 @@ function TradeListView({ trades }: { trades: Trade[] }) {
       if (typeof aVal === "number" && typeof bVal === "number") return sortDir === "asc" ? aVal - bVal : bVal - aVal;
       return 0;
     });
-  }, [trades, search, filterDir, filterResult, sortField, sortDir]);
+  }, [trades, search, filterDir, filterResult, sortField, sortDir, filterSymbols, filterSetupTags, filterSessions, filterPlaybooks, filterRMin, filterRMax, filterDateStart, filterDateEnd, showUnreviewed]);
 
   const toggleSelect = (e: React.MouseEvent, tradeId: string) => {
     e.stopPropagation();
@@ -156,12 +236,27 @@ function TradeListView({ trades }: { trades: Trade[] }) {
     }
   };
 
+  const handleBulkTag = async (tag: string) => {
+    for (const id of selectedIds) {
+      const trade = trades.find(t => t.id === id);
+      if (trade) {
+        const existingTags = trade.setupTags || [];
+        if (!existingTags.includes(tag)) {
+          await updateTrade(id, { setupTags: [...existingTags, tag] });
+        }
+      }
+    }
+    setShowBulkTag(false);
+  };
+
   const summaryStats = useMemo(() => {
     const wins = filtered.filter(t => t.result === "win").length;
     const total = filtered.length;
     const totalPnl = filtered.reduce((s, t) => s + t.netPnl, 0);
     const avgR = filtered.length > 0 ? filtered.reduce((s, t) => s + (t.rMultiple || 0), 0) / filtered.length : 0;
-    return { wins, total, winRate: total > 0 ? (wins / total) * 100 : 0, totalPnl, avgR };
+    const bestTrade = filtered.length > 0 ? filtered.reduce((best, t) => t.netPnl > best.netPnl ? t : best, filtered[0]) : null;
+    const worstTrade = filtered.length > 0 ? filtered.reduce((worst, t) => t.netPnl < worst.netPnl ? t : worst, filtered[0]) : null;
+    return { wins, total, winRate: total > 0 ? (wins / total) * 100 : 0, totalPnl, avgR, bestTrade, worstTrade };
   }, [filtered]);
 
   return (
@@ -183,7 +278,7 @@ function TradeListView({ trades }: { trades: Trade[] }) {
             </button>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {(["all", "long", "short"] as const).map(v => (
             <button key={v} onClick={() => setFilterDir(v)}
               className={cn("px-3 py-2 rounded-xl text-xs font-bold border transition-all",
@@ -192,25 +287,227 @@ function TradeListView({ trades }: { trades: Trade[] }) {
             </button>
           ))}
           <div className="w-[1px] bg-border-subtle" />
-          {(["all", "win", "loss"] as const).map(v => (
+          {(["all", "win", "be", "loss"] as const).map(v => (
             <button key={v} onClick={() => setFilterResult(v)}
               className={cn("px-3 py-2 rounded-xl text-xs font-bold border transition-all",
-                filterResult === v ? (v === "win" ? "bg-accent-green/10 border-accent-green/30 text-accent-green" : v === "loss" ? "bg-accent-coral/10 border-accent-coral/30 text-accent-coral" : "bg-accent-violet/10 border-accent-violet/30 text-accent-violet") : "bg-bg-secondary/20 dark:bg-white/[0.01] border-border-subtle text-text-muted hover:text-text-primary")}>
-              {v === "all" ? "All" : v.charAt(0).toUpperCase() + v.slice(1)}
+                filterResult === v 
+                  ? (v === "win" ? "bg-accent-green/10 border-accent-green/30 text-accent-green" 
+                    : v === "loss" ? "bg-accent-coral/10 border-accent-coral/30 text-accent-coral"
+                    : v === "be" ? "bg-accent-blue/10 border-accent-blue/30 text-accent-blue"
+                    : "bg-accent-violet/10 border-accent-violet/30 text-accent-violet") 
+                  : "bg-bg-secondary/20 dark:bg-white/[0.01] border-border-subtle text-text-muted hover:text-text-primary")}>
+              {v === "all" ? "All" : v === "be" ? "⚖️ B/E" : v.charAt(0).toUpperCase() + v.slice(1)}
             </button>
           ))}
+          <div className="w-[1px] bg-border-subtle" />
+          {/* Advanced Filters Toggle */}
+          <button
+            onClick={() => setShowAdvancedFilters(prev => !prev)}
+            className={cn(
+              "relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-all",
+              showAdvancedFilters || activeFilterCount > 0
+                ? "bg-accent-violet/10 border-accent-violet/30 text-accent-violet"
+                : "bg-bg-secondary/20 dark:bg-white/[0.01] border-border-subtle text-text-muted hover:text-text-primary"
+            )}
+          >
+            <SlidersHorizontal size={12} />
+            Filters
+            {activeFilterCount > 0 && (
+              <span className="ml-1 flex items-center justify-center w-4 h-4 rounded-full bg-accent-violet text-bg-base text-[9px] font-black">
+                {activeFilterCount}
+              </span>
+            )}
+            <ChevronDown size={10} className={cn("transition-transform", showAdvancedFilters && "rotate-180")} />
+          </button>
+          {/* Unreviewed Quick Filter */}
+          <button
+            onClick={() => setShowUnreviewed(prev => !prev)}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-all",
+              showUnreviewed
+                ? "bg-accent-coral/10 border-accent-coral/30 text-accent-coral"
+                : "bg-bg-secondary/20 dark:bg-white/[0.01] border-border-subtle text-text-muted hover:text-text-primary"
+            )}
+          >
+            {showUnreviewed ? <EyeOff size={12} /> : <Eye size={12} />}
+            Unreviewed
+          </button>
         </div>
       </div>
 
+      {/* Advanced Filter Panel */}
+      <AnimatePresence>
+        {showAdvancedFilters && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            className="overflow-hidden"
+          >
+            <div className="bg-bg-card/80 border border-border-subtle rounded-2xl p-5 space-y-5">
+              {/* Row 1: Symbol Filter */}
+              <div>
+                <div className="text-[9px] text-text-muted uppercase font-black tracking-widest mb-2">Symbol</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {uniqueSymbols.map(sym => (
+                    <button
+                      key={sym}
+                      onClick={() => togglePill(filterSymbols, setFilterSymbols, sym)}
+                      className={cn(
+                        "px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all",
+                        filterSymbols.includes(sym)
+                          ? "bg-accent-blue/15 border-accent-blue/30 text-accent-blue shadow-[0_0_8px_rgba(0,186,255,0.1)]"
+                          : "bg-bg-secondary/20 dark:bg-white/[0.01] border-border-subtle text-text-muted hover:text-text-secondary hover:border-border-subtle/80"
+                      )}
+                    >
+                      {sym}
+                    </button>
+                  ))}
+                  {uniqueSymbols.length === 0 && <span className="text-[10px] text-text-muted/40">No symbols found</span>}
+                </div>
+              </div>
+
+              {/* Row 2: Setup Tags */}
+              <div>
+                <div className="text-[9px] text-text-muted uppercase font-black tracking-widest mb-2">Setup Tags</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {SETUP_TAGS.map(tag => (
+                    <button
+                      key={tag}
+                      onClick={() => togglePill(filterSetupTags, setFilterSetupTags, tag)}
+                      className={cn(
+                        "px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all",
+                        filterSetupTags.includes(tag)
+                          ? "bg-accent-violet/15 border-accent-violet/30 text-accent-violet shadow-[0_0_8px_rgba(123,97,255,0.1)]"
+                          : "bg-bg-secondary/20 dark:bg-white/[0.01] border-border-subtle text-text-muted hover:text-text-secondary hover:border-border-subtle/80"
+                      )}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Row 3: Session + Playbook */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <div className="text-[9px] text-text-muted uppercase font-black tracking-widest mb-2">Session</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {SESSION_TAGS.map(session => (
+                      <button
+                        key={session}
+                        onClick={() => togglePill(filterSessions, setFilterSessions, session)}
+                        className={cn(
+                          "px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all",
+                          filterSessions.includes(session)
+                            ? "bg-accent-green/15 border-accent-green/30 text-accent-green"
+                            : "bg-bg-secondary/20 dark:bg-white/[0.01] border-border-subtle text-text-muted hover:text-text-secondary hover:border-border-subtle/80"
+                        )}
+                      >
+                        {session}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[9px] text-text-muted uppercase font-black tracking-widest mb-2">Playbook</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {uniquePlaybooks.map(pb => (
+                      <button
+                        key={pb}
+                        onClick={() => togglePill(filterPlaybooks, setFilterPlaybooks, pb)}
+                        className={cn(
+                          "px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all",
+                          filterPlaybooks.includes(pb)
+                            ? "bg-accent-blue/15 border-accent-blue/30 text-accent-blue"
+                            : "bg-bg-secondary/20 dark:bg-white/[0.01] border-border-subtle text-text-muted hover:text-text-secondary hover:border-border-subtle/80"
+                        )}
+                      >
+                        {pb}
+                      </button>
+                    ))}
+                    {uniquePlaybooks.length === 0 && <span className="text-[10px] text-text-muted/40">No playbooks found</span>}
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 4: R-Multiple Range + Date Range */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <div className="text-[9px] text-text-muted uppercase font-black tracking-widest mb-2">R-Multiple Range</div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={filterRMin}
+                      onChange={e => setFilterRMin(e.target.value)}
+                      placeholder="Min R"
+                      className="w-24 bg-bg-secondary/20 dark:bg-white/[0.02] border border-border-subtle rounded-xl px-3 py-2 text-xs font-[family-name:var(--font-space-mono)] focus:outline-none focus:border-accent-violet/40 transition-colors placeholder:text-text-muted/40"
+                    />
+                    <span className="text-text-muted text-xs">to</span>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={filterRMax}
+                      onChange={e => setFilterRMax(e.target.value)}
+                      placeholder="Max R"
+                      className="w-24 bg-bg-secondary/20 dark:bg-white/[0.02] border border-border-subtle rounded-xl px-3 py-2 text-xs font-[family-name:var(--font-space-mono)] focus:outline-none focus:border-accent-violet/40 transition-colors placeholder:text-text-muted/40"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[9px] text-text-muted uppercase font-black tracking-widest mb-2">Date Range</div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="date"
+                      value={filterDateStart}
+                      onChange={e => setFilterDateStart(e.target.value)}
+                      className="flex-1 bg-bg-secondary/20 dark:bg-white/[0.02] border border-border-subtle rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-accent-violet/40 transition-colors text-text-secondary [color-scheme:dark]"
+                    />
+                    <span className="text-text-muted text-xs">to</span>
+                    <input
+                      type="date"
+                      value={filterDateEnd}
+                      onChange={e => setFilterDateEnd(e.target.value)}
+                      className="flex-1 bg-bg-secondary/20 dark:bg-white/[0.02] border border-border-subtle rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-accent-violet/40 transition-colors text-text-secondary [color-scheme:dark]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Clear All */}
+              {activeFilterCount > 0 && (
+                <div className="flex justify-end">
+                  <button
+                    onClick={clearAllAdvancedFilters}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-accent-coral border border-accent-coral/20 bg-accent-coral/5 hover:bg-accent-coral/10 transition-all"
+                  >
+                    <X size={12} />
+                    Clear All Filters
+                  </button>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Summary Stats Strip */}
       {filtered.length > 0 && (
-        <div className="flex gap-4 px-1 text-xs">
+        <div className="flex flex-wrap gap-x-4 gap-y-1 px-1 text-xs">
           <span className="text-text-muted">{filtered.length} trades</span>
           <span className={cn("font-bold font-[family-name:var(--font-space-mono)]", summaryStats.totalPnl >= 0 ? "text-accent-green" : "text-accent-coral")}>
             {summaryStats.totalPnl >= 0 ? "+" : ""}{formatCurrency(summaryStats.totalPnl)} net
           </span>
           <span className="text-text-muted">WR: <span className={cn("font-bold", summaryStats.winRate >= 50 ? "text-accent-green" : "text-accent-coral")}>{summaryStats.winRate.toFixed(0)}%</span></span>
           <span className="text-text-muted">Avg R: <span className={cn("font-bold font-[family-name:var(--font-space-mono)]", summaryStats.avgR >= 0 ? "text-accent-green" : "text-accent-coral")}>{summaryStats.avgR >= 0 ? "+" : ""}{summaryStats.avgR.toFixed(2)}R</span></span>
+          {summaryStats.bestTrade && (
+            <span className="text-text-muted">Best: <span className="font-bold font-[family-name:var(--font-space-mono)] text-accent-green">+{formatCurrency(summaryStats.bestTrade.netPnl)}</span> <span className="text-text-muted/60">{summaryStats.bestTrade.symbol}</span></span>
+          )}
+          {summaryStats.worstTrade && (
+            <span className="text-text-muted">Worst: <span className="font-bold font-[family-name:var(--font-space-mono)] text-accent-coral">{formatCurrency(summaryStats.worstTrade.netPnl)}</span> <span className="text-text-muted/60">{summaryStats.worstTrade.symbol}</span></span>
+          )}
         </div>
       )}
 
@@ -218,14 +515,48 @@ function TradeListView({ trades }: { trades: Trade[] }) {
       <AnimatePresence>
         {selectedIds.length > 0 && (
           <motion.div initial={{ opacity: 0, height: 0, y: -10 }} animate={{ opacity: 1, height: "auto", y: 0 }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-            <div className="flex items-center justify-between bg-accent-coral/10 border border-accent-coral/20 px-5 py-3 rounded-2xl">
+            <div className="flex items-center justify-between bg-accent-violet/5 border border-accent-violet/20 px-5 py-3 rounded-2xl">
               <div className="flex items-center gap-2">
-                <CheckSquare size={15} className="text-accent-coral" />
+                <CheckSquare size={15} className="text-accent-violet" />
                 <span className="text-sm font-semibold">{selectedIds.length} selected</span>
               </div>
               <div className="flex items-center gap-3">
+                {/* Bulk Tag */}
+                <div className="relative" ref={bulkTagRef}>
+                  <button
+                    onClick={() => setShowBulkTag(prev => !prev)}
+                    className="flex items-center gap-1.5 bg-accent-violet/10 border border-accent-violet/30 text-accent-violet px-3 py-2 rounded-xl text-xs font-bold hover:bg-accent-violet/20 transition-all"
+                  >
+                    <Tag size={12} /> Bulk Tag
+                    <ChevronDown size={10} className={cn("transition-transform", showBulkTag && "rotate-180")} />
+                  </button>
+                  <AnimatePresence>
+                    {showBulkTag && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                        className="absolute right-0 top-full mt-2 z-50 w-72 max-h-64 overflow-y-auto bg-bg-card border border-border-subtle rounded-2xl p-3 shadow-[0_16px_48px_rgba(0,0,0,0.4)]"
+                      >
+                        <div className="text-[9px] text-text-muted uppercase font-black tracking-widest mb-2">Add Setup Tag to {selectedIds.length} Trade{selectedIds.length > 1 ? "s" : ""}</div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {SETUP_TAGS.map(tag => (
+                            <button
+                              key={tag}
+                              onClick={() => handleBulkTag(tag)}
+                              className="px-2.5 py-1 rounded-lg text-[10px] font-bold border bg-accent-violet/5 border-accent-violet/15 text-accent-violet hover:bg-accent-violet/15 hover:border-accent-violet/30 transition-all"
+                            >
+                              {tag}
+                            </button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
                 <button onClick={() => setSelectedIds([])} className="px-3 py-1.5 rounded-xl text-xs font-semibold text-text-secondary hover:text-text-primary transition-colors">Clear</button>
-                <button onClick={handleBulkDelete} className="flex items-center gap-1.5 bg-accent-coral text-bg-base px-4 py-2 rounded-xl text-xs font-bold transition-all">
+                <button onClick={handleBulkDelete} className="flex items-center gap-1.5 bg-accent-coral text-bg-base px-4 py-2 rounded-xl text-xs font-bold transition-all hover:shadow-[0_0_16px_rgba(255,45,85,0.25)]">
                   <Trash2 size={13} /> Delete Selected
                 </button>
               </div>
@@ -239,9 +570,9 @@ function TradeListView({ trades }: { trades: Trade[] }) {
         {filtered.length === 0 ? (
           <div className="py-20 flex flex-col items-center justify-center text-center">
             <BarChart2 size={40} className="text-text-muted/20 mb-4" />
-            <p className="text-sm font-bold text-text-muted">{search || filterDir !== "all" || filterResult !== "all" ? "No trades match your filters" : "No trades recorded yet"}</p>
+            <p className="text-sm font-bold text-text-muted">{search || filterDir !== "all" || filterResult !== "all" || activeFilterCount > 0 ? "No trades match your filters" : "No trades recorded yet"}</p>
             <p className="text-xs text-text-muted/60 mt-1">
-              {search || filterDir !== "all" || filterResult !== "all" ? "Try adjusting your search or filters" : 'Hit "New Trade" to log your first execution'}
+              {search || filterDir !== "all" || filterResult !== "all" || activeFilterCount > 0 ? "Try adjusting your search or filters" : 'Hit "New Trade" to log your first execution'}
             </p>
           </div>
         ) : (
@@ -405,6 +736,8 @@ export default function JournalPage() {
   const { trades } = useTradeStore();
   const { journalView, setJournalView } = useUIStore();
 
+  const unreviewedCount = useMemo(() => trades.filter(t => !t.postTradeReview || t.postTradeReview.trim() === "").length, [trades]);
+
   const metrics = useMemo(() => {
     const wins = trades.filter(t => t.result === "win").length;
     const losses = trades.filter(t => t.result === "loss").length;
@@ -428,7 +761,17 @@ export default function JournalPage() {
   return (
     <motion.div className="space-y-6 pb-12" variants={containerVariants} initial="hidden" animate="visible">
       {/* Header Controls */}
-      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-end sm:items-center justify-end gap-4">
+      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        {/* Title + Unreviewed Badge */}
+        <div className="flex items-center gap-3">
+          <h1 className="font-[family-name:var(--font-inter)] font-black text-xl tracking-tight">Trade Journal</h1>
+          {unreviewedCount > 0 && (
+            <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-accent-coral/10 text-accent-coral border border-accent-coral/20">
+              <AlertCircle size={10} />
+              {unreviewedCount} unreviewed
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-3">
           {/* View Toggle */}
           <div className="flex bg-bg-secondary/40 dark:bg-white/[0.01] border border-border-subtle rounded-xl p-1">

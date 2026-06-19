@@ -349,3 +349,78 @@ export function getComputedChallenge(challenge: PropFirmChallenge, trades: Trade
     minDaysMet
   };
 }
+
+// ═══════════════════════════════
+// Advanced Analytics Functions
+// ═══════════════════════════════
+
+export function getCrossAnalysis(trades: Trade[], field1: keyof Trade, field2: keyof Trade): { label1: string; label2: string; winRate: number; count: number; pnl: number }[] {
+  const groups: Record<string, Trade[]> = {};
+  trades.forEach((t) => {
+    const v1 = field1 === "setupTags" ? (t.setupTags?.[0] || "Untagged") : String((t as any)[field1] || "Unknown");
+    const v2 = field2 === "setupTags" ? (t.setupTags?.[0] || "Untagged") : String((t as any)[field2] || "Unknown");
+    const key = `${v1}|||${v2}`;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(t);
+  });
+  return Object.entries(groups).map(([key, group]) => {
+    const [label1, label2] = key.split("|||");
+    const wins = group.filter((t) => t.result === "win").length;
+    return {
+      label1,
+      label2,
+      winRate: group.length > 0 ? (wins / group.length) * 100 : 0,
+      count: group.length,
+      pnl: group.reduce((s, t) => s + t.netPnl, 0),
+    };
+  });
+}
+
+export function getDurationVsPnl(trades: Trade[]): { duration: number; pnl: number; symbol: string; result: string }[] {
+  return trades
+    .filter((t) => t.durationMinutes > 0)
+    .map((t) => ({
+      duration: t.durationMinutes,
+      pnl: t.netPnl,
+      symbol: t.symbol,
+      result: t.result,
+    }));
+}
+
+export function getMonthlyBreakdown(trades: Trade[]): { month: string; netPnl: number; winRate: number; trades: number; bestDay: number; worstDay: number; profitFactor: number }[] {
+  const months: Record<string, Trade[]> = {};
+  trades.forEach((t) => {
+    try {
+      const m = format(new Date(t.entryDate), "yyyy-MM");
+      if (!months[m]) months[m] = [];
+      months[m].push(t);
+    } catch { /* skip invalid dates */ }
+  });
+
+  return Object.entries(months)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([month, group]) => {
+      const wins = group.filter((t) => t.result === "win");
+      const losses = group.filter((t) => t.result === "loss");
+      const grossWins = wins.reduce((s, t) => s + t.netPnl, 0);
+      const grossLosses = Math.abs(losses.reduce((s, t) => s + t.netPnl, 0));
+
+      // Daily PnL for best/worst day
+      const dailyPnl: Record<string, number> = {};
+      group.forEach((t) => {
+        const d = t.entryDate.split("T")[0];
+        dailyPnl[d] = (dailyPnl[d] || 0) + t.netPnl;
+      });
+      const dailyValues = Object.values(dailyPnl);
+
+      return {
+        month,
+        netPnl: group.reduce((s, t) => s + t.netPnl, 0),
+        winRate: group.length > 0 ? (wins.length / group.length) * 100 : 0,
+        trades: group.length,
+        bestDay: dailyValues.length > 0 ? Math.max(...dailyValues) : 0,
+        worstDay: dailyValues.length > 0 ? Math.min(...dailyValues) : 0,
+        profitFactor: grossLosses > 0 ? grossWins / grossLosses : grossWins > 0 ? Infinity : 0,
+      };
+    });
+}

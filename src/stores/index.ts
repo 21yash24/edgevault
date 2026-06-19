@@ -1,7 +1,7 @@
 "use client";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { Trade, Playbook, TradingAccount, PropFirmChallenge } from "@/lib/types";
+import { Trade, Playbook, TradingAccount, PropFirmChallenge, AIChatThread, AIChatMessage, AppNotification, AlertRule, MissedTrade } from "@/lib/types";
 import { generateMockTrades } from "@/lib/mock-data";
 import { generateId } from "@/lib/utils";
 import { db, auth } from "@/lib/firebase";
@@ -696,6 +696,180 @@ export const useNotebookStore = create<NotebookStore>()(
         }
         return { ...currentState, ...state };
       }
+    }
+  )
+);
+
+// ═══════════════════════════════
+// AI Chat Store
+// ═══════════════════════════════
+
+interface AIChatStore {
+  threads: AIChatThread[];
+  activeThreadId: string | null;
+  createThread: (title: string) => string;
+  setActiveThread: (id: string | null) => void;
+  addMessage: (threadId: string, message: Omit<AIChatMessage, "id" | "timestamp">) => void;
+  deleteThread: (id: string) => void;
+  renameThread: (id: string, title: string) => void;
+}
+
+export const useAIChatStore = create<AIChatStore>()(
+  persist(
+    (set, get) => ({
+      threads: [],
+      activeThreadId: null,
+      createThread: (title) => {
+        const id = generateId();
+        const now = new Date().toISOString();
+        const thread: AIChatThread = { id, title, messages: [], createdAt: now, updatedAt: now };
+        set((s) => ({ threads: [...s.threads, thread], activeThreadId: id }));
+        return id;
+      },
+      setActiveThread: (id) => set({ activeThreadId: id }),
+      addMessage: (threadId, message) => {
+        const msg: AIChatMessage = { ...message, id: generateId(), timestamp: new Date().toISOString() };
+        set((s) => ({
+          threads: s.threads.map((t) =>
+            t.id === threadId
+              ? { ...t, messages: [...t.messages, msg], updatedAt: new Date().toISOString() }
+              : t
+          ),
+        }));
+      },
+      deleteThread: (id) =>
+        set((s) => ({
+          threads: s.threads.filter((t) => t.id !== id),
+          activeThreadId: s.activeThreadId === id ? null : s.activeThreadId,
+        })),
+      renameThread: (id, title) =>
+        set((s) => ({
+          threads: s.threads.map((t) => (t.id === id ? { ...t, title } : t)),
+        })),
+    }),
+    {
+      name: "edgevault-ai-chat",
+      merge: (persistedState: any, currentState) => {
+        if (!persistedState || typeof persistedState !== "object") return currentState;
+        return { ...currentState, ...persistedState };
+      },
+    }
+  )
+);
+
+// ═══════════════════════════════
+// Notification Store
+// ═══════════════════════════════
+
+interface NotificationStore {
+  notifications: AppNotification[];
+  addNotification: (notification: Omit<AppNotification, "id" | "timestamp" | "read">) => void;
+  markRead: (id: string) => void;
+  markAllRead: () => void;
+  deleteNotification: (id: string) => void;
+  clearAll: () => void;
+}
+
+export const useNotificationStore = create<NotificationStore>()(
+  persist(
+    (set) => ({
+      notifications: [],
+      addNotification: (notification) => {
+        const newNotif: AppNotification = {
+          ...notification,
+          id: generateId(),
+          timestamp: new Date().toISOString(),
+          read: false,
+        };
+        set((s) => ({ notifications: [newNotif, ...s.notifications].slice(0, 100) }));
+      },
+      markRead: (id) =>
+        set((s) => ({
+          notifications: s.notifications.map((n) => (n.id === id ? { ...n, read: true } : n)),
+        })),
+      markAllRead: () =>
+        set((s) => ({
+          notifications: s.notifications.map((n) => ({ ...n, read: true })),
+        })),
+      deleteNotification: (id) =>
+        set((s) => ({ notifications: s.notifications.filter((n) => n.id !== id) })),
+      clearAll: () => set({ notifications: [] }),
+    }),
+    {
+      name: "edgevault-notifications",
+      merge: (persistedState: any, currentState) => {
+        if (!persistedState || typeof persistedState !== "object") return currentState;
+        return { ...currentState, ...persistedState };
+      },
+    }
+  )
+);
+
+// ═══════════════════════════════
+// Alert Rule Store
+// ═══════════════════════════════
+
+interface AlertRuleStore {
+  rules: AlertRule[];
+  addRule: (rule: Omit<AlertRule, "id" | "createdAt">) => void;
+  updateRule: (id: string, updates: Partial<AlertRule>) => void;
+  deleteRule: (id: string) => void;
+  toggleRule: (id: string) => void;
+}
+
+export const useAlertRuleStore = create<AlertRuleStore>()(
+  persist(
+    (set) => ({
+      rules: [],
+      addRule: (rule) => {
+        const newRule: AlertRule = { ...rule, id: generateId(), createdAt: new Date().toISOString() };
+        set((s) => ({ rules: [...s.rules, newRule] }));
+      },
+      updateRule: (id, updates) =>
+        set((s) => ({ rules: s.rules.map((r) => (r.id === id ? { ...r, ...updates } : r)) })),
+      deleteRule: (id) => set((s) => ({ rules: s.rules.filter((r) => r.id !== id) })),
+      toggleRule: (id) =>
+        set((s) => ({
+          rules: s.rules.map((r) => (r.id === id ? { ...r, enabled: !r.enabled } : r)),
+        })),
+    }),
+    {
+      name: "edgevault-alert-rules",
+      merge: (persistedState: any, currentState) => {
+        if (!persistedState || typeof persistedState !== "object") return currentState;
+        return { ...currentState, ...persistedState };
+      },
+    }
+  )
+);
+
+// ═══════════════════════════════
+// Missed Trade Store
+// ═══════════════════════════════
+
+interface MissedTradeStore {
+  missedTrades: MissedTrade[];
+  addMissedTrade: (trade: Omit<MissedTrade, "id" | "createdAt">) => void;
+  deleteMissedTrade: (id: string) => void;
+}
+
+export const useMissedTradeStore = create<MissedTradeStore>()(
+  persist(
+    (set) => ({
+      missedTrades: [],
+      addMissedTrade: (trade) => {
+        const newTrade: MissedTrade = { ...trade, id: generateId(), createdAt: new Date().toISOString() };
+        set((s) => ({ missedTrades: [...s.missedTrades, newTrade] }));
+      },
+      deleteMissedTrade: (id) =>
+        set((s) => ({ missedTrades: s.missedTrades.filter((t) => t.id !== id) })),
+    }),
+    {
+      name: "edgevault-missed-trades",
+      merge: (persistedState: any, currentState) => {
+        if (!persistedState || typeof persistedState !== "object") return currentState;
+        return { ...currentState, ...persistedState };
+      },
     }
   )
 );

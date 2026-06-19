@@ -1,5 +1,5 @@
 export type TradeDirection = "long" | "short";
-export type TradeResult = "win" | "loss";
+export type TradeResult = "win" | "loss" | "be";
 export type SessionTag = "Pre-Market" | "London" | "NY AM" | "NY PM" | "Asian" | "Overnight";
 export type MarketCondition = "Trending" | "Ranging" | "Choppy" | "News-driven";
 export type MistakeTag = "Chased entry" | "Moved SL" | "Sized too big" | "Broke rules" | "Early exit" | "Late entry" | "No plan" | "Revenge trade" | "FOMO";
@@ -29,6 +29,7 @@ export interface Trade {
   marketCondition: MarketCondition;
   mistakeTags: MistakeTag[];
   playbook?: string;
+  playbookRulesChecked?: string[]; // IDs of playbook rules the trader followed
   screenshotUrls: string[];
   mindsetTags: string[];
   mindsetNotes?: string;
@@ -39,6 +40,7 @@ export interface Trade {
   isPublic?: boolean;
   publicUrl?: string;
   propChallengeId?: string;
+  backtested?: boolean;
 }
 
 export interface DailyStats {
@@ -124,12 +126,19 @@ export const MINDSET_TAGS = [
 // Phase 2 Types
 // ═══════════════════════════════
 
+export interface PlaybookRule {
+  id: string;
+  text: string;
+  category: 'entry' | 'exit' | 'risk';
+}
+
 export interface Playbook {
   id: string;
   name: string;
   description: string;
   entryRules: string[];
   exitRules: string[];
+  rules?: PlaybookRule[]; // Structured rule checklist
   idealConditions: MarketCondition[];
   targetRR: number;
   maxRiskPercent: number;
@@ -137,6 +146,57 @@ export interface Playbook {
   linkedTradeIds: string[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface MissedTrade {
+  id: string;
+  symbol: string;
+  date: string;
+  playbookId: string;
+  direction: TradeDirection;
+  reason: string;
+  potentialPnl?: number;
+  notes: string;
+  screenshotUrl?: string;
+  createdAt: string;
+}
+
+export interface AIChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+}
+
+export interface AIChatThread {
+  id: string;
+  title: string;
+  messages: AIChatMessage[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AppNotification {
+  id: string;
+  type: 'risk' | 'trade' | 'prop' | 'insight' | 'system';
+  title: string;
+  description: string;
+  timestamp: string;
+  read: boolean;
+  actionUrl?: string;
+  severity?: 'info' | 'warning' | 'critical';
+}
+
+export interface AlertRule {
+  id: string;
+  name: string;
+  metric: 'dailyLoss' | 'lossStreak' | 'winRate7d' | 'maxTradesDay' | 'dailyProfit' | 'drawdown';
+  operator: '>' | '<' | '>=' | '<=';
+  threshold: number;
+  severity: 'info' | 'warning' | 'critical';
+  enabled: boolean;
+  lastTriggered?: string;
+  createdAt: string;
 }
 
 export type AccountType = "manual" | "mt5-csv" | "mt5-ea";

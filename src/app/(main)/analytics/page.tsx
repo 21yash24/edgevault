@@ -2,16 +2,17 @@
 import { useTradeStore } from "@/stores";
 import { GlassCard } from "@/components/ui/glass-card";
 import { NumberTicker } from "@/components/ui/number-ticker";
-import { calculateMetrics, getDailyStats, getWinRateByField, getPnlBySymbol, getRMultipleDistribution, getHourlyHeatmap, getWinRateByMindset } from "@/lib/calculations";
+import { calculateMetrics, getDailyStats, getWinRateByField, getPnlBySymbol, getRMultipleDistribution, getHourlyHeatmap, getWinRateByMindset, getCrossAnalysis, getDurationVsPnl, getMonthlyBreakdown } from "@/lib/calculations";
 import { formatCurrency, formatDuration, cn, getHeatmapColor } from "@/lib/utils";
 import { useMemo, useEffect, useRef, useState } from "react";
 import { subDays, subMonths, isAfter, startOfYear } from "date-fns";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
   AreaChart, Area, CartesianGrid, PieChart, Pie,
+  ScatterChart, Scatter, ZAxis, ReferenceLine,
 } from "recharts";
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, Target, DollarSign, Clock, Activity, Zap, BarChart3, Award, AlertTriangle, Brain, Crosshair, Calendar, Download } from "lucide-react";
+import { TrendingUp, TrendingDown, Target, DollarSign, Clock, Activity, Zap, BarChart3, Award, AlertTriangle, Brain, Crosshair, Calendar, Download, Grid3X3, Timer } from "lucide-react";
 import { MaeMfeChart } from "@/components/ui/mae-mfe-chart";
 import { AiCoach } from "@/components/ui/ai-coach";
 import { DayHourHeatmap } from "@/components/ui/day-hour-heatmap";
@@ -49,15 +50,47 @@ function MetricCard({ label, value, format, icon: Icon, color = "text-text-prima
   );
 }
 
-function EquityCurveChart({ trades }: { trades: ReturnType<typeof useTradeStore.getState>["trades"] }) {
+type ViewMode = "$" | "R" | "%";
+
+function EquityCurveChart({ trades, viewMode = "$" }: { trades: ReturnType<typeof useTradeStore.getState>["trades"]; viewMode?: ViewMode }) {
   const data = useMemo(() => {
     const start = trades.length > 0 ? trades[0].accountEquityAfter - trades[0].netPnl : 50000;
-    const points = [{ name: "Start", value: start }];
-    trades.forEach((t, i) => {
-      points.push({ name: `T${i + 1}`, value: t.accountEquityAfter });
-    });
-    return points;
-  }, [trades]);
+    if (viewMode === "$") {
+      const points = [{ name: "Start", value: start }];
+      trades.forEach((t, i) => {
+        points.push({ name: `T${i + 1}`, value: t.accountEquityAfter });
+      });
+      return points;
+    } else if (viewMode === "R") {
+      let cumR = 0;
+      const points = [{ name: "Start", value: 0 }];
+      trades.forEach((t, i) => {
+        cumR += t.rMultiple || 0;
+        points.push({ name: `T${i + 1}`, value: parseFloat(cumR.toFixed(2)) });
+      });
+      return points;
+    } else {
+      let cumPct = 0;
+      const points = [{ name: "Start", value: 0 }];
+      trades.forEach((t, i) => {
+        cumPct += start > 0 ? (t.netPnl / start) * 100 : 0;
+        points.push({ name: `T${i + 1}`, value: parseFloat(cumPct.toFixed(2)) });
+      });
+      return points;
+    }
+  }, [trades, viewMode]);
+
+  const formatYAxis = (v: number) => {
+    if (viewMode === "$") return `$${(v / 1000).toFixed(1)}k`;
+    if (viewMode === "R") return `${v.toFixed(1)}R`;
+    return `${v.toFixed(1)}%`;
+  };
+
+  const formatTooltipVal = (v: number) => {
+    if (viewMode === "$") return formatCurrency(v);
+    if (viewMode === "R") return `${v.toFixed(2)}R`;
+    return `${v.toFixed(2)}%`;
+  };
 
   return (
     <ResponsiveContainer width="100%" height="100%">
@@ -71,22 +104,63 @@ function EquityCurveChart({ trades }: { trades: ReturnType<typeof useTradeStore.
         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
         <XAxis dataKey="name" hide />
         <YAxis
-          domain={["dataMin - 500", "dataMax + 500"]}
+          domain={viewMode === "$" ? ["dataMin - 500", "dataMax + 500"] : ["dataMin - 1", "dataMax + 1"]}
           tick={{ fill: "#8B8FA3", fontSize: 10, fontFamily: "Space Mono" }}
-          tickFormatter={(v: number) => `$${(v / 1000).toFixed(1)}k`}
+          tickFormatter={formatYAxis}
           axisLine={false}
           tickLine={false}
           width={55}
         />
-        <Tooltip content={<CustomTooltip />} />
+        <Tooltip
+          content={({ active, payload, label }) => {
+            if (!active || !payload?.length) return null;
+            return (
+              <div className="glass-static px-3 py-2 rounded-lg text-xs">
+                <p className="text-text-secondary mb-0.5">{label}</p>
+                <p className="font-[family-name:var(--font-space-mono)] font-bold text-text-primary">
+                  {formatTooltipVal(payload[0].value as number)}
+                </p>
+              </div>
+            );
+          }}
+        />
         <Area type="monotone" dataKey="value" stroke="#00FFB2" strokeWidth={2} fill="url(#eqGrad)" animationDuration={1500} />
       </AreaChart>
     </ResponsiveContainer>
   );
 }
 
-function DailyPnlChart({ trades }: { trades: ReturnType<typeof useTradeStore.getState>["trades"] }) {
-  const data = useMemo(() => getDailyStats(trades), [trades]);
+function DailyPnlChart({ trades, viewMode = "$" }: { trades: ReturnType<typeof useTradeStore.getState>["trades"]; viewMode?: ViewMode }) {
+  const data = useMemo(() => {
+    const daily = getDailyStats(trades);
+    if (viewMode === "$") return daily;
+    if (viewMode === "R") {
+      // Group R-multiples by day
+      const rMap = new Map<string, number>();
+      trades.forEach(t => {
+        try {
+          const d = new Date(t.entryDate).toISOString().split("T")[0];
+          rMap.set(d, (rMap.get(d) || 0) + (t.rMultiple || 0));
+        } catch { /* skip */ }
+      });
+      return daily.map(d => ({ ...d, pnl: parseFloat((rMap.get(d.date) || 0).toFixed(2)) }));
+    }
+    // % mode: daily P&L as percentage of starting equity
+    const startEquity = trades.length > 0 ? trades[0].accountEquityAfter - trades[0].netPnl : 50000;
+    return daily.map(d => ({ ...d, pnl: startEquity > 0 ? parseFloat(((d.pnl / startEquity) * 100).toFixed(2)) : 0 }));
+  }, [trades, viewMode]);
+
+  const formatYAxis = (v: number) => {
+    if (viewMode === "$") return `$${v}`;
+    if (viewMode === "R") return `${v.toFixed(1)}R`;
+    return `${v.toFixed(1)}%`;
+  };
+
+  const formatTooltipVal = (v: number) => {
+    if (viewMode === "$") return formatCurrency(v);
+    if (viewMode === "R") return `${v.toFixed(2)}R`;
+    return `${v.toFixed(2)}%`;
+  };
 
   return (
     <ResponsiveContainer width="100%" height="100%">
@@ -101,12 +175,24 @@ function DailyPnlChart({ trades }: { trades: ReturnType<typeof useTradeStore.get
         />
         <YAxis
           tick={{ fill: "#8B8FA3", fontSize: 10, fontFamily: "Space Mono" }}
-          tickFormatter={(v: number) => `$${v}`}
+          tickFormatter={formatYAxis}
           axisLine={false}
           tickLine={false}
           width={55}
         />
-        <Tooltip content={<CustomTooltip />} />
+        <Tooltip
+          content={({ active, payload, label }) => {
+            if (!active || !payload?.length) return null;
+            return (
+              <div className="glass-static px-3 py-2 rounded-lg text-xs">
+                <p className="text-text-secondary mb-0.5">{label}</p>
+                <p className="font-[family-name:var(--font-space-mono)] font-bold text-text-primary">
+                  {formatTooltipVal(payload[0].value as number)}
+                </p>
+              </div>
+            );
+          }}
+        />
         <Bar dataKey="pnl" radius={[4, 4, 0, 0]} animationDuration={1200}>
           {data.map((entry, i) => (
             <Cell key={i} fill={entry.pnl >= 0 ? "#00FFB2" : "#FF2D55"} fillOpacity={0.8} />
@@ -406,11 +492,363 @@ function DayOfWeekPerformanceChart({ trades }: { trades: ReturnType<typeof useTr
   );
 }
 
+/* ═══════════════════════════════════════════════════════════ */
+/*  Monthly P&L Summary Table                                */
+/* ═══════════════════════════════════════════════════════════ */
+function MonthlyPnlTable({ trades }: { trades: ReturnType<typeof useTradeStore.getState>["trades"] }) {
+  const monthlyData = useMemo(() => getMonthlyBreakdown(trades), [trades]);
+
+  const totals = useMemo(() => {
+    if (monthlyData.length === 0) return null;
+    const netPnl = monthlyData.reduce((s, m) => s + m.netPnl, 0);
+    const totalTrades = monthlyData.reduce((s, m) => s + m.trades, 0);
+    const totalWins = monthlyData.reduce((s, m) => s + Math.round((m.winRate / 100) * m.trades), 0);
+    const bestDay = Math.max(...monthlyData.map(m => m.bestDay));
+    const worstDay = Math.min(...monthlyData.map(m => m.worstDay));
+    const grossWins = monthlyData.reduce((s, m) => {
+      const wins = trades.filter(t => {
+        try { return t.entryDate.startsWith(m.month) && t.result === "win"; } catch { return false; }
+      });
+      return s + wins.reduce((ss, t) => ss + t.netPnl, 0);
+    }, 0);
+    const grossLosses = Math.abs(monthlyData.reduce((s, m) => {
+      const losses = trades.filter(t => {
+        try { return t.entryDate.startsWith(m.month) && t.result === "loss"; } catch { return false; }
+      });
+      return s + losses.reduce((ss, t) => ss + t.netPnl, 0);
+    }, 0));
+    return {
+      netPnl,
+      winRate: totalTrades > 0 ? (totalWins / totalTrades) * 100 : 0,
+      trades: totalTrades,
+      bestDay,
+      worstDay,
+      profitFactor: grossLosses > 0 ? grossWins / grossLosses : grossWins > 0 ? Infinity : 0,
+    };
+  }, [monthlyData, trades]);
+
+  const bestMonth = useMemo(() => monthlyData.length > 0 ? monthlyData.reduce((b, m) => m.netPnl > b.netPnl ? m : b, monthlyData[0]) : null, [monthlyData]);
+  const worstMonth = useMemo(() => monthlyData.length > 0 ? monthlyData.reduce((w, m) => m.netPnl < w.netPnl ? m : w, monthlyData[0]) : null, [monthlyData]);
+
+  if (monthlyData.length === 0) {
+    return (
+      <GlassCard>
+        <div className="flex items-center gap-2 mb-4">
+          <Calendar size={18} className="text-accent-violet" />
+          <h3 className="font-[family-name:var(--font-inter)] font-bold text-base">Monthly P&L Summary</h3>
+        </div>
+        <div className="h-32 flex items-center justify-center text-sm text-text-muted">No monthly data available yet.</div>
+      </GlassCard>
+    );
+  }
+
+  return (
+    <GlassCard>
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-2">
+          <Calendar size={18} className="text-accent-violet" />
+          <h3 className="font-[family-name:var(--font-inter)] font-bold text-base">Monthly P&L Summary</h3>
+        </div>
+        <span className="text-[9px] font-bold uppercase tracking-wider text-text-muted px-2 py-1 rounded-lg bg-bg-secondary/40 border border-border-subtle">
+          {monthlyData.length} months
+        </span>
+      </div>
+      <div className="overflow-x-auto no-scrollbar">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-border-subtle">
+              <th className="text-left py-2.5 px-3 text-[10px] uppercase tracking-widest font-black text-text-muted">Month</th>
+              <th className="text-right py-2.5 px-3 text-[10px] uppercase tracking-widest font-black text-text-muted">Net P&L</th>
+              <th className="text-right py-2.5 px-3 text-[10px] uppercase tracking-widest font-black text-text-muted">Win Rate</th>
+              <th className="text-right py-2.5 px-3 text-[10px] uppercase tracking-widest font-black text-text-muted">Trades</th>
+              <th className="text-right py-2.5 px-3 text-[10px] uppercase tracking-widest font-black text-text-muted">Best Day</th>
+              <th className="text-right py-2.5 px-3 text-[10px] uppercase tracking-widest font-black text-text-muted">Worst Day</th>
+              <th className="text-right py-2.5 px-3 text-[10px] uppercase tracking-widest font-black text-text-muted">PF</th>
+            </tr>
+          </thead>
+          <tbody>
+            {monthlyData.map((row) => {
+              const isBest = bestMonth && row.month === bestMonth.month && monthlyData.length > 1;
+              const isWorst = worstMonth && row.month === worstMonth.month && monthlyData.length > 1;
+              return (
+                <tr
+                  key={row.month}
+                  className={cn(
+                    "border-b border-border-subtle/50 hover:bg-white/[0.02] transition-colors",
+                    isBest && "bg-accent-green/[0.03]",
+                    isWorst && "bg-accent-coral/[0.03]"
+                  )}
+                >
+                  <td className="py-2.5 px-3 font-[family-name:var(--font-space-mono)] font-semibold text-text-primary">
+                    <div className="flex items-center gap-2">
+                      {row.month}
+                      {isBest && <span className="text-[8px] px-1.5 py-0.5 rounded bg-accent-green/10 text-accent-green font-black uppercase tracking-wider">Best</span>}
+                      {isWorst && <span className="text-[8px] px-1.5 py-0.5 rounded bg-accent-coral/10 text-accent-coral font-black uppercase tracking-wider">Worst</span>}
+                    </div>
+                  </td>
+                  <td className={cn(
+                    "py-2.5 px-3 text-right font-[family-name:var(--font-space-mono)] font-bold",
+                    row.netPnl >= 0 ? "text-accent-green" : "text-accent-coral"
+                  )}>
+                    {row.netPnl >= 0 ? "+" : ""}{formatCurrency(row.netPnl)}
+                  </td>
+                  <td className={cn(
+                    "py-2.5 px-3 text-right font-[family-name:var(--font-space-mono)]",
+                    row.winRate >= 50 ? "text-accent-green" : "text-accent-coral"
+                  )}>
+                    {row.winRate.toFixed(1)}%
+                  </td>
+                  <td className="py-2.5 px-3 text-right font-[family-name:var(--font-space-mono)] text-text-secondary">{row.trades}</td>
+                  <td className="py-2.5 px-3 text-right font-[family-name:var(--font-space-mono)] text-accent-green">
+                    +{formatCurrency(row.bestDay)}
+                  </td>
+                  <td className="py-2.5 px-3 text-right font-[family-name:var(--font-space-mono)] text-accent-coral">
+                    {formatCurrency(row.worstDay)}
+                  </td>
+                  <td className="py-2.5 px-3 text-right font-[family-name:var(--font-space-mono)] text-text-secondary">
+                    {row.profitFactor === Infinity ? "∞" : row.profitFactor.toFixed(2)}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+          {totals && (
+            <tfoot>
+              <tr className="border-t-2 border-accent-violet/20 bg-accent-violet/[0.03]">
+                <td className="py-3 px-3 font-bold text-text-primary uppercase tracking-wider text-[10px]">Total</td>
+                <td className={cn(
+                  "py-3 px-3 text-right font-[family-name:var(--font-space-mono)] font-black text-sm",
+                  totals.netPnl >= 0 ? "text-accent-green" : "text-accent-coral"
+                )}>
+                  {totals.netPnl >= 0 ? "+" : ""}{formatCurrency(totals.netPnl)}
+                </td>
+                <td className="py-3 px-3 text-right font-[family-name:var(--font-space-mono)] font-bold text-text-primary">{totals.winRate.toFixed(1)}%</td>
+                <td className="py-3 px-3 text-right font-[family-name:var(--font-space-mono)] font-bold text-text-primary">{totals.trades}</td>
+                <td className="py-3 px-3 text-right font-[family-name:var(--font-space-mono)] text-accent-green font-bold">+{formatCurrency(totals.bestDay)}</td>
+                <td className="py-3 px-3 text-right font-[family-name:var(--font-space-mono)] text-accent-coral font-bold">{formatCurrency(totals.worstDay)}</td>
+                <td className="py-3 px-3 text-right font-[family-name:var(--font-space-mono)] font-bold text-text-primary">
+                  {totals.profitFactor === Infinity ? "∞" : totals.profitFactor.toFixed(2)}
+                </td>
+              </tr>
+            </tfoot>
+          )}
+        </table>
+      </div>
+    </GlassCard>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/*  Trade Duration Scatter Plot                              */
+/* ═══════════════════════════════════════════════════════════ */
+function DurationScatterChart({ trades }: { trades: ReturnType<typeof useTradeStore.getState>["trades"] }) {
+  const data = useMemo(() => getDurationVsPnl(trades), [trades]);
+  const wins = useMemo(() => data.filter(d => d.result === "win"), [data]);
+  const losses = useMemo(() => data.filter(d => d.result === "loss"), [data]);
+
+  if (data.length === 0) {
+    return (
+      <GlassCard>
+        <div className="flex items-center gap-2 mb-4">
+          <Timer size={18} className="text-accent-blue" />
+          <h3 className="font-[family-name:var(--font-inter)] font-bold text-base">Hold Time vs Outcome</h3>
+        </div>
+        <div className="h-64 flex items-center justify-center text-sm text-text-muted">No duration data available yet.</div>
+      </GlassCard>
+    );
+  }
+
+  return (
+    <GlassCard>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Timer size={18} className="text-accent-blue" />
+          <h3 className="font-[family-name:var(--font-inter)] font-bold text-base">Hold Time vs Outcome</h3>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <div className="w-2 h-2 rounded-full bg-accent-green" />
+            <span className="text-[10px] text-text-muted">Wins ({wins.length})</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2 h-2 rounded-full bg-accent-coral" />
+            <span className="text-[10px] text-text-muted">Losses ({losses.length})</span>
+          </div>
+        </div>
+      </div>
+      <div className="h-72">
+        <ResponsiveContainer width="100%" height="100%">
+          <ScatterChart margin={{ top: 10, right: 10, bottom: 10, left: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
+            <XAxis
+              type="number"
+              dataKey="duration"
+              name="Duration"
+              unit="m"
+              tick={{ fill: "#8B8FA3", fontSize: 10, fontFamily: "Space Mono" }}
+              tickFormatter={(v: number) => v >= 60 ? `${(v / 60).toFixed(0)}h` : `${v}m`}
+              axisLine={false}
+              tickLine={false}
+              label={{ value: "Duration", position: "insideBottom", offset: -5, style: { fill: "#8B8FA3", fontSize: 9 } }}
+            />
+            <YAxis
+              type="number"
+              dataKey="pnl"
+              name="P&L"
+              tick={{ fill: "#8B8FA3", fontSize: 10, fontFamily: "Space Mono" }}
+              tickFormatter={(v: number) => `$${v}`}
+              axisLine={false}
+              tickLine={false}
+              width={55}
+              label={{ value: "P&L", angle: -90, position: "insideLeft", style: { fill: "#8B8FA3", fontSize: 9 } }}
+            />
+            <ZAxis range={[30, 120]} />
+            <ReferenceLine y={0} stroke="rgba(255,255,255,0.15)" strokeDasharray="4 4" />
+            <Tooltip
+              cursor={{ strokeDasharray: "3 3", stroke: "rgba(255,255,255,0.1)" }}
+              content={({ active, payload }) => {
+                if (!active || !payload?.length) return null;
+                const d = payload[0].payload;
+                return (
+                  <div className="glass-static px-3 py-2 rounded-lg text-xs space-y-0.5">
+                    <p className="font-bold text-text-primary font-[family-name:var(--font-space-mono)]">{d.symbol}</p>
+                    <p className="text-text-secondary">Duration: <span className="text-text-primary font-[family-name:var(--font-space-mono)]">{d.duration >= 60 ? `${(d.duration / 60).toFixed(1)}h` : `${d.duration}m`}</span></p>
+                    <p className="text-text-secondary">P&L: <span className={cn("font-bold font-[family-name:var(--font-space-mono)]", d.pnl >= 0 ? "text-accent-green" : "text-accent-coral")}>{formatCurrency(d.pnl)}</span></p>
+                  </div>
+                );
+              }}
+            />
+            <Scatter name="Wins" data={wins} fill="#00FFB2" fillOpacity={0.7} />
+            <Scatter name="Losses" data={losses} fill="#FF2D55" fillOpacity={0.7} />
+          </ScatterChart>
+        </ResponsiveContainer>
+      </div>
+    </GlassCard>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/*  Cross-Analysis Heatmap (Strategy × Symbol)               */
+/* ═══════════════════════════════════════════════════════════ */
+function CrossAnalysisHeatmap({ trades }: { trades: ReturnType<typeof useTradeStore.getState>["trades"] }) {
+  const crossData = useMemo(() => getCrossAnalysis(trades, "playbook", "symbol"), [trades]);
+
+  const { rows, cols, grid } = useMemo(() => {
+    const rowSet = new Set<string>();
+    const colSet = new Set<string>();
+    crossData.forEach(d => {
+      rowSet.add(d.label1);
+      colSet.add(d.label2);
+    });
+    const rows = Array.from(rowSet).sort();
+    const cols = Array.from(colSet).sort();
+
+    const grid = new Map<string, { winRate: number; count: number; pnl: number }>();
+    crossData.forEach(d => {
+      grid.set(`${d.label1}|||${d.label2}`, { winRate: d.winRate, count: d.count, pnl: d.pnl });
+    });
+    return { rows, cols, grid };
+  }, [crossData]);
+
+  const getCellBg = (winRate: number) => {
+    if (winRate >= 70) return "bg-accent-green/25 border-accent-green/30";
+    if (winRate >= 60) return "bg-accent-green/15 border-accent-green/20";
+    if (winRate >= 40) return "bg-white/[0.04] border-border-subtle";
+    if (winRate >= 30) return "bg-accent-coral/15 border-accent-coral/20";
+    return "bg-accent-coral/25 border-accent-coral/30";
+  };
+
+  const getCellTextColor = (winRate: number) => {
+    if (winRate >= 60) return "text-accent-green";
+    if (winRate >= 40) return "text-text-secondary";
+    return "text-accent-coral";
+  };
+
+  if (rows.length === 0 || cols.length === 0) {
+    return (
+      <GlassCard>
+        <div className="flex items-center gap-2 mb-4">
+          <Grid3X3 size={18} className="text-accent-violet" />
+          <h3 className="font-[family-name:var(--font-inter)] font-bold text-base">Strategy × Symbol Performance Matrix</h3>
+        </div>
+        <div className="h-64 flex flex-col items-center justify-center text-sm text-text-muted">
+          <Grid3X3 className="mb-2 opacity-30" size={24} />
+          <p className="font-semibold text-xs">Not enough cross-data yet</p>
+          <p className="text-[10px] mt-0.5">Tag trades with playbooks and symbols to see the matrix.</p>
+        </div>
+      </GlassCard>
+    );
+  }
+
+  return (
+    <GlassCard>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Grid3X3 size={18} className="text-accent-violet" />
+          <h3 className="font-[family-name:var(--font-inter)] font-bold text-base">Strategy × Symbol Performance Matrix</h3>
+        </div>
+        <div className="flex items-center gap-3 text-[9px] text-text-muted">
+          <div className="flex items-center gap-1"><div className="w-3 h-2 rounded-sm bg-accent-green/25" /> &gt;60%</div>
+          <div className="flex items-center gap-1"><div className="w-3 h-2 rounded-sm bg-white/[0.04]" /> 40-60%</div>
+          <div className="flex items-center gap-1"><div className="w-3 h-2 rounded-sm bg-accent-coral/25" /> &lt;40%</div>
+        </div>
+      </div>
+      <div className="overflow-x-auto no-scrollbar">
+        <table className="w-full text-xs">
+          <thead>
+            <tr>
+              <th className="text-left py-2 px-2 text-[9px] uppercase tracking-widest font-black text-text-muted sticky left-0 bg-bg-card z-10">Strategy</th>
+              {cols.map(col => (
+                <th key={col} className="text-center py-2 px-2 text-[9px] uppercase tracking-widest font-black text-text-muted whitespace-nowrap">{col}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(row => (
+              <tr key={row} className="border-t border-border-subtle/30">
+                <td className="py-1.5 px-2 font-semibold text-text-primary whitespace-nowrap text-[10px] sticky left-0 bg-bg-card z-10">{row}</td>
+                {cols.map(col => {
+                  const cell = grid.get(`${row}|||${col}`);
+                  if (!cell || cell.count === 0) {
+                    return (
+                      <td key={col} className="py-1.5 px-1">
+                        <div className="w-full h-12 rounded-lg bg-white/[0.01] border border-border-subtle/30 flex items-center justify-center">
+                          <span className="text-[9px] text-text-muted/40">—</span>
+                        </div>
+                      </td>
+                    );
+                  }
+                  return (
+                    <td key={col} className="py-1.5 px-1">
+                      <div className={cn(
+                        "w-full h-12 rounded-lg border flex flex-col items-center justify-center gap-0.5 transition-all hover:scale-105 cursor-default",
+                        getCellBg(cell.winRate)
+                      )}
+                        title={`${row} × ${col}: ${cell.winRate.toFixed(0)}% WR, ${cell.count} trades, ${formatCurrency(cell.pnl)} P&L`}
+                      >
+                        <span className={cn("font-[family-name:var(--font-space-mono)] font-bold text-[11px]", getCellTextColor(cell.winRate))}>
+                          {cell.winRate.toFixed(0)}%
+                        </span>
+                        <span className="text-[8px] text-text-muted">{cell.count} trades</span>
+                      </div>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </GlassCard>
+  );
+}
+
 export default function AnalyticsPage() {
   const { trades } = useTradeStore();
   const { settings } = useSettingsStore();
   const [timeRange, setTimeRange] = useState("ALL");
   const [activeTab, setActiveTab] = useState<"Overview" | "AI Coach">("Overview");
+  const [viewMode, setViewMode] = useState<ViewMode>("$");
   
   const filteredTrades = useMemo(() => {
     if (timeRange === "ALL") return trades;
@@ -483,6 +921,19 @@ export default function AnalyticsPage() {
                   activeTab === tab ? "bg-accent-violet/15 text-accent-violet border border-accent-violet/25 shadow-[0_0_10px_rgba(143,0,255,0.1)]" : "text-text-muted hover:text-text-secondary"
                 )}>
                 {tab}
+              </button>
+            ))}
+          </div>
+          <div className="w-[1px] h-6 bg-border-subtle" />
+          <div className="flex gap-1 bg-bg-card p-1 rounded-lg border border-border-subtle">
+            {(["$", "R", "%"] as ViewMode[]).map((mode) => (
+              <button key={mode}
+                onClick={() => setViewMode(mode)}
+                className={cn(
+                  "px-2.5 py-1 text-xs rounded-md transition-all font-bold font-[family-name:var(--font-space-mono)]",
+                  viewMode === mode ? "bg-accent-blue/15 text-accent-blue border border-accent-blue/25 shadow-[0_0_8px_rgba(0,186,255,0.1)]" : "text-text-muted hover:text-text-secondary"
+                )}>
+                {mode}
               </button>
             ))}
           </div>
@@ -599,14 +1050,14 @@ export default function AnalyticsPage() {
         <GlassCard>
           <h3 className="font-[family-name:var(--font-inter)] font-bold text-base mb-4">Equity Curve</h3>
           <div className="h-64">
-            <EquityCurveChart trades={filteredTrades} />
+            <EquityCurveChart trades={filteredTrades} viewMode={viewMode} />
           </div>
         </GlassCard>
 
         <GlassCard>
           <h3 className="font-[family-name:var(--font-inter)] font-bold text-base mb-4">Daily P&L</h3>
           <div className="h-64">
-            <DailyPnlChart trades={filteredTrades} />
+            <DailyPnlChart trades={filteredTrades} viewMode={viewMode} />
           </div>
         </GlassCard>
       </div>
@@ -753,6 +1204,19 @@ export default function AnalyticsPage() {
           </div>
           </div>
         </GlassCard>
+
+      {/* ═══════════════════════════════════════════════════ */}
+      {/*  NEW SECTIONS: Monthly P&L, Duration Scatter, Cross-Analysis */}
+      {/* ═══════════════════════════════════════════════════ */}
+
+      {/* Monthly P&L Summary Table */}
+      <MonthlyPnlTable trades={filteredTrades} />
+
+      {/* Trade Duration Scatter + Cross-Analysis Heatmap */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <DurationScatterChart trades={filteredTrades} />
+        <CrossAnalysisHeatmap trades={filteredTrades} />
+      </div>
       </>
       )}
     </div>
