@@ -777,89 +777,99 @@ export default function DashboardPage() {
         </GlassCard>
       </motion.div>
 
-      {/* Row 1: HUD Stats Grid */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Today's P&L"
-          value={todayPnl}
-          format={(v) => formatCurrency(v)}
-          icon={DollarSign}
-          trend={todayPnl >= 0 ? "up" : "down"}
-          subtitle={`${todayTrades.length} trades today`}
-          delay={0}
-        >
-          <svg viewBox="0 0 32 32" className="w-8 h-8 select-none">
-            <circle cx="16" cy="16" r="12" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="3" />
-            <circle 
-              cx="16" cy="16" r="12" 
-              fill="none" 
-              stroke={todayPnl >= 0 ? "#00FFB2" : "#FF2D55"} 
-              strokeWidth="3" 
-              strokeDasharray="75.4" 
-              strokeDashoffset={75.4 - (75.4 * todayPnlRatio) / 100} 
-              strokeLinecap="round" 
-              className="transform -rotate-90 origin-center transition-all duration-1000 ease-out" 
-              style={{ filter: `drop-shadow(0 0 3px ${todayPnl >= 0 ? "rgba(0,255,178,0.4)" : "rgba(255,45,85,0.4)"})` }}
-            />
-          </svg>
-        </StatCard>
-        <StatCard
-          title="Win Rate"
-          value={metrics.winRate}
-          format={(v) => `${v.toFixed(1)}%`}
-          icon={Target}
-          trend={metrics.winRate >= 50 ? "up" : "down"}
-          subtitle={`${metrics.totalTrades} total trades`}
-          delay={0.03}
-        >
-          <svg viewBox="0 0 70 35" className="w-16 h-8 select-none">
-            <path d="M 10 30 A 25 25 0 0 1 60 30" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="4.5" strokeLinecap="round" />
-            <path 
-              d="M 10 30 A 25 25 0 0 1 60 30" 
-              fill="none" 
-              stroke="#00FFB2" 
-              strokeWidth="4.5" 
-              strokeLinecap="round" 
-              strokeDasharray="78.5" 
-              strokeDashoffset={78.5 - (78.5 * metrics.winRate) / 100} 
-              className="transition-all duration-1000 ease-out"
-              style={{ filter: "drop-shadow(0 0 3px rgba(0,255,178,0.4))" }} 
-            />
-          </svg>
-        </StatCard>
-        <StatCard
-          title="Profit Factor"
-          value={metrics.profitFactor}
-          format={(v) => v.toFixed(2)}
-          icon={TrendingUp}
-          trend={metrics.profitFactor >= 1.5 ? "up" : metrics.profitFactor >= 1 ? "neutral" : "down"}
-          subtitle={`${metrics.maxWinStreak} max win streak`}
-          delay={0.06}
-        >
-          <div className="flex flex-col gap-1 w-20 select-none">
-            <div className="flex justify-between text-[7px] font-black text-text-muted">
-              <span className="text-accent-green">W:{formatCurrency(metrics.avgWin, false)}</span>
-              <span className="text-accent-coral">L:{formatCurrency(metrics.avgLoss, false)}</span>
-            </div>
-            <div className="h-1.5 w-full bg-bg-secondary/40 dark:bg-white/[0.02] rounded-full overflow-hidden flex border border-border-subtle/50 dark:border-white/[0.04]">
-              <div className="h-full bg-accent-green" style={{ width: `${winRatio}%` }} />
-              <div className="h-full bg-accent-coral flex-1" />
-            </div>
+      {/* HUD Stats Grid & Widgets */}
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Left Column: Stats & Tactical HUD */}
+        <div className="lg:col-span-3 flex flex-col gap-6">
+          {/* Row 1: Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <StatCard
+              title="Today's P&L"
+              value={todayPnl}
+              format={(v) => formatCurrency(v)}
+              icon={DollarSign}
+              trend={todayPnl >= 0 ? "up" : "down"}
+              subtitle={`${todayTrades.length} trades today`}
+              delay={0}
+            >
+              <svg viewBox="0 0 32 32" className="w-8 h-8 select-none">
+                <circle cx="16" cy="16" r="12" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="3" />
+                <circle 
+                  cx="16" cy="16" r="12" 
+                  fill="none" 
+                  stroke={todayPnl >= 0 ? "#00FFB2" : "#FF2D55"} 
+                  strokeWidth="3" 
+                  strokeDasharray="75.4" 
+                  strokeDashoffset={75.4 - (75.4 * todayPnlRatio) / 100} 
+                  strokeLinecap="round" 
+                  className="transform -rotate-90 origin-center transition-all duration-1000 ease-out" 
+                  style={{ filter: `drop-shadow(0 0 3px ${todayPnl >= 0 ? "rgba(0,255,178,0.4)" : "rgba(255,45,85,0.4)"})` }}
+                />
+              </svg>
+            </StatCard>
+            <StatCard
+              title="Win Rate"
+              value={metrics.winRate}
+              format={(v) => `${v.toFixed(1)}%`}
+              icon={Target}
+              trend={metrics.winRate >= 50 ? "up" : "down"}
+              subtitle={`${metrics.totalTrades} total trades`}
+              delay={0.03}
+            >
+              <svg viewBox="0 0 70 35" className="w-16 h-8 select-none">
+                <path d="M 10 30 A 25 25 0 0 1 60 30" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="4.5" strokeLinecap="round" />
+                <path 
+                  d="M 10 30 A 25 25 0 0 1 60 30" 
+                  fill="none" 
+                  stroke="#00FFB2" 
+                  strokeWidth="4.5" 
+                  strokeLinecap="round" 
+                  strokeDasharray="78.5" 
+                  strokeDashoffset={78.5 - (78.5 * metrics.winRate) / 100} 
+                  className="transition-all duration-1000 ease-out"
+                  style={{ filter: "drop-shadow(0 0 3px rgba(0,255,178,0.4))" }} 
+                />
+              </svg>
+            </StatCard>
+            <StatCard
+              title="Profit Factor"
+              value={metrics.profitFactor}
+              format={(v) => v.toFixed(2)}
+              icon={TrendingUp}
+              trend={metrics.profitFactor >= 1.5 ? "up" : metrics.profitFactor >= 1 ? "neutral" : "down"}
+              subtitle={`${metrics.maxWinStreak} max win streak`}
+              delay={0.06}
+            >
+              <div className="flex flex-col gap-1 w-20 select-none">
+                <div className="flex justify-between text-[7px] font-black text-text-muted">
+                  <span className="text-accent-green">W:{formatCurrency(metrics.avgWin, false)}</span>
+                  <span className="text-accent-coral">L:{formatCurrency(metrics.avgLoss, false)}</span>
+                </div>
+                <div className="h-1.5 w-full bg-bg-secondary/40 dark:bg-white/[0.02] rounded-full overflow-hidden flex border border-border-subtle/50 dark:border-white/[0.04]">
+                  <div className="h-full bg-accent-green" style={{ width: `${winRatio}%` }} />
+                  <div className="h-full bg-accent-coral flex-1" />
+                </div>
+              </div>
+            </StatCard>
           </div>
-        </StatCard>
-        <ScoreWidget
-          score={metrics.edgevaultScore}
-          winRate={metrics.winRate}
-          profitFactor={metrics.profitFactor}
-          maxDrawdown={metrics.maxDrawdown}
-        />
-      </motion.div>
 
-      {/* Row 2: Tactical HUD (Win/Loss, Pre-Flight, AI diagnostics) */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <WinLossVisualizer trades={trades} />
-        <PreFlightChecklist />
-        <TraderCognitionRadar trades={filteredTrades} settings={settings} />
+          {/* Row 2: Tactical HUD (Win/Loss, Pre-Flight) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full">
+            <WinLossVisualizer trades={trades} />
+            <PreFlightChecklist />
+          </div>
+        </div>
+
+        {/* Right Column: Score & Radar */}
+        <div className="flex flex-col gap-6">
+          <ScoreWidget
+            score={metrics.edgevaultScore}
+            winRate={metrics.winRate}
+            profitFactor={metrics.profitFactor}
+            maxDrawdown={metrics.maxDrawdown}
+          />
+          <TraderCognitionRadar trades={filteredTrades} settings={settings} />
+        </div>
       </motion.div>
 
 
