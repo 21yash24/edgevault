@@ -119,6 +119,7 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
   const [screenshotUrls, setScreenshotUrls] = useState<string[]>([]);
   const [newImageUrl, setNewImageUrl] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [resultOverride, setResultOverride] = useState<"auto" | "win" | "loss" | "be">("auto");
 
   useEffect(() => {
     if (trade) {
@@ -136,6 +137,7 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
       setMindsetTags(trade.mindsetTags || []);
       setMindsetNotes(trade.mindsetNotes || "");
       setScreenshotUrls(trade.screenshotUrls || []);
+      setResultOverride(trade.result || "auto");
       
       if (trade.entryPrice) {
         setMode("detailed");
@@ -212,7 +214,9 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
       netPnl: parseFloat(netPnl.toFixed(2)),
       rMultiple: mode === "quick" ? parseFloat((netPnl / 200).toFixed(2)) : parseFloat((detailedCalculations?.rMultiple || (netPnl / 200)).toFixed(2)),
       rr: mode === "quick" ? parseFloat(Math.abs(netPnl / 200).toFixed(2)) : parseFloat((detailedCalculations?.rr || Math.abs(netPnl / 200)).toFixed(2)),
-      result: netPnl >= 0 ? "win" : "loss",
+      result: resultOverride !== "auto" 
+        ? resultOverride 
+        : (netPnl > 1 ? "win" : netPnl < -1 ? "loss" : "be"),
       emotion,
       preTradeNotes: preNotes,
       postTradeReview: postReview,
@@ -332,6 +336,30 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
                     direction === "short" ? "bg-accent-coral/15 text-accent-coral border border-accent-coral/30" : "bg-bg-card text-text-muted border border-border-subtle")}>
                   <ArrowDownRight size={16} /> Short
                 </button>
+              </div>
+            </div>
+
+            {/* Result Override */}
+            <div>
+              <label className="text-xs text-text-muted uppercase tracking-wider mb-1.5 block">Result Override <span className="text-text-muted/50 normal-case font-normal">(auto-detected from P&L)</span></label>
+              <div className="flex gap-2">
+                {(["auto", "win", "be", "loss"] as const).map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setResultOverride(r)}
+                    className={cn(
+                      "flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all border",
+                      r === "auto" && resultOverride === "auto" && "bg-accent-violet/10 border-accent-violet/40 text-accent-violet",
+                      r === "win" && resultOverride === "win" && "bg-accent-green/10 border-accent-green/40 text-accent-green",
+                      r === "be" && resultOverride === "be" && "bg-accent-blue/10 border-accent-blue/40 text-accent-blue",
+                      r === "loss" && resultOverride === "loss" && "bg-accent-coral/10 border-accent-coral/40 text-accent-coral",
+                      resultOverride !== r && "bg-bg-card border-border-subtle text-text-muted hover:text-text-primary hover:border-border-subtle/80"
+                    )}
+                  >
+                    {r === "auto" ? "Auto" : r === "be" ? "⚖️ BE" : r === "win" ? "✓ Win" : "✗ Loss"}
+                  </button>
+                ))}
               </div>
             </div>
 
