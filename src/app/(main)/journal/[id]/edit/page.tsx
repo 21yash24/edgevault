@@ -6,7 +6,7 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { SYMBOLS, SETUP_TAGS, SESSION_TAGS, MARKET_CONDITIONS, MISTAKE_TAGS, PLAYBOOKS, MINDSET_TAGS, Trade, SessionTag, MarketCondition, MistakeTag } from "@/lib/types";
 import { cn, formatCurrency } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowUpRight, ArrowDownRight, Save, Mic, MicOff, ChevronLeft, Upload, Zap, Settings2, Image as ImageIcon, X, Plus, Brain } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, Save, Mic, MicOff, ChevronLeft, Upload, Zap, Settings2, Image as ImageIcon, X, Plus, Brain, CheckSquare } from "lucide-react";
 import Link from "next/link";
 import { storage, auth } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -99,6 +99,7 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
   const [marketCondition, setMarketCondition] = useState<MarketCondition>("Trending");
   const [mistakeTags, setMistakeTags] = useState<MistakeTag[]>([]);
   const [playbook, setPlaybook] = useState("");
+  const [playbookRulesChecked, setPlaybookRulesChecked] = useState<string[]>([]);
   const [propChallengeId, setPropChallengeId] = useState("");
   const { challenges } = usePropFirmStore();
   const { playbooks } = usePlaybookStore();
@@ -113,6 +114,8 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
     const defaults = ["ICT Silver Bullet", "Liquidity Sweep + IFVG", "Opening Range Breakout", "VWAP Mean Reversion", "SMT + OB Confluence", "London Session Sweep", "Asian Range Breakout"];
     return Array.from(new Set([...customs, ...defaults]));
   }, [playbooks]);
+
+  const selectedPlaybookObj = useMemo(() => playbooks.find(p => p.name === playbook), [playbooks, playbook]);
 
   const [mindsetTags, setMindsetTags] = useState<string[]>([]);
   const [mindsetNotes, setMindsetNotes] = useState("");
@@ -133,6 +136,7 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
       setMarketCondition(trade.marketCondition);
       setMistakeTags(trade.mistakeTags);
       setPlaybook(trade.playbook || "");
+      setPlaybookRulesChecked(trade.playbookRulesChecked || []);
       setPropChallengeId(trade.propChallengeId || "");
       setMindsetTags(trade.mindsetTags || []);
       setMindsetNotes(trade.mindsetNotes || "");
@@ -225,7 +229,8 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
       marketCondition,
       mistakeTags,
       playbook: playbook || undefined,
-      propChallengeId: propChallengeId || "",
+      playbookRulesChecked,
+      propChallengeId: propChallengeId || undefined,
       durationMinutes: Math.max(durationMinutes, 1),
       screenshotUrls,
       mindsetTags,
@@ -410,12 +415,49 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
             {/* Playbook */}
             <div>
               <label className="text-xs text-text-muted uppercase tracking-wider mb-1.5 block">Playbook</label>
-              <select value={playbook} onChange={(e) => setPlaybook(e.target.value)}
+              <select value={playbook} onChange={(e) => {
+                setPlaybook(e.target.value);
+                setPlaybookRulesChecked([]); // reset checklist when playbook changes
+              }}
                 className="w-full bg-bg-card border border-border-subtle rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-accent-violet/40 transition-colors appearance-none">
                 <option value="">Select playbook...</option>
                 {allPlaybooks.map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
             </div>
+
+            {selectedPlaybookObj && selectedPlaybookObj.rules && selectedPlaybookObj.rules.length > 0 && (
+              <div className="bg-bg-card border border-border-subtle rounded-xl p-4 mt-2">
+                <h3 className="text-xs text-text-muted uppercase tracking-wider mb-3 font-bold flex items-center gap-2">
+                  <CheckSquare size={14} className="text-accent-violet" />
+                  Execution Checklist
+                </h3>
+                <div className="space-y-2">
+                  {selectedPlaybookObj.rules.map(rule => (
+                    <label key={rule.id} className="flex items-start gap-3 cursor-pointer group">
+                      <div className={cn(
+                        "w-4 h-4 rounded mt-0.5 flex-shrink-0 border flex items-center justify-center transition-colors",
+                        playbookRulesChecked.includes(rule.id) ? "bg-accent-violet border-accent-violet" : "border-border-subtle group-hover:border-accent-violet/50"
+                      )}>
+                        {playbookRulesChecked.includes(rule.id) && <CheckSquare size={12} className="text-white" />}
+                      </div>
+                      <div className="flex-1">
+                        <span className="text-sm text-text-primary block">{rule.text}</span>
+                        <span className={cn(
+                          "text-[9px] uppercase font-bold tracking-widest",
+                          rule.category === 'entry' ? "text-accent-blue" : rule.category === 'exit' ? "text-accent-coral" : "text-accent-green"
+                        )}>{rule.category} Rule</span>
+                      </div>
+                      <input type="checkbox" className="hidden" checked={playbookRulesChecked.includes(rule.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) setPlaybookRulesChecked([...playbookRulesChecked, rule.id]);
+                          else setPlaybookRulesChecked(playbookRulesChecked.filter(id => id !== rule.id));
+                        }}
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Prop Challenge Selection */}
             {activeChallenges.length > 0 && (

@@ -155,8 +155,26 @@ export function getPnlBySymbol(trades: Trade[]): { symbol: string; pnl: number; 
     map.set(t.symbol, existing);
   }
   return Array.from(map.entries())
-    .map(([symbol, data]) => ({ symbol, ...data }))
+    .map(([symbol, { pnl, trades }]) => ({ symbol, pnl: parseFloat(pnl.toFixed(2)), trades }))
     .sort((a, b) => b.pnl - a.pnl);
+}
+
+export function getMistakesPnL(trades: Trade[]): { name: string; pnl: number; count: number }[] {
+  const map = new Map<string, { pnl: number; count: number }>();
+  for (const t of trades) {
+    if (t.mistakeTags && t.mistakeTags.length > 0) {
+      for (const mistake of t.mistakeTags) {
+        const existing = map.get(mistake) ?? { pnl: 0, count: 0 };
+        // We accumulate the PnL (typically negative) for each mistake
+        existing.pnl += t.netPnl;
+        existing.count++;
+        map.set(mistake, existing);
+      }
+    }
+  }
+  return Array.from(map.entries())
+    .map(([name, { pnl, count }]) => ({ name, pnl: parseFloat(pnl.toFixed(2)), count }))
+    .sort((a, b) => a.pnl - b.pnl); // Sort ascending (biggest losses first)
 }
 
 export function getRMultipleDistribution(trades: Trade[]): { range: string; count: number }[] {

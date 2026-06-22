@@ -12,7 +12,9 @@ export function AiCoach({ trades, geminiKey }: { trades: Trade[], geminiKey: str
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleAnalyze = async () => {
+  const [analysisType, setAnalysisType] = useState<"macro" | "weekly">("macro");
+
+  const handleAnalyze = async (type: "macro" | "weekly" = "macro") => {
     if (!geminiKey) {
       setError("Please add your Gemini API key in Settings to use the AI Coach.");
       return;
@@ -21,9 +23,17 @@ export function AiCoach({ trades, geminiKey }: { trades: Trade[], geminiKey: str
     setIsLoading(true);
     setError(null);
 
+    setAnalysisType(type);
     try {
-      // Summarize data to avoid token limits
-      const summary = trades.slice(-50).map(t => ({
+      // Filter trades based on type
+      let tradesToAnalyze = trades;
+      if (type === "weekly") {
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        tradesToAnalyze = trades.filter(t => new Date(t.entryDate) >= oneWeekAgo);
+      }
+
+      const summary = (type === "macro" ? tradesToAnalyze.slice(-50) : tradesToAnalyze).map(t => ({
         symbol: t.symbol,
         pnl: t.netPnl,
         r: t.rMultiple,
@@ -36,7 +46,8 @@ export function AiCoach({ trades, geminiKey }: { trades: Trade[], geminiKey: str
       const genAI = new GoogleGenerativeAI(geminiKey);
       const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-      const prompt = `You are an elite trading psychology and risk management coach.
+      const prompt = type === "macro" 
+        ? `You are an elite trading psychology and risk management coach.
 Analyze the following recent trades from my journal:
 ${JSON.stringify(summary)}
 
@@ -47,7 +58,19 @@ Format your response in Markdown with the following sections:
 3. **Leaks**: Where am I losing money or discipline? Focus on mistakes, emotions, and R-multiple. (List 2 points)
 4. **Actionable Advice**: Give me 2 strict rules to follow for my next trading session.
 
-Keep it concise, professional, and punchy. Avoid generic advice; use the data provided.`;
+Keep it concise, professional, and punchy. Avoid generic advice; use the data provided.`
+        : `You are an elite trading psychology and risk management coach.
+Analyze the following trades from the last 7 days from my journal:
+${JSON.stringify(summary)}
+
+Provide a structured Weekly Debrief Report.
+Format your response in Markdown with the following sections:
+1. **Weekly Summary**: A brief overview of my week's performance.
+2. **Best Trades & Setups**: What worked best this week?
+3. **Capital Leaks & Mistakes**: Where did I lose the most money or discipline?
+4. **Action Plan for Next Week**: Provide clear, actionable steps for me to improve next week based strictly on this data.
+
+Make it feel like a premium, professional review.`;
 
       const result = await model.generateContent(prompt);
       const response = await result.response;
@@ -75,13 +98,22 @@ Keep it concise, professional, and punchy. Avoid generic advice; use the data pr
           </p>
           
           {geminiKey ? (
-            <button
-              onClick={handleAnalyze}
-              className="flex items-center gap-2 bg-gradient-to-r from-accent-violet to-accent-blue text-white px-6 py-3 rounded-xl text-sm font-semibold hover:shadow-[0_0_20px_rgba(123,97,255,0.4)] transition-all"
-            >
-              <Sparkles size={16} />
-              Generate Macro Analysis
-            </button>
+            <div className="flex gap-4">
+              <button
+                onClick={() => handleAnalyze("macro")}
+                className="flex items-center gap-2 bg-bg-card border border-accent-violet/30 text-accent-violet px-6 py-3 rounded-xl text-sm font-semibold hover:bg-accent-violet/10 transition-all"
+              >
+                <Brain size={16} />
+                Macro Analysis
+              </button>
+              <button
+                onClick={() => handleAnalyze("weekly")}
+                className="flex items-center gap-2 bg-gradient-to-r from-accent-violet to-accent-blue text-white px-6 py-3 rounded-xl text-sm font-semibold hover:shadow-[0_0_20px_rgba(123,97,255,0.4)] transition-all"
+              >
+                <Sparkles size={16} />
+                Weekly Debrief
+              </button>
+            </div>
           ) : (
             <div className="flex flex-col items-center gap-2 text-accent-coral bg-accent-coral/10 border border-accent-coral/20 px-4 py-3 rounded-lg text-sm">
               <AlertTriangle size={16} />
@@ -111,10 +143,10 @@ Keep it concise, professional, and punchy. Avoid generic advice; use the data pr
             
             <GlassCard className="md:col-span-1 border-accent-violet/20 flex flex-col items-center justify-center text-center p-6">
               <Brain size={48} className="text-accent-violet mb-4" />
-              <h3 className="font-[family-name:var(--font-inter)] font-bold text-lg mb-2">Analysis Complete</h3>
+              <h3 className="font-[family-name:var(--font-inter)] font-bold text-lg mb-2">{analysisType === "weekly" ? "Weekly Debrief" : "Analysis Complete"}</h3>
               <p className="text-xs text-text-muted mb-6">Based on your recent trades, your psychological profile has been updated.</p>
               <button
-                onClick={handleAnalyze}
+                onClick={() => handleAnalyze(analysisType)}
                 className="text-xs px-4 py-2 border border-border-subtle rounded-lg hover:bg-bg-card-hover transition-colors"
               >
                 Refresh Analysis

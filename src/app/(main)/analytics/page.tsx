@@ -2,7 +2,7 @@
 import { useTradeStore } from "@/stores";
 import { GlassCard } from "@/components/ui/glass-card";
 import { NumberTicker } from "@/components/ui/number-ticker";
-import { calculateMetrics, getDailyStats, getWinRateByField, getPnlBySymbol, getRMultipleDistribution, getHourlyHeatmap, getWinRateByMindset, getCrossAnalysis, getDurationVsPnl, getMonthlyBreakdown } from "@/lib/calculations";
+import { calculateMetrics, getDailyStats, getWinRateByField, getPnlBySymbol, getRMultipleDistribution, getHourlyHeatmap, getWinRateByMindset, getCrossAnalysis, getDurationVsPnl, getMonthlyBreakdown, getMistakesPnL } from "@/lib/calculations";
 import { formatCurrency, formatDuration, cn, getHeatmapColor } from "@/lib/utils";
 import { useMemo, useEffect, useRef, useState } from "react";
 import { subDays, subMonths, isAfter, startOfYear } from "date-fns";
@@ -844,11 +844,112 @@ function CrossAnalysisHeatmap({ trades }: { trades: ReturnType<typeof useTradeSt
   );
 }
 
+function CapitalLeaksView({ trades, viewMode }: { trades: ReturnType<typeof useTradeStore.getState>["trades"]; viewMode: ViewMode }) {
+  const data = useMemo(() => getMistakesPnL(trades), [trades]);
+
+  const totalLost = data.reduce((s, d) => s + (d.pnl < 0 ? d.pnl : 0), 0);
+
+  if (data.length === 0) {
+    return (
+      <GlassCard className="flex flex-col items-center justify-center h-96">
+        <AlertTriangle size={32} className="text-text-muted mb-4 opacity-50" />
+        <h3 className="font-[family-name:var(--font-inter)] font-black text-xl mb-2 text-text-primary">No Capital Leaks Recorded</h3>
+        <p className="text-sm text-text-secondary text-center max-w-sm">
+          You haven't tagged any trades with Mistakes yet. Tag your losing trades with "FOMO", "Overleveraged", etc. to see where you are leaking capital.
+        </p>
+      </GlassCard>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Leak Summary Card */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <GlassCard className="col-span-1 md:col-span-1 bg-accent-coral/[0.03] border-accent-coral/20">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-xl bg-accent-coral/10 text-accent-coral flex items-center justify-center border border-accent-coral/20">
+              <AlertTriangle size={20} className="stroke-[2.5]" />
+            </div>
+            <div>
+              <div className="text-[10px] text-accent-coral uppercase font-black tracking-widest">Total Capital Leaked</div>
+              <div className="font-[family-name:var(--font-space-mono)] font-black text-2xl text-accent-coral mt-0.5">
+                {formatCurrency(totalLost)}
+              </div>
+            </div>
+          </div>
+          <p className="text-xs text-text-muted mt-2">
+            This is the total gross loss attributed directly to unforced errors and psychological mistakes.
+          </p>
+        </GlassCard>
+
+        {/* Top 3 Mistakes */}
+        <GlassCard className="col-span-1 md:col-span-2">
+          <h3 className="text-[10px] text-text-muted uppercase font-black tracking-widest mb-4">Biggest Offenders</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {data.slice(0, 3).map((m, i) => (
+              <div key={m.name} className="bg-bg-secondary/30 border border-border-subtle rounded-xl p-3 flex flex-col justify-between">
+                <div className="flex justify-between items-start mb-2">
+                  <span className="text-xs font-bold text-text-primary uppercase tracking-wide truncate max-w-[120px]">{m.name}</span>
+                  <span className="text-[10px] font-bold text-text-muted px-2 py-0.5 rounded-lg bg-bg-card border border-border-subtle">#{i + 1}</span>
+                </div>
+                <div>
+                  <div className="font-[family-name:var(--font-space-mono)] font-black text-accent-coral text-lg leading-none">{formatCurrency(m.pnl)}</div>
+                  <div className="text-[9px] text-text-muted mt-1 font-bold">{m.count} trades affected</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </GlassCard>
+      </div>
+
+      {/* Chart */}
+      <GlassCard>
+        <h3 className="font-[family-name:var(--font-inter)] font-bold text-base mb-4 flex items-center gap-2">
+          <TrendingDown size={18} className="text-accent-coral" /> Mistake Impact Distribution
+        </h3>
+        <div className="h-96">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" horizontal={false} />
+              <XAxis type="number"
+                tick={{ fill: "#8B8FA3", fontSize: 10, fontFamily: "Space Mono" }}
+                tickFormatter={(v: number) => `$${v}`}
+                axisLine={false} tickLine={false}
+              />
+              <YAxis dataKey="name" type="category"
+                tick={{ fill: "#8B8FA3", fontSize: 10, fontWeight: "bold" }}
+                axisLine={false} tickLine={false} width={120}
+              />
+              <Tooltip content={({ active, payload, label }) => {
+                if (!active || !payload?.length) return null;
+                return (
+                  <div className="glass-static px-3 py-2 rounded-lg text-xs border border-accent-coral/20">
+                    <p className="text-text-secondary mb-0.5">{label}</p>
+                    <p className="font-[family-name:var(--font-space-mono)] font-black text-accent-coral text-base">
+                      {formatCurrency(payload[0].value as number)}
+                    </p>
+                    <p className="text-[10px] text-text-muted mt-1">{payload[0].payload.count} trades</p>
+                  </div>
+                );
+              }} />
+              <Bar dataKey="pnl" radius={[0, 4, 4, 0]} animationDuration={1200}>
+                {data.map((entry, i) => (
+                  <Cell key={i} fill={entry.pnl >= 0 ? "#00FFB2" : "#FF2D55"} fillOpacity={0.85} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </GlassCard>
+    </div>
+  );
+}
+
 export default function AnalyticsPage() {
   const { trades } = useTradeStore();
   const { settings } = useSettingsStore();
   const [timeRange, setTimeRange] = useState("ALL");
-  const [activeTab, setActiveTab] = useState<"Overview" | "What-If" | "AI Coach">("Overview");
+  const [activeTab, setActiveTab] = useState<"Overview" | "Capital Leaks" | "What-If" | "AI Coach">("Overview");
   const [viewMode, setViewMode] = useState<ViewMode>("$");
   
   const filteredTrades = useMemo(() => {
@@ -914,7 +1015,7 @@ export default function AnalyticsPage() {
       <div className="flex items-center justify-end">
         <div className="flex gap-4 items-center">
           <div className="flex gap-1 bg-bg-card p-1 rounded-lg border border-border-subtle">
-            {["Overview", "What-If", "AI Coach"].map((tab) => (
+            {["Overview", "Capital Leaks", "What-If", "AI Coach"].map((tab) => (
               <button key={tab}
                 onClick={() => setActiveTab(tab as any)}
                 className={cn(
@@ -1031,6 +1132,8 @@ export default function AnalyticsPage() {
         <AiCoach trades={filteredTrades} geminiKey={settings.api.geminiKey} />
       ) : activeTab === "What-If" ? (
         <WhatIfSimulator trades={filteredTrades} />
+      ) : activeTab === "Capital Leaks" ? (
+        <CapitalLeaksView trades={filteredTrades} viewMode={viewMode} />
       ) : (
         <>
           {/* Metrics Grid */}
