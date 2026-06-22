@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { GlassCard } from "@/components/ui/glass-card";
 import { cn, formatCurrency, formatDate, formatDuration, formatDateTime, formatR } from "@/lib/utils";
 import { analyzeTrade } from "@/lib/gemini";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { use, useMemo, useState, useEffect } from "react";
 import { ArrowUpRight, ArrowDownRight, ChevronLeft, Clock, Target, DollarSign, Activity, AlertTriangle, Brain, Sparkles, TrendingUp, TrendingDown, MessageSquare, CheckCircle, XCircle, Zap, Settings2, Share2, ImageIcon, Upload, X, Link as LinkIcon } from "lucide-react";
 import Link from "next/link";
