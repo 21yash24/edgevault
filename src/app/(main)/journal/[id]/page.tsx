@@ -6,7 +6,7 @@ import { cn, formatCurrency, formatDate, formatDuration, formatDateTime, formatR
 import { analyzeTrade } from "@/lib/gemini";
 import { motion } from "framer-motion";
 import { use, useMemo, useState, useEffect } from "react";
-import { ArrowUpRight, ArrowDownRight, ChevronLeft, Clock, Target, DollarSign, Activity, AlertTriangle, Brain, Sparkles, TrendingUp, TrendingDown, MessageSquare, CheckCircle, XCircle, Zap, Settings2, Share2, ImageIcon, Upload, X } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, ChevronLeft, Clock, Target, DollarSign, Activity, AlertTriangle, Brain, Sparkles, TrendingUp, TrendingDown, MessageSquare, CheckCircle, XCircle, Zap, Settings2, Share2, ImageIcon, Upload, X, Link as LinkIcon } from "lucide-react";
 import Link from "next/link";
 import { SETUP_TAGS, MISTAKE_TAGS, MINDSET_TAGS, MistakeTag, Trade } from "@/lib/types";
 
@@ -24,6 +24,7 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
   const trade = useMemo(() => trades.find((t) => t.id === id), [trades, id]);
   const [analysis, setAnalysis] = useState<Awaited<ReturnType<typeof analyzeTrade>> | null>(null);
   const [loadingAI, setLoadingAI] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const [syncState, setSyncState] = useState<"idle" | "syncing" | "synced">("idle");
 
@@ -74,11 +75,17 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
     triggerSync();
   };
 
-  const handleShare = () => {
+  const handleCopyLink = () => {
     const url = `${window.location.origin}/shared/trade/${trade?.id}`;
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleShareTwitter = () => {
+    const text = `I just logged a ${trade?.result === 'win' ? 'winning' : 'trading'} setup on $${trade?.symbol} for ${formatR(trade?.rMultiple || 0)}!\n\nTracked via @edgevault_io 🚀`;
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+    window.open(url, "_blank");
   };
 
   const relatedTrades = useMemo(() => {
@@ -132,12 +139,11 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
 
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <button onClick={handleShare}
-              className={cn("p-2 rounded-xl border transition-all flex items-center gap-2", 
-                copied ? "bg-accent-green/10 border-accent-green/20 text-accent-green font-bold" : "bg-bg-card border-border-subtle text-text-secondary hover:text-text-primary")}
+            <button onClick={() => setShowShareModal(true)}
+              className="p-2 rounded-xl bg-bg-card border border-border-subtle text-text-secondary hover:text-text-primary transition-all flex items-center gap-2"
               title="Share Trade">
               <Share2 size={18} />
-              <span className="text-xs font-bold hidden sm:inline">{copied ? "Copied Link" : "Share"}</span>
+              <span className="text-xs font-bold hidden sm:inline">Share</span>
             </button>
             <Link href={`/journal/${trade.id}/edit`} 
               className="p-2 rounded-xl bg-bg-card border border-border-subtle text-text-secondary hover:text-accent-violet transition-all"
@@ -682,6 +688,39 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
         </div>
 
       </div>
+
+      {/* Share Modal */}
+      <AnimatePresence>
+        {showShareModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-bg-base/80 backdrop-blur-sm">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-sm">
+              <GlassCard className="border-border-subtle p-6 shadow-2xl relative">
+                <button onClick={() => setShowShareModal(false)} className="absolute top-4 right-4 text-text-muted hover:text-text-primary"><X size={18} /></button>
+                <div className="flex flex-col items-center text-center space-y-4 pt-2">
+                  <div className="w-12 h-12 rounded-2xl bg-accent-violet/10 flex items-center justify-center text-accent-violet mb-2">
+                    <Share2 size={24} />
+                  </div>
+                  <h2 className="text-xl font-black text-text-primary">Share Trade</h2>
+                  <p className="text-sm text-text-muted">Generate a secure link or share directly to your followers.</p>
+                  
+                  <div className="w-full space-y-3 pt-4">
+                    <button onClick={handleShareTwitter} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#1DA1F2]/10 text-[#1DA1F2] border border-[#1DA1F2]/20 hover:bg-[#1DA1F2]/20 font-bold transition-all">
+                      <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" className="w-5 h-5"><g><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.008 5.96H5.078z"></path></g></svg>
+                      Share on X
+                    </button>
+                    
+                    <button onClick={handleCopyLink} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-bg-secondary text-text-primary border border-border-subtle hover:border-text-muted font-bold transition-all">
+                      {copied ? <CheckCircle size={18} className="text-accent-green" /> : <LinkIcon size={18} />}
+                      {copied ? "Link Copied!" : "Copy Public Link"}
+                    </button>
+                  </div>
+                </div>
+              </GlassCard>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

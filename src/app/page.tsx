@@ -155,10 +155,10 @@ export default function LandingPage() {
               Start Trading Free
               <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
             </Link>
-            <button className="flex items-center gap-2 glass px-8 py-3.5 rounded-2xl text-text-secondary hover:text-text-primary text-base transition-all">
+            <a href="#features" className="flex items-center gap-2 glass px-8 py-3.5 rounded-2xl text-text-secondary hover:text-text-primary text-base transition-all">
               Watch Demo
               <ChevronRight size={18} />
-            </button>
+            </a>
           </motion.div>
 
           {/* Hero Chart Mockup */}

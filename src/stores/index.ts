@@ -229,7 +229,7 @@ export const usePlaybookStore = create<PlaybookStore>()(
       playbooks: [],
       addPlaybook: async (playbook) => {
         const now = new Date().toISOString();
-        const newPlaybook = { ...playbook, id: generateId(), createdAt: now, updatedAt: now };
+        const newPlaybook = { ...playbook, id: generateId(), createdAt: now, updatedAt: now, linkedTradeIds: [] };
         
         // Optimistic update
         set((s) => ({ playbooks: [...s.playbooks, newPlaybook] }));

@@ -57,9 +57,11 @@ function MiniCalendar({ selectedDate, onSelect }: { selectedDate: string, onSele
           const isSelected = day.date === selectedDate;
           const hasNote = !!notes[day.date] && Object.values(notes[day.date]).some(v => v !== "" && v !== 3 && v !== false);
           return (
-            <button
+              <button
               key={i}
-              onClick={() => onSelect(day.date)}
+              onClick={() => {
+                onSelect(day.date);
+              }}
               className={cn(
                 "aspect-square flex items-center justify-center rounded-lg text-xs font-medium transition-all relative group",
                 isSelected ? "bg-accent-violet text-white shadow-md shadow-accent-violet/20" : "hover:bg-bg-secondary text-text-secondary hover:text-text-primary",
@@ -130,6 +132,25 @@ function DailyLogView() {
   useEffect(() => { handleResize(intraTextareaRef); }, [intradayNotes]);
   useEffect(() => { handleResize(postTextareaRef); }, [postMarketReview]);
 
+  // Auto-save mechanism
+  useEffect(() => {
+    const hasChanges = 
+      preMarketPlan !== activeNote.preMarketPlan ||
+      bias !== activeNote.bias ||
+      sleepScore !== activeNote.sleepScore ||
+      focusScore !== activeNote.focusScore ||
+      postMarketReview !== activeNote.postMarketReview ||
+      intradayNotes !== activeNote.intradayNotes ||
+      sessionGrade !== activeNote.sessionGrade;
+
+    if (hasChanges) {
+      const timeoutId = setTimeout(() => {
+        saveNote(selectedDate, { preMarketPlan, bias, sleepScore, focusScore, postMarketReview, intradayNotes, sessionGrade });
+      }, 1500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [preMarketPlan, bias, sleepScore, focusScore, postMarketReview, intradayNotes, sessionGrade, selectedDate, activeNote, saveNote]);
+
   const handleSave = () => {
     setIsSaving(true);
     setTimeout(() => {
@@ -157,6 +178,8 @@ function DailyLogView() {
   const dailyPnL = useMemo(() => dailyTrades.reduce((sum, t) => sum + t.netPnl, 0), [dailyTrades]);
 
   const changeDate = (days: number) => {
+    // Force immediate save of current state before switching
+    saveNote(selectedDate, { preMarketPlan, bias, sleepScore, focusScore, postMarketReview, intradayNotes, sessionGrade });
     const parsed = new Date(selectedDate);
     parsed.setDate(parsed.getDate() + days);
     setSelectedDate(parsed.toISOString().split("T")[0]);
@@ -221,7 +244,11 @@ function DailyLogView() {
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Left Sidebar (Calendar & AI) */}
         <div className="w-full lg:w-72 flex-shrink-0 space-y-6">
-          <MiniCalendar selectedDate={selectedDate} onSelect={setSelectedDate} />
+          <MiniCalendar selectedDate={selectedDate} onSelect={(date) => {
+            // Force immediate save of current state before switching
+            saveNote(selectedDate, { preMarketPlan, bias, sleepScore, focusScore, postMarketReview, intradayNotes, sessionGrade });
+            setSelectedDate(date);
+          }} />
           
           <div className="bg-bg-card border border-border-subtle rounded-2xl p-5 shadow-sm space-y-4">
             <div className="flex items-center gap-2 text-accent-blue">
@@ -359,9 +386,9 @@ function DailyLogView() {
       </div>
 
       <div className="fixed bottom-8 right-8 z-50">
-        <button onClick={handleSave} disabled={isSaving} className={cn("flex items-center gap-2.5 px-6 py-3 rounded-full text-sm font-bold shadow-xl transition-all duration-300", saveStatus === "saved" ? "bg-accent-green text-bg-base scale-105" : "bg-text-primary text-bg-base hover:scale-105 hover:shadow-[0_10px_40px_rgba(255,255,255,0.15)]")}>
-          {isSaving ? <div className="w-4 h-4 rounded-full border-2 border-bg-base/30 border-t-bg-base animate-spin" /> : saveStatus === "saved" ? <CheckSquare size={18} /> : <Save size={18} />}
-          {saveStatus === "saved" ? "Saved" : "Save Journal"}
+        <button onClick={handleSave} disabled={isSaving} className={cn("flex items-center gap-2.5 px-6 py-3 rounded-full text-sm font-bold shadow-xl transition-all duration-300", saveStatus === "saved" ? "bg-accent-green text-bg-base scale-105" : "bg-bg-card border border-border-subtle text-text-primary hover:scale-105 hover:border-accent-violet/50 hover:shadow-[0_10px_40px_rgba(123,97,255,0.15)]")}>
+          {isSaving ? <div className="w-4 h-4 rounded-full border-2 border-accent-violet/30 border-t-accent-violet animate-spin" /> : saveStatus === "saved" ? <CheckSquare size={18} /> : <Save size={18} className="text-text-muted" />}
+          {saveStatus === "saved" ? "Saved" : "Auto-Saving..."}
         </button>
       </div>
     </div>
