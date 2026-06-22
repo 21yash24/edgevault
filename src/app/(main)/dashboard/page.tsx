@@ -1,5 +1,5 @@
 "use client";
-import { useTradeStore, usePropFirmStore, useRiskStore, useSettingsStore } from "@/stores";
+import { useTradeStore, usePropFirmStore, useRiskStore, useSettingsStore, useAccountStore } from "@/stores";
 import { StatCard } from "@/components/ui/stat-card";
 import { GlassCard } from "@/components/ui/glass-card";
 import { NumberTicker } from "@/components/ui/number-ticker";
@@ -616,7 +616,9 @@ const MINDSET_QUOTES = [
 export default function DashboardPage() {
   const { trades } = useTradeStore();
   const { challenges } = usePropFirmStore();
+  const { accounts } = useAccountStore();
   const [timeRange, setTimeRange] = useState("1M");
+  const [selectedAccountId, setSelectedAccountId] = useState("ALL");
   const [quoteIndex, setQuoteIndex] = useState(0);
 
   useEffect(() => {
@@ -635,17 +637,22 @@ export default function DashboardPage() {
   const currentQuote = MINDSET_QUOTES[quoteIndex] || MINDSET_QUOTES[0];
   
   const filteredTrades = useMemo(() => {
-    if (timeRange === "ALL") return trades;
+    let base = trades;
+    if (selectedAccountId !== "ALL") {
+      base = trades.filter(t => (t.accountId || "") === selectedAccountId);
+    }
+    
+    if (timeRange === "ALL") return base;
     const now = new Date();
     let cutoff = now;
     if (timeRange === "1W") cutoff = subDays(now, 7);
     if (timeRange === "1M") cutoff = subMonths(now, 1);
     if (timeRange === "3M") cutoff = subMonths(now, 3);
     
-    return trades.filter((t) => {
+    return base.filter((t) => {
       try { return t.entryDate && !isNaN(new Date(t.entryDate).getTime()) && isAfter(new Date(t.entryDate), cutoff); } catch { return false; }
     });
-  }, [trades, timeRange]);
+  }, [trades, timeRange, selectedAccountId]);
 
   const metrics = useMemo(() => calculateMetrics(filteredTrades), [filteredTrades]);
   const equityData = useMemo(() => getEquityCurve(filteredTrades), [filteredTrades]);
