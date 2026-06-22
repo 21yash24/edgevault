@@ -6,9 +6,10 @@ import { cn, formatCurrency, formatDate, formatDuration, formatDateTime, formatR
 import { analyzeTrade } from "@/lib/gemini";
 import { motion, AnimatePresence } from "framer-motion";
 import { use, useMemo, useState, useEffect } from "react";
-import { ArrowUpRight, ArrowDownRight, ChevronLeft, Clock, Target, DollarSign, Activity, AlertTriangle, Brain, Sparkles, TrendingUp, TrendingDown, MessageSquare, CheckCircle, XCircle, Zap, Settings2, Share2, ImageIcon, Upload, X, Link as LinkIcon } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, ChevronLeft, Clock, Target, DollarSign, Activity, AlertTriangle, Brain, Sparkles, TrendingUp, TrendingDown, MessageSquare, CheckCircle, XCircle, Zap, Settings2, Share2, ImageIcon, Upload, X, Link as LinkIcon, Download as DownloadIcon } from "lucide-react";
 import Link from "next/link";
 import { SETUP_TAGS, MISTAKE_TAGS, MINDSET_TAGS, MistakeTag, Trade } from "@/lib/types";
+import html2canvas from "html2canvas";
 
 const emotionLabels: Record<number, { label: string; emoji: string }> = {
   [-5]: { label: "Terrified", emoji: "😰" }, [-4]: { label: "Very Fearful", emoji: "😨" }, [-3]: { label: "Fearful", emoji: "😟" },
@@ -25,6 +26,7 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
   const [analysis, setAnalysis] = useState<Awaited<ReturnType<typeof analyzeTrade>> | null>(null);
   const [loadingAI, setLoadingAI] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [downloadingImage, setDownloadingImage] = useState(false);
   const [copied, setCopied] = useState(false);
   const [syncState, setSyncState] = useState<"idle" | "syncing" | "synced">("idle");
 
@@ -86,6 +88,28 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
     const text = `I just logged a ${trade?.result === 'win' ? 'winning' : 'trading'} setup on $${trade?.symbol} for ${formatR(trade?.rMultiple || 0)}!\n\nTracked via @edgevault_io 🚀`;
     const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
     window.open(url, "_blank");
+  };
+
+  const handleDownloadImage = async () => {
+    const el = document.getElementById("share-card-preview");
+    if (!el) return;
+    setDownloadingImage(true);
+    try {
+      const canvas = await html2canvas(el, {
+        backgroundColor: "#0B0F19",
+        scale: 3,
+        useCORS: true,
+      });
+      const dataUrl = canvas.toDataURL("image/png");
+      const link = document.createElement("a");
+      link.download = `EdgeVault_${trade?.symbol}_${formatDate(trade?.entryDate || "")}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setDownloadingImage(false);
+    }
   };
 
   const relatedTrades = useMemo(() => {
@@ -692,25 +716,82 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
       {/* Share Modal */}
       <AnimatePresence>
         {showShareModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-bg-base/80 backdrop-blur-sm">
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-bg-base/80 backdrop-blur-sm overflow-y-auto">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-md my-auto pt-10 pb-10">
               <GlassCard className="border-border-subtle p-6 shadow-2xl relative">
-                <button onClick={() => setShowShareModal(false)} className="absolute top-4 right-4 text-text-muted hover:text-text-primary"><X size={18} /></button>
+                <button onClick={() => setShowShareModal(false)} className="absolute top-4 right-4 text-text-muted hover:text-text-primary z-10"><X size={18} /></button>
                 <div className="flex flex-col items-center text-center space-y-4 pt-2">
-                  <div className="w-12 h-12 rounded-2xl bg-accent-violet/10 flex items-center justify-center text-accent-violet mb-2">
-                    <Share2 size={24} />
+                  <div className="w-10 h-10 rounded-2xl bg-accent-violet/10 flex items-center justify-center text-accent-violet mb-2">
+                    <Share2 size={20} />
                   </div>
-                  <h2 className="text-xl font-black text-text-primary">Share Trade</h2>
-                  <p className="text-sm text-text-muted">Generate a secure link or share directly to your followers.</p>
+                  <div>
+                    <h2 className="text-xl font-black text-text-primary">Share Trade</h2>
+                    <p className="text-xs text-text-muted mt-1">Generate a secure link or download a stylized trade card.</p>
+                  </div>
                   
-                  <div className="w-full space-y-3 pt-4">
-                    <button onClick={handleShareTwitter} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#1DA1F2]/10 text-[#1DA1F2] border border-[#1DA1F2]/20 hover:bg-[#1DA1F2]/20 font-bold transition-all">
-                      <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" className="w-5 h-5"><g><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.008 5.96H5.078z"></path></g></svg>
+                  {/* Stylized Image Preview for html2canvas */}
+                  <div className="w-full relative mt-4 rounded-2xl overflow-hidden border border-border-subtle shadow-2xl">
+                    <div id="share-card-preview" className="relative p-8 bg-bg-base overflow-hidden w-full h-[220px] flex flex-col justify-between">
+                      {/* Premium Background Effects */}
+                      <div className="absolute inset-0 bg-[url('/noise.png')] opacity-20 mix-blend-overlay"></div>
+                      <div className={cn("absolute -top-20 -right-20 w-64 h-64 rounded-full blur-[80px]", trade.result === "win" ? "bg-accent-green/20" : trade.result === "loss" ? "bg-accent-coral/20" : "bg-accent-blue/20")}></div>
+                      <div className={cn("absolute -bottom-20 -left-20 w-64 h-64 rounded-full blur-[80px]", trade.result === "win" ? "bg-accent-green/10" : trade.result === "loss" ? "bg-accent-coral/10" : "bg-accent-blue/10")}></div>
+                      
+                      {/* Top Bar */}
+                      <div className="flex justify-between items-start relative z-10">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-lg bg-bg-secondary flex items-center justify-center">
+                            <Zap size={12} className="text-text-primary" />
+                          </div>
+                          <span className="font-[family-name:var(--font-inter)] font-black text-sm tracking-tight text-text-primary">EDGEVAULT</span>
+                        </div>
+                        <div className="text-right">
+                          <span className={cn("inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full font-black uppercase tracking-wider border", trade.result === "win" ? "bg-accent-green/10 text-accent-green border-accent-green/20" : trade.result === "loss" ? "bg-accent-coral/10 text-accent-coral border-accent-coral/20" : "bg-bg-secondary/40 border-border-subtle text-text-muted")}>
+                            {trade.result}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Center Stats */}
+                      <div className="relative z-10 pt-4 pb-2">
+                        <div className="flex items-center gap-3">
+                          <h3 className="font-[family-name:var(--font-inter)] font-black text-5xl tracking-tighter text-text-primary">{trade.symbol}</h3>
+                          <span className={cn("inline-flex items-center gap-1 text-[12px] px-2.5 py-1 rounded-lg font-black uppercase tracking-wider", trade.direction === "long" ? "bg-accent-green/10 text-accent-green border border-accent-green/20" : "bg-accent-coral/10 text-accent-coral border border-accent-coral/20")}>
+                            {trade.direction === "long" ? <ArrowUpRight size={12} className="stroke-[3]" /> : <ArrowDownRight size={12} className="stroke-[3]" />}
+                            {trade.direction}
+                          </span>
+                        </div>
+                        <div className={cn("font-[family-name:var(--font-space-mono)] font-black text-4xl tracking-tight mt-2", trade.netPnl >= 0 ? "text-accent-green" : "text-accent-coral")}>
+                          {trade.netPnl >= 0 ? "+" : ""}{formatCurrency(trade.netPnl)}
+                          <span className="text-xl ml-3 opacity-80">{formatR(trade.rMultiple)}</span>
+                        </div>
+                      </div>
+
+                      {/* Footer Info */}
+                      <div className="flex justify-between items-end relative z-10 border-t border-border-subtle/50 pt-3">
+                        <div className="text-[10px] text-text-muted font-bold flex gap-3">
+                          <span className="flex items-center gap-1"><Clock size={10} /> {formatDate(trade.entryDate)}</span>
+                          <span>•</span>
+                          <span className="flex items-center gap-1"><Target size={10} /> {trade.sessionTag}</span>
+                        </div>
+                        <div className="text-[9px] text-text-muted/60 uppercase font-black tracking-widest">
+                          edgevault.io
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="w-full grid grid-cols-2 gap-3 pt-4">
+                    <button onClick={handleDownloadImage} disabled={downloadingImage} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-accent-violet text-bg-base hover:bg-accent-violet/90 hover:shadow-[0_0_20px_rgba(123,97,255,0.3)] font-bold transition-all text-sm">
+                      {downloadingImage ? <div className="w-4 h-4 rounded-full border-2 border-bg-base/30 border-t-bg-base animate-spin" /> : <DownloadIcon size={16} />}
+                      {downloadingImage ? "Saving..." : "Download Image"}
+                    </button>
+                    <button onClick={handleShareTwitter} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#1DA1F2]/10 text-[#1DA1F2] border border-[#1DA1F2]/20 hover:bg-[#1DA1F2]/20 font-bold transition-all text-sm">
+                      <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" className="w-4 h-4"><g><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.008 5.96H5.078z"></path></g></svg>
                       Share on X
                     </button>
-                    
-                    <button onClick={handleCopyLink} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-bg-secondary text-text-primary border border-border-subtle hover:border-text-muted font-bold transition-all">
-                      {copied ? <CheckCircle size={18} className="text-accent-green" /> : <LinkIcon size={18} />}
+                    <button onClick={handleCopyLink} className="col-span-2 w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-bg-secondary text-text-primary border border-border-subtle hover:border-text-muted font-bold transition-all text-sm">
+                      {copied ? <CheckCircle size={16} className="text-accent-green" /> : <LinkIcon size={16} />}
                       {copied ? "Link Copied!" : "Copy Public Link"}
                     </button>
                   </div>
