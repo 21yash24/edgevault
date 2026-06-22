@@ -1,15 +1,34 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { format, formatDistanceToNow } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+let cachedCurrency: string | null = null;
+let cachedCurrencySymbol: string | null = null;
+
 export function formatCurrency(value: number, showSign = true): string {
+  if (typeof window !== "undefined") {
+    try {
+      const stored = localStorage.getItem("edgevault-settings");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const c = parsed.state?.settings?.profile?.currency;
+        if (c && c !== cachedCurrency) {
+          cachedCurrency = c;
+          cachedCurrencySymbol = c.match(/\((.*?)\)/)?.[1] || c || "$";
+        }
+      }
+    } catch (e) {}
+  }
+
+  const symbol = cachedCurrencySymbol || "$";
   const val = value || 0;
   const prefix = showSign ? (val >= 0 ? "+" : "") : "";
-  return `${prefix}$${Math.abs(val).toLocaleString("en-US", {
+  return `${prefix}${symbol}${Math.abs(val).toLocaleString("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
@@ -27,15 +46,35 @@ export function formatR(value: number): string {
   return `${prefix}${val.toFixed(2)}R`;
 }
 
+function getTimezone() {
+  if (typeof window !== "undefined") {
+    try {
+      const stored = localStorage.getItem("edgevault-settings");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.state?.settings?.preferences?.timezone) {
+          return parsed.state.settings.preferences.timezone;
+        }
+      }
+    } catch (e) {
+      // fallback
+    }
+  }
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
+}
+
 export function formatDate(date: Date | string): string {
-  return format(new Date(date), "MMM dd, yyyy");
+  const tz = getTimezone();
+  return formatInTimeZone(new Date(date), tz, "MMM dd, yyyy");
 }
 
 export function formatDateTime(date: Date | string): string {
-  return format(new Date(date), "MMM dd, yyyy HH:mm");
+  const tz = getTimezone();
+  return formatInTimeZone(new Date(date), tz, "MMM dd, yyyy HH:mm");
 }
 
 export function formatTimeAgo(date: Date | string): string {
+  // formatDistanceToNow evaluates relative time, timezone adjustment is not necessary as it compares to Date.now()
   return formatDistanceToNow(new Date(date), { addSuffix: true });
 }
 

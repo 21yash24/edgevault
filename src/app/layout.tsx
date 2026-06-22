@@ -3,6 +3,7 @@ import { Syne, Space_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { ThemeProvider } from "next-themes";
+import { ThemeSetter } from "@/components/providers/theme-setter";
 
 const syne = Syne({
   variable: "--font-syne",
@@ -56,6 +57,7 @@ export default function RootLayout({
         <div className="fixed top-1/2 -right-20 w-[600px] h-[600px] bg-accent-green/5 rounded-full blur-[120px] animate-pulse -z-10" style={{ animationDelay: "2s" }} />
         
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+          <ThemeSetter />
           <AuthProvider>
             {children}
           </AuthProvider>

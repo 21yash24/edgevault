@@ -1,7 +1,7 @@
 "use client";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useTradeStore, useSettingsStore, usePropFirmStore, usePlaybookStore } from "@/stores";
+import { useTradeStore, useSettingsStore, usePropFirmStore, usePlaybookStore, useAccountStore } from "@/stores";
 import { GlassCard } from "@/components/ui/glass-card";
 import { SYMBOLS, SETUP_TAGS, SESSION_TAGS, MARKET_CONDITIONS, MISTAKE_TAGS, PLAYBOOKS, MINDSET_TAGS, Trade, SessionTag, MarketCondition, MistakeTag } from "@/lib/types";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -94,8 +94,10 @@ export default function NewTradePage() {
   const [mistakeTags, setMistakeTags] = useState<MistakeTag[]>([]);
   const [playbook, setPlaybook] = useState("");
   const [propChallengeId, setPropChallengeId] = useState("");
+  const [accountId, setAccountId] = useState("");
   const { challenges } = usePropFirmStore();
   const { playbooks } = usePlaybookStore();
+  const { accounts } = useAccountStore();
   const [mindsetTags, setMindsetTags] = useState<string[]>([]);
   const [mindsetNotes, setMindsetNotes] = useState("");
   const [screenshotUrls, setScreenshotUrls] = useState<string[]>([]);
@@ -196,7 +198,7 @@ export default function NewTradePage() {
         : (netPnl > 1 ? "win" : netPnl < -1 ? "loss" : "be"),
       emotion: emotion || 0, preTradeNotes: preNotes, postTradeReview: postReview,
       setupTags, sessionTag, marketCondition, mistakeTags,
-      playbook: playbook || undefined, propChallengeId: propChallengeId || undefined,
+      playbook: playbook || undefined, propChallengeId: propChallengeId || undefined, accountId: accountId || undefined,
       durationMinutes: Math.max(durationMinutes, 1),
       accountEquityAfter: parseFloat((lastEquity + netPnl).toFixed(2)),
       screenshotUrls, mindsetTags, mindsetNotes,
@@ -210,7 +212,18 @@ export default function NewTradePage() {
       trade.mae = isNaN(parseFloat(mae)) ? undefined : parseFloat(mae);
       trade.mfe = isNaN(parseFloat(mfe)) ? undefined : parseFloat(mfe);
     }
-    addTrade(trade);
+    addTrade(trade as Trade); // Add trade expects Trade but handles ID
+
+    // Check for 5 win streak celebration
+    if (trade.result === "win") {
+      const recent4 = trades.slice(-4);
+      const isStreak = recent4.length >= 4 && recent4.every(t => t.result === "win");
+      if (isStreak) {
+        router.push("/journal?celebrate=streak");
+        return;
+      }
+    }
+
     router.push("/journal");
   };
 
@@ -564,6 +577,17 @@ export default function NewTradePage() {
                   className="w-full bg-bg-card border border-border-subtle rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-accent-violet/40 transition-colors appearance-none">
                   <option value="">No challenge link</option>
                   {activeChallenges.map(c => <option key={c.id} value={c.id}>{c.firmName} ({c.phase}) — ${c.accountSize.toLocaleString()}</option>)}
+                </select>
+              </div>
+            )}
+
+            {accounts.length > 0 && (
+              <div>
+                <label className="text-[10px] text-text-muted uppercase tracking-wider mb-1.5 block font-bold">Trading Account</label>
+                <select value={accountId} onChange={e => setAccountId(e.target.value)}
+                  className="w-full bg-bg-card border border-border-subtle rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-accent-violet/40 transition-colors appearance-none">
+                  <option value="">None (General)</option>
+                  {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name} ({acc.type}) — {acc.currency}</option>)}
                 </select>
               </div>
             )}

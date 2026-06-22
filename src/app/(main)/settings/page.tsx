@@ -13,14 +13,15 @@ import { useSettingsStore, useTradeStore, usePlaybookStore, useAccountStore, use
 import { useTheme } from "next-themes";
 import { updateProfile } from "firebase/auth";
 
-type SettingsTab = "profile" | "trading" | "notifications" | "data" | "api" | "appearance";
+type SettingsTab = "profile" | "accounts" | "trading" | "notifications" | "data" | "api" | "appearance";
 
 const tabs: { id: SettingsTab; label: string; icon: React.ElementType }[] = [
   { id: "profile", label: "Profile", icon: UserIcon },
+  { id: "accounts", label: "Accounts", icon: Database },
   { id: "trading", label: "Trading Rules", icon: Shield },
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "appearance", label: "Appearance", icon: Palette },
-  { id: "data", label: "Data & Export", icon: Database },
+  { id: "data", label: "Data & Export", icon: Download },
   { id: "api", label: "API & Integrations", icon: Key },
 ];
 
@@ -115,6 +116,83 @@ function ProfileSection() {
       <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 bg-gradient-to-r from-accent-green to-accent-blue text-bg-base shadow-[0_0_20px_rgba(0,255,178,0.2)] hover:shadow-[0_0_30px_rgba(0,255,178,0.35)] px-5 py-2.5 rounded-xl text-sm font-semibold hover:shadow-[0_0_20px_rgba(0,255,178,0.2)] transition-all">
         {saving ? <span className="animate-pulse">Saving...</span> : <><Save size={14} /> Save Changes</>}
       </button>
+    </div>
+  );
+}
+
+function AccountsSection() {
+  const { accounts, addAccount, deleteAccount } = useAccountStore();
+  const [name, setName] = useState("");
+  const [type, setType] = useState<"personal" | "prop" | "ira" | "margin">("personal");
+  const [balance, setBalance] = useState("");
+  const [currency, setCurrency] = useState("USD");
+
+  const handleAdd = () => {
+    if (!name || !balance) return;
+    addAccount({ name, type, balance: Number(balance), currency });
+    setName("");
+    setBalance("");
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="font-[family-name:var(--font-inter)] font-bold text-lg mb-1">Trading Accounts</h3>
+        <p className="text-sm text-text-muted">Manage your broker and prop firm accounts</p>
+      </div>
+
+      <div className="p-4 rounded-xl bg-bg-card border border-border-subtle space-y-4">
+        <h4 className="text-sm font-bold text-text-primary">Add New Account</h4>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="text-xs text-text-muted uppercase tracking-wider mb-1.5 block">Account Name</label>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Apex 50K"
+              className="w-full bg-bg-base border border-border-subtle rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-accent-violet/40" />
+          </div>
+          <div>
+            <label className="text-xs text-text-muted uppercase tracking-wider mb-1.5 block">Type</label>
+            <select value={type} onChange={(e) => setType(e.target.value as any)}
+              className="w-full bg-bg-base border border-border-subtle rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-accent-violet/40">
+              <option value="personal">Personal</option>
+              <option value="prop">Prop Firm</option>
+              <option value="ira">IRA</option>
+              <option value="margin">Margin</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-text-muted uppercase tracking-wider mb-1.5 block">Starting Balance</label>
+            <input type="number" value={balance} onChange={(e) => setBalance(e.target.value)} placeholder="50000"
+              className="w-full bg-bg-base border border-border-subtle rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-accent-violet/40" />
+          </div>
+          <div>
+            <label className="text-xs text-text-muted uppercase tracking-wider mb-1.5 block">Currency</label>
+            <input value={currency} onChange={(e) => setCurrency(e.target.value)} placeholder="USD"
+              className="w-full bg-bg-base border border-border-subtle rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-accent-violet/40" />
+          </div>
+        </div>
+        <button onClick={handleAdd} className="flex items-center gap-2 bg-accent-violet text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-accent-violet/90 transition-colors">
+          Add Account
+        </button>
+      </div>
+
+      <div className="space-y-3">
+        {accounts.map(acc => (
+          <div key={acc.id} className="flex items-center justify-between p-4 rounded-xl bg-bg-base border border-border-subtle">
+            <div>
+              <div className="font-bold text-sm text-text-primary">{acc.name}</div>
+              <div className="text-xs text-text-muted capitalize">{acc.type} • {acc.currency}</div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="font-[family-name:var(--font-space-mono)] font-bold text-sm text-accent-green">
+                {acc.balance.toLocaleString()}
+              </div>
+              <button onClick={() => deleteAccount(acc.id)} className="text-text-muted hover:text-accent-coral">
+                <Trash2 size={16} />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -588,6 +666,7 @@ export default function SettingsPage() {
 
   const sectionMap: Record<SettingsTab, React.ReactNode> = {
     profile: <ProfileSection />,
+    accounts: <AccountsSection />,
     trading: <TradingRulesSection />,
     notifications: <NotificationsSection />,
     appearance: <AppearanceSection />,

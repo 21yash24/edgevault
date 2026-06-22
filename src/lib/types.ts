@@ -40,7 +40,16 @@ export interface Trade {
   isPublic?: boolean;
   publicUrl?: string;
   propChallengeId?: string;
+  accountId?: string;
   backtested?: boolean;
+}
+
+export interface TradingAccount {
+  id: string;
+  name: string;
+  type: "personal" | "prop" | "ira" | "margin";
+  balance: number;
+  currency: string;
 }
 
 export interface DailyStats {

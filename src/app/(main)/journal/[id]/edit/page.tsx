@@ -1,7 +1,7 @@
 "use client";
 import { useState, useMemo, useEffect, useRef, use } from "react";
 import { useRouter } from "next/navigation";
-import { useTradeStore, usePropFirmStore, usePlaybookStore } from "@/stores";
+import { useTradeStore, usePropFirmStore, usePlaybookStore, useAccountStore } from "@/stores";
 import { GlassCard } from "@/components/ui/glass-card";
 import { SYMBOLS, SETUP_TAGS, SESSION_TAGS, MARKET_CONDITIONS, MISTAKE_TAGS, PLAYBOOKS, MINDSET_TAGS, Trade, SessionTag, MarketCondition, MistakeTag } from "@/lib/types";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -101,8 +101,10 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
   const [playbook, setPlaybook] = useState("");
   const [playbookRulesChecked, setPlaybookRulesChecked] = useState<string[]>([]);
   const [propChallengeId, setPropChallengeId] = useState("");
+  const [accountId, setAccountId] = useState("");
   const { challenges } = usePropFirmStore();
   const { playbooks } = usePlaybookStore();
+  const { accounts } = useAccountStore();
 
   const activeChallenges = useMemo(() => 
     challenges.filter(c => c.status === "active" || c.id === propChallengeId), 
@@ -138,6 +140,7 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
       setPlaybook(trade.playbook || "");
       setPlaybookRulesChecked(trade.playbookRulesChecked || []);
       setPropChallengeId(trade.propChallengeId || "");
+      setAccountId(trade.accountId || "");
       setMindsetTags(trade.mindsetTags || []);
       setMindsetNotes(trade.mindsetNotes || "");
       setScreenshotUrls(trade.screenshotUrls || []);
@@ -231,6 +234,7 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
       playbook: playbook || undefined,
       playbookRulesChecked,
       propChallengeId: propChallengeId || undefined,
+      accountId: accountId || undefined,
       durationMinutes: Math.max(durationMinutes, 1),
       screenshotUrls,
       mindsetTags,
@@ -469,6 +473,22 @@ export default function EditTradePage({ params }: { params: Promise<{ id: string
                   {activeChallenges.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.firmName} ({c.phase}) - ${c.accountSize.toLocaleString()}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Account Selection */}
+            {accounts.length > 0 && (
+              <div>
+                <label className="text-xs text-text-muted uppercase tracking-wider mb-1.5 block">Trading Account</label>
+                <select value={accountId} onChange={(e) => setAccountId(e.target.value)}
+                  className="w-full bg-bg-card border border-border-subtle rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-accent-violet/40 transition-colors appearance-none">
+                  <option value="">None (General)</option>
+                  {accounts.map((acc) => (
+                    <option key={acc.id} value={acc.id}>
+                      {acc.name} ({acc.type}) - {acc.currency}
                     </option>
                   ))}
                 </select>

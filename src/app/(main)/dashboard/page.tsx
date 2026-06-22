@@ -749,6 +749,25 @@ export default function DashboardPage() {
       {/* Top spacing */}
       <div className="pt-2" />
 
+      {accounts.length > 0 && (
+        <motion.div variants={itemVariants} className="flex justify-end mb-4 relative z-10">
+          <div className="bg-bg-card border border-border-subtle rounded-xl flex items-center pr-3">
+            <span className="text-xs text-text-muted uppercase tracking-wider font-bold pl-4 pr-2">Account:</span>
+            <select 
+              value={selectedAccountId} 
+              onChange={(e) => setSelectedAccountId(e.target.value)}
+              className="bg-transparent py-2.5 text-sm font-semibold focus:outline-none focus:border-accent-green/50 transition-colors appearance-none pr-6 cursor-pointer text-text-primary"
+            >
+              <option value="ALL">All Accounts</option>
+              <option value="">General (No Account)</option>
+              {accounts.map(acc => (
+                <option key={acc.id} value={acc.id}>{acc.name}</option>
+              ))}
+            </select>
+          </div>
+        </motion.div>
+      )}
+
       {/* Mindset Quote of the Day Panel */}
       <motion.div variants={itemVariants}>
         <GlassCard className="border border-border-subtle p-4 relative overflow-hidden flex items-center justify-between gap-6 hover:shadow-[0_8px_32px_rgba(123,97,255,0.04)] bg-bg-card/20 group">

@@ -10,6 +10,8 @@ import { useRouter } from "next/navigation";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, subMonths, addMonths, parseISO } from "date-fns";
 import { ArrowUpRight, ArrowDownRight, List, CalendarDays, Plus, Download, Filter, ChevronLeft, ChevronRight, Flame, Trophy, Skull, Trash2, CheckSquare, Search, X, TrendingUp, TrendingDown, Minus, Clock, Target, BarChart2, Zap, SlidersHorizontal, Tag, AlertCircle, ChevronDown, Eye, EyeOff, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
+import { ConfettiTrigger } from "@/components/ui/confetti-trigger";
 
 function TradeCard({ trade, index, isSelected, onSelect }: { trade: Trade; index: number; isSelected: boolean; onSelect: (e: React.MouseEvent) => void }) {
   const router = useRouter();
@@ -760,6 +762,9 @@ export default function JournalPage() {
 
   return (
     <motion.div className="space-y-6 pb-12" variants={containerVariants} initial="hidden" animate="visible">
+      <Suspense fallback={null}>
+        <ConfettiTrigger />
+      </Suspense>
       {/* Header Controls */}
       <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         {/* Title + Unreviewed Badge */}
