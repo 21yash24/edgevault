@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback, forwardRef } from "react";
 import { 
   Bold, Italic, Underline, Strikethrough, 
   List, ListOrdered, Quote, Heading1, Heading2, 
-  Code, Minus, Undo, Redo, Type, Image as ImageIcon
+  Code, Minus, Undo, Redo, Type, Image as ImageIcon, Trash2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -65,6 +65,7 @@ export const RichCanvas = forwardRef<any, RichCanvasProps>(
     const editorRef = useRef<HTMLDivElement>(null);
     const [isFocused, setIsFocused] = useState(false);
     const [isEmpty, setIsEmpty] = useState(true);
+    const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null);
     const isInternalChange = useRef(false);
 
     // Sync value from outside into the editor
@@ -115,7 +116,12 @@ export const RichCanvas = forwardRef<any, RichCanvasProps>(
         e.preventDefault();
         execCmd(e.shiftKey ? "outdent" : "indent");
       }
-    }, [execCmd]);
+      
+      // Clear selected image on typing
+      if (selectedImage && e.key !== "Shift" && e.key !== "Control" && e.key !== "Alt" && e.key !== "Meta") {
+        setSelectedImage(null);
+      }
+    }, [execCmd, selectedImage]);
 
     // Handle paste: clean up formatting
     const handlePaste = useCallback((e: React.ClipboardEvent) => {
@@ -196,9 +202,20 @@ export const RichCanvas = forwardRef<any, RichCanvasProps>(
             ref={editorRef}
             contentEditable
             suppressContentEditableWarning
+            onClick={(e) => {
+              const target = e.target as HTMLElement;
+              if (target.tagName === "IMG") {
+                setSelectedImage(target as HTMLImageElement);
+              } else {
+                setSelectedImage(null);
+              }
+            }}
             onInput={handleInput}
             onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
+            onBlur={(e) => {
+              // Only remove focus state if we aren't clicking the floating toolbar
+              setIsFocused(false);
+            }}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
             className={cn(
@@ -219,12 +236,55 @@ export const RichCanvas = forwardRef<any, RichCanvasProps>(
               "[&_em]:text-text-secondary",
               "[&_u]:decoration-accent-violet/50",
               "[&_s]:text-text-muted",
-              "[&_img]:max-w-full [&_img]:rounded-lg [&_img]:shadow-md [&_img]:border [&_img]:border-border-subtle [&_img]:my-4",
+              "[&_img]:max-w-full [&_img]:rounded-lg [&_img]:shadow-md [&_img]:border [&_img]:border-border-subtle [&_img]:my-4 [&_img]:transition-all [&_img]:cursor-pointer",
               isFocused && "border-accent-violet/30 shadow-[0_0_20px_rgba(123,97,255,0.05)]",
             )}
             style={{ minHeight }}
           />
           
+          {/* Image Toolbar Overlay */}
+          {selectedImage && (
+            <div 
+              className="absolute top-4 right-4 bg-bg-card border border-border-subtle p-1.5 rounded-xl flex items-center gap-1 shadow-2xl z-10 animate-in fade-in zoom-in duration-200"
+              onMouseDown={(e) => e.preventDefault()} // prevent blur
+            >
+              <span className="text-[10px] text-text-muted px-2 font-black uppercase tracking-widest select-none">Size</span>
+              {[
+                { label: 'S', width: '33%' },
+                { label: 'M', width: '66%' },
+                { label: 'L', width: '100%' }
+              ].map(sz => (
+                <button
+                  key={sz.label}
+                  type="button"
+                  onClick={() => {
+                    selectedImage.style.width = sz.width;
+                    handleInput();
+                  }}
+                  className={cn(
+                    "w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold transition-all",
+                    selectedImage.style.width === sz.width || (sz.width === '100%' && !selectedImage.style.width) 
+                      ? "bg-accent-violet/20 text-accent-violet border border-accent-violet/30" 
+                      : "text-text-muted hover:bg-bg-secondary hover:text-text-primary border border-transparent"
+                  )}
+                >
+                  {sz.label}
+                </button>
+              ))}
+              <div className="w-px h-5 bg-border-subtle/50 mx-1" />
+              <button
+                 onClick={() => {
+                    selectedImage.remove();
+                    setSelectedImage(null);
+                    handleInput();
+                 }}
+                 className="w-7 h-7 rounded-lg flex items-center justify-center text-text-muted hover:text-accent-coral hover:bg-accent-coral/10 border border-transparent hover:border-accent-coral/30 transition-all"
+              >
+                 <Trash2 size={14} />
+              </button>
+            </div>
+          )}
+
           {/* Placeholder */}
           {isEmpty && !isFocused && (
             <div 
