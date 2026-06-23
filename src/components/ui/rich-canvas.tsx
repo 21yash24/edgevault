@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback, forwardRef } from "react";
 import { 
   Bold, Italic, Underline, Strikethrough, 
   List, ListOrdered, Quote, Heading1, Heading2, 
-  Code, Minus, Undo, Redo, Type
+  Code, Minus, Undo, Redo, Type, Image as ImageIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +20,7 @@ interface ToolbarButton {
   arg?: string;
   label: string;
   isBlock?: boolean;
+  isFileInput?: boolean;
 }
 
 const TOOLBAR_BUTTONS: ToolbarButton[][] = [
@@ -46,6 +47,7 @@ const TOOLBAR_BUTTONS: ToolbarButton[][] = [
   ],
   [
     { icon: <Minus size={14} />, command: "insertHorizontalRule", label: "Divider" },
+    { icon: <ImageIcon size={14} />, command: "insertImage", label: "Insert Image", isFileInput: true },
   ],
 ];
 
@@ -134,22 +136,55 @@ export const RichCanvas = forwardRef<any, RichCanvasProps>(
             <div key={gi} className="flex items-center">
               {gi > 0 && <div className="w-px h-5 bg-border-subtle/50 mx-1" />}
               {group.map((btn) => (
-                <button
-                  key={btn.command + (btn.arg || "")}
-                  type="button"
-                  title={btn.label}
-                  onMouseDown={(e) => {
-                    e.preventDefault(); // Prevent blur
-                    execCmd(btn.command, btn.arg);
-                  }}
-                  className={cn(
-                    "w-7 h-7 flex items-center justify-center rounded-md text-text-muted",
-                    "hover:bg-accent-violet/10 hover:text-accent-violet",
-                    "active:scale-90 transition-all duration-150"
-                  )}
-                >
-                  {btn.icon}
-                </button>
+                btn.isFileInput ? (
+                  <label
+                    key="insert-image"
+                    title={btn.label}
+                    className={cn(
+                      "w-7 h-7 flex items-center justify-center rounded-md text-text-muted cursor-pointer",
+                      "hover:bg-accent-violet/10 hover:text-accent-violet",
+                      "active:scale-90 transition-all duration-150"
+                    )}
+                  >
+                    {btn.icon}
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                          if (ev.target?.result) {
+                            editorRef.current?.focus();
+                            document.execCommand('insertImage', false, ev.target.result as string);
+                            handleInput();
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                        e.target.value = "";
+                      }} 
+                    />
+                  </label>
+                ) : (
+                  <button
+                    key={btn.command + (btn.arg || "")}
+                    type="button"
+                    title={btn.label}
+                    onMouseDown={(e) => {
+                      e.preventDefault(); // Prevent blur
+                      execCmd(btn.command, btn.arg);
+                    }}
+                    className={cn(
+                      "w-7 h-7 flex items-center justify-center rounded-md text-text-muted",
+                      "hover:bg-accent-violet/10 hover:text-accent-violet",
+                      "active:scale-90 transition-all duration-150"
+                    )}
+                  >
+                    {btn.icon}
+                  </button>
+                )
               ))}
             </div>
           ))}
@@ -184,6 +219,7 @@ export const RichCanvas = forwardRef<any, RichCanvasProps>(
               "[&_em]:text-text-secondary",
               "[&_u]:decoration-accent-violet/50",
               "[&_s]:text-text-muted",
+              "[&_img]:max-w-full [&_img]:rounded-lg [&_img]:shadow-md [&_img]:border [&_img]:border-border-subtle [&_img]:my-4",
               isFocused && "border-accent-violet/30 shadow-[0_0_20px_rgba(123,97,255,0.05)]",
             )}
             style={{ minHeight }}
