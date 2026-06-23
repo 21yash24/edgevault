@@ -1,7 +1,7 @@
 "use client";
 
 import { useNotebookStore, NotebookCategory, NotebookEntry } from "@/stores";
-import { RichEditor } from "@/components/ui/rich-editor";
+import { RichCanvas } from "@/components/ui/rich-canvas";
 import { 
   BookOpen, Calendar, FileText, Star, Plus, Trash2, Menu, X, Share
 } from "lucide-react";
@@ -193,10 +193,11 @@ export default function NotebookPage() {
 
             {/* Rich Editor */}
             <div className="flex-1 min-h-0 relative p-4">
-               <RichEditor 
+               <RichCanvas 
                   value={activeEntry.content} 
                   onChange={(val) => handleUpdateActive({ content: val })} 
                   placeholder="Press '/' for commands or start typing..."
+                  className="h-full"
                />
             </div>
           </>
