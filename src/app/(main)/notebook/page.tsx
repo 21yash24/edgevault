@@ -19,14 +19,14 @@ const CATEGORIES: { id: NotebookCategory; label: string; icon: any }[] = [
 ];
 
 export default function NotebookPage() {
-  const { entries, saveEntry, deleteEntry, toggleFavorite, templates } = useNotebookStore();
+  const { entries = {}, saveEntry, deleteEntry, toggleFavorite, templates } = useNotebookStore();
   const [activeCategory, setActiveCategory] = useState<NotebookCategory>("All Notes");
   const [activeEntryId, setActiveEntryId] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // Derive filtered entries
   const filteredEntries = useMemo(() => {
-    let list = Object.values(entries);
+    let list = Object.values(entries || {});
     if (activeCategory === "Favorites") {
       list = list.filter(e => e.isFavorite);
     } else if (activeCategory !== "All Notes") {
@@ -99,7 +99,7 @@ export default function NotebookPage() {
             {CATEGORIES.map((cat) => {
               const Icon = cat.icon;
               const isActive = activeCategory === cat.id;
-              const count = Object.values(entries).filter(e => cat.id === "All Notes" ? true : cat.id === "Favorites" ? e.isFavorite : e.category === cat.id).length;
+              const count = Object.values(entries || {}).filter(e => cat.id === "All Notes" ? true : cat.id === "Favorites" ? e.isFavorite : e.category === cat.id).length;
               return (
                 <button
                   key={cat.id}
