@@ -565,16 +565,17 @@ export const useRiskStore = create<RiskStore>()(
 // Daily Notebook Store (TradeZella Inspired)
 // ═══════════════════════════════
 
-export interface DailyNote {
-  date: string; // YYYY-MM-DD
-  preMarketPlan: string;
-  bias: "bullish" | "bearish" | "neutral" | "";
-  sleepScore: number; // 1 to 5
-  focusScore: number; // 1 to 5
-  postMarketReview: string;
-  intradayNotes: string;
-  checklistComplete: boolean;
-  sessionGrade: "A" | "B" | "C" | "D" | "F" | "";
+export type NotebookCategory = "All Notes" | "Favorites" | "Trade Notes" | "Daily Journal" | "Sessions Recap" | string;
+
+export interface NotebookEntry {
+  id: string;
+  title: string;
+  content: string;
+  category: NotebookCategory;
+  isFavorite: boolean;
+  createdAt: string;
+  updatedAt: string;
+  linkedTradeIds?: string[];
 }
 
 export interface NotebookTemplate {
@@ -583,22 +584,12 @@ export interface NotebookTemplate {
   content: string;
 }
 
-export interface CustomNote {
-  id: string;
-  title: string;
-  content: string;
-  date: string;
-  type: "daily" | "loss-recap" | "custom";
-  linkedTradeIds?: string[];
-}
-
 interface NotebookStore {
-  notes: Record<string, DailyNote>;
-  customNotes: Record<string, CustomNote>;
+  entries: Record<string, NotebookEntry>;
   templates: NotebookTemplate[];
-  saveNote: (date: string, note: Partial<DailyNote>) => void;
-  saveCustomNote: (note: CustomNote) => void;
-  deleteCustomNote: (id: string) => void;
+  saveEntry: (entry: NotebookEntry) => void;
+  deleteEntry: (id: string) => void;
+  toggleFavorite: (id: string) => void;
   saveTemplate: (template: NotebookTemplate) => void;
   deleteTemplate: (id: string) => void;
   listenToNotebook: (userId: string) => () => void;
@@ -607,53 +598,32 @@ interface NotebookStore {
 export const useNotebookStore = create<NotebookStore>()(
   persist(
     (set, get) => ({
-      notes: {},
-      customNotes: {},
+      entries: {},
       templates: [
-        { id: "tmpl-loss-recap", name: "Deep Loss Review", content: "### What went wrong?\n\n### Did I follow my rules?\n\n### Emotional State\n\n### Adjustments for next time\n" },
-        { id: "tmpl-weekly-review", name: "Weekly Review", content: "### Best Trade of the Week\n\n### Worst Trade of the Week\n\n### What I learned\n\n### Goals for next week\n" }
+        { id: "tmpl-loss-recap", name: "Deep Loss Review", content: "<h3>What went wrong?</h3><br/><p></p><h3>Did I follow my rules?</h3><br/><p></p><h3>Emotional State</h3><br/><p></p><h3>Adjustments for next time</h3><br/><p></p>" },
+        { id: "tmpl-weekly-review", name: "Weekly Review", content: "<h3>Best Trade of the Week</h3><br/><p></p><h3>Worst Trade of the Week</h3><br/><p></p><h3>What I learned</h3><br/><p></p><h3>Goals for next week</h3><br/><p></p>" },
+        { id: "tmpl-daily", name: "Daily Log Default", content: "<h3>Pre-Market Plan</h3><br/><p></p><h3>Intraday Notes</h3><br/><p></p><h3>Post-Market Review</h3><br/><p></p><p><strong>Bias:</strong> </p><p><strong>Sleep Score:</strong> /5</p><p><strong>Focus Score:</strong> /5</p>" }
       ],
-      saveNote: (date, updatedFields) => {
-        set((state) => {
-          const existing = state.notes[date] || {
-            date,
-            preMarketPlan: "",
-            bias: "",
-            sleepScore: 3,
-            focusScore: 3,
-            postMarketReview: "",
-            intradayNotes: "",
-            checklistComplete: false,
-            sessionGrade: ""
-          };
-          return {
-            notes: {
-              ...state.notes,
-              [date]: { ...existing, ...updatedFields }
-            }
-          };
-        });
+      saveEntry: (entry) => {
+        const nextEntry = { ...entry, updatedAt: new Date().toISOString() };
+        set((state) => ({ entries: { ...state.entries, [nextEntry.id]: nextEntry } }));
         const user = auth?.currentUser;
-        if (user && db) {
-          try {
-            const nextState = get().notes[date];
-            if (nextState) setDoc(doc(db, `users/${user.uid}/dailyNotes`, date), nextState, { merge: true });
-          } catch (e) { console.error(e); }
-        }
+        if (user && db) setDoc(doc(db, `users/${user.uid}/notebookEntries`, nextEntry.id), nextEntry, { merge: true }).catch(console.error);
       },
-      saveCustomNote: (note) => {
-        set((state) => ({ customNotes: { ...state.customNotes, [note.id]: note } }));
-        const user = auth?.currentUser;
-        if (user && db) setDoc(doc(db, `users/${user.uid}/customNotes`, note.id), note, { merge: true }).catch(console.error);
-      },
-      deleteCustomNote: (id) => {
+      deleteEntry: (id) => {
         set((state) => {
-          const next = { ...state.customNotes };
+          const next = { ...state.entries };
           delete next[id];
-          return { customNotes: next };
+          return { entries: next };
         });
         const user = auth?.currentUser;
-        if (user && db) deleteDoc(doc(db, `users/${user.uid}/customNotes`, id)).catch(console.error);
+        if (user && db) deleteDoc(doc(db, `users/${user.uid}/notebookEntries`, id)).catch(console.error);
+      },
+      toggleFavorite: (id) => {
+        const entry = get().entries[id];
+        if (entry) {
+          get().saveEntry({ ...entry, isFavorite: !entry.isFavorite });
+        }
       },
       saveTemplate: (template) => {
         set((state) => ({ templates: [...state.templates.filter(t => t.id !== template.id), template] }));
@@ -667,16 +637,10 @@ export const useNotebookStore = create<NotebookStore>()(
       },
       listenToNotebook: (userId: string) => {
         if (!userId || !db) return () => {};
-        const unsubDaily = onSnapshot(query(collection(db, `users/${userId}/dailyNotes`)), (snapshot) => {
-          const cloudNotes: Record<string, DailyNote> = {};
-          snapshot.forEach(doc => { cloudNotes[doc.id] = doc.data() as DailyNote; });
-          
-          set({ notes: cloudNotes });
-        });
-        const unsubCustom = onSnapshot(query(collection(db, `users/${userId}/customNotes`)), (snapshot) => {
-          const cloudCustom: Record<string, CustomNote> = {};
-          snapshot.forEach(doc => { cloudCustom[doc.id] = doc.data() as CustomNote; });
-          set({ customNotes: cloudCustom });
+        const unsubEntries = onSnapshot(query(collection(db, `users/${userId}/notebookEntries`)), (snapshot) => {
+          const cloudEntries: Record<string, NotebookEntry> = {};
+          snapshot.forEach(doc => { cloudEntries[doc.id] = doc.data() as NotebookEntry; });
+          set({ entries: cloudEntries });
         });
         const unsubTemplates = onSnapshot(query(collection(db, `users/${userId}/notebookTemplates`)), (snapshot) => {
           const cloudTemplates: NotebookTemplate[] = [];
@@ -691,9 +655,46 @@ export const useNotebookStore = create<NotebookStore>()(
       merge: (persistedState: any, currentState) => {
         if (!persistedState || typeof persistedState !== "object") return currentState;
         const state = { ...persistedState };
-        if (Array.isArray(state.notes)) {
-          state.notes = state.notes.filter((n: any) => n && n.id);
+        
+        // Migration logic
+        if (!state.entries && (state.notes || state.customNotes)) {
+           const newEntries: Record<string, NotebookEntry> = {};
+           if (state.notes) {
+              Object.values(state.notes).forEach((n: any) => {
+                  const content = `<h3>Pre-Market Plan</h3><p>${n.preMarketPlan || ""}</p>
+                                   <h3>Intraday Notes</h3><p>${n.intradayNotes || ""}</p>
+                                   <h3>Post-Market Review</h3><p>${n.postMarketReview || ""}</p>
+                                   <p>Bias: ${n.bias} | Sleep: ${n.sleepScore}/5 | Focus: ${n.focusScore}/5 | Grade: ${n.sessionGrade}</p>`;
+                  const id = `daily-${n.date}`;
+                  newEntries[id] = {
+                     id,
+                     title: `Daily Journal: ${n.date}`,
+                     content,
+                     category: "Daily Journal",
+                     isFavorite: false,
+                     createdAt: n.date + "T00:00:00Z",
+                     updatedAt: n.date + "T00:00:00Z"
+                  };
+              });
+           }
+           if (state.customNotes) {
+              Object.values(state.customNotes).forEach((cn: any) => {
+                  newEntries[cn.id] = {
+                      id: cn.id,
+                      title: cn.title,
+                      content: cn.content,
+                      category: cn.type === "loss-recap" ? "Trade Notes" : "All Notes",
+                      isFavorite: false,
+                      createdAt: cn.date + "T00:00:00Z",
+                      updatedAt: cn.date + "T00:00:00Z"
+                  };
+              });
+           }
+           state.entries = newEntries;
+           delete state.notes;
+           delete state.customNotes;
         }
+
         return { ...currentState, ...state };
       }
     }

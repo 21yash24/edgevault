@@ -1,5 +1,5 @@
 "use client";
-import { useTradeStore, useNotebookStore } from "@/stores";
+import { useTradeStore } from "@/stores";
 import { useRouter } from "next/navigation";
 import { GlassCard } from "@/components/ui/glass-card";
 import { cn, formatCurrency, formatDate, formatDuration, formatDateTime, formatR } from "@/lib/utils";
@@ -31,20 +31,6 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
   const [syncState, setSyncState] = useState<"idle" | "syncing" | "synced">("idle");
 
   const tradeDateStr = useMemo(() => trade?.entryDate?.split("T")[0] || "", [trade]);
-  const { notes, saveNote } = useNotebookStore();
-  const dailyNote = useMemo(() => {
-    return notes[tradeDateStr] || {
-      date: tradeDateStr,
-      preMarketPlan: "",
-      bias: "",
-      sleepScore: 3,
-      focusScore: 3,
-      postMarketReview: "",
-      intradayNotes: "",
-      checklistComplete: false,
-      sessionGrade: ""
-    };
-  }, [notes, tradeDateStr]);
 
   const triggerSync = () => {
     setSyncState("syncing");
@@ -71,11 +57,7 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
     handleUpdateTrade({ [field]: updatedTags });
   };
 
-  const handleUpdateNote = (fields: Partial<typeof dailyNote>) => {
-    if (!tradeDateStr) return;
-    saveNote(tradeDateStr, fields);
-    triggerSync();
-  };
+
 
   const handleCopyLink = () => {
     const url = `${window.location.origin}/shared/trade/${trade?.id}`;
@@ -219,79 +201,6 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
               </div>
             </div>
 
-            {/* Daily Session Review */}
-            <div className="space-y-4">
-              <h4 className="text-[10px] text-text-muted uppercase font-black tracking-widest select-none border-b border-border-subtle/50 pb-1">Daily Cognition Overview</h4>
-              
-              {/* Sleep Score Rating Bar */}
-              <div className="space-y-1">
-                <div className="flex justify-between text-[10px] text-text-muted uppercase font-black tracking-wider">
-                  <span>Sleep Quality</span>
-                  <span className="text-text-primary font-[family-name:var(--font-space-mono)]">{dailyNote.sleepScore} / 5</span>
-                </div>
-                <div className="flex gap-1.5">
-                  {[1, 2, 3, 4, 5].map((num) => (
-                    <button
-                      key={num}
-                      onClick={() => handleUpdateNote({ sleepScore: num })}
-                      className={cn("w-7 h-7 rounded-lg border flex items-center justify-center text-[10px] font-black transition-all duration-300",
-                        num <= dailyNote.sleepScore 
-                          ? "bg-accent-violet border-accent-violet text-bg-base shadow-[0_0_8px_rgba(123,97,255,0.3)]" 
-                          : "bg-bg-secondary/20 dark:bg-white/[0.01] border-border-subtle text-text-secondary dark:text-text-muted hover:border-accent-violet/30 hover:bg-bg-secondary/40 dark:hover:border-white/10"
-                      )}
-                    >
-                      {num}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Focus Score Rating Bar */}
-              <div className="space-y-1 mt-3">
-                <div className="flex justify-between text-[10px] text-text-muted uppercase font-black tracking-wider">
-                  <span>Session Focus</span>
-                  <span className="text-text-primary font-[family-name:var(--font-space-mono)]">{dailyNote.focusScore} / 5</span>
-                </div>
-                <div className="flex gap-1.5">
-                  {[1, 2, 3, 4, 5].map((num) => (
-                    <button
-                      key={num}
-                      onClick={() => handleUpdateNote({ focusScore: num })}
-                      className={cn("w-7 h-7 rounded-lg border flex items-center justify-center text-[10px] font-black transition-all duration-300",
-                        num <= dailyNote.focusScore 
-                          ? "bg-accent-violet border-accent-violet text-bg-base shadow-[0_0_8px_rgba(123,97,255,0.3)]" 
-                          : "bg-bg-secondary/20 dark:bg-white/[0.01] border-border-subtle text-text-secondary dark:text-text-muted hover:border-accent-violet/30 hover:bg-bg-secondary/40 dark:hover:border-white/10"
-                      )}
-                    >
-                      {num}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Grade Buttons */}
-              <div className="space-y-1.5 mt-3">
-                <label className="text-[10px] text-text-muted uppercase font-black tracking-wider block">Session Performance Grade</label>
-                <div className="flex gap-2">
-                  {["A", "B", "C", "D", "F"].map((grade) => {
-                    const active = dailyNote.sessionGrade === grade;
-                    return (
-                      <button
-                        key={grade}
-                        onClick={() => handleUpdateNote({ sessionGrade: grade as any })}
-                        className={cn("w-8 h-8 rounded-xl border flex items-center justify-center font-black text-xs transition-all duration-300",
-                          active 
-                            ? "bg-accent-green border-accent-green text-bg-base shadow-[0_0_12px_rgba(0,255,178,0.3)]" 
-                            : "bg-bg-secondary/20 dark:bg-white/[0.01] border-border-subtle text-text-secondary dark:text-text-muted hover:border-accent-green/30 hover:bg-bg-secondary/40 dark:hover:border-white/10"
-                        )}
-                      >
-                        {grade}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
 
             {/* Trade Specific Psychology */}
             <div className="space-y-4 pt-4 border-t border-border-subtle/60">

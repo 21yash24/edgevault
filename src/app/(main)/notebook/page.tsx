@@ -1,584 +1,220 @@
 "use client";
 
-import { useNotebookStore, useTradeStore } from "@/stores";
+import { useNotebookStore, NotebookCategory, NotebookEntry } from "@/stores";
+import { RichEditor } from "@/components/ui/rich-editor";
 import { 
-  BookOpen, Calendar, Brain, CheckSquare, Save, ArrowRight, 
-  ArrowLeft, TrendingUp, Target, Flame, CloudSun, Moon, Sun, Sunset,
-  FileText, Plus, Share, LayoutTemplate, Trash2, Camera
+  BookOpen, Calendar, FileText, Star, Plus, Trash2, Menu, X, Share
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useState, useMemo, useEffect, useRef } from "react";
-import { cn, formatCurrency } from "@/lib/utils";
-import { format, isToday, subDays } from "date-fns";
+import { useState, useMemo, useEffect } from "react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import html2canvas from "html2canvas";
-import { RichCanvas } from "@/components/ui/rich-canvas";
 
-// ----------------------------------------------------------------------
-// Mini Calendar Component
-// ----------------------------------------------------------------------
-function MiniCalendar({ selectedDate, onSelect }: { selectedDate: string, onSelect: (date: string) => void }) {
-  const { notes } = useNotebookStore();
-  const current = new Date(selectedDate);
-  const monthStart = new Date(current.getFullYear(), current.getMonth(), 1);
-  const monthEnd = new Date(current.getFullYear(), current.getMonth() + 1, 0);
-  
-  const daysInMonth = monthEnd.getDate();
-  const startDayOfWeek = monthStart.getDay(); // 0 is Sunday
-  
-  const days = Array.from({ length: 42 }, (_, i) => {
-    const dayNumber = i - startDayOfWeek + 1;
-    if (dayNumber <= 0 || dayNumber > daysInMonth) return null;
-    const d = new Date(current.getFullYear(), current.getMonth(), dayNumber);
-    return { date: d.toISOString().split("T")[0], dayNumber };
-  });
+const CATEGORIES: { id: NotebookCategory; label: string; icon: any }[] = [
+  { id: "All Notes", label: "All Notes", icon: BookOpen },
+  { id: "Favorites", label: "Favorites", icon: Star },
+  { id: "Trade Notes", label: "Trade Notes", icon: FileText },
+  { id: "Daily Journal", label: "Daily Journal", icon: Calendar },
+  { id: "Sessions Recap", label: "Sessions Recap", icon: BookOpen }
+];
 
-  const weekDays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+export default function NotebookPage() {
+  const { entries, saveEntry, deleteEntry, toggleFavorite, templates } = useNotebookStore();
+  const [activeCategory, setActiveCategory] = useState<NotebookCategory>("All Notes");
+  const [activeEntryId, setActiveEntryId] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  return (
-    <div className="bg-bg-card border border-border-subtle rounded-2xl p-4 shadow-sm w-full">
-      <div className="flex justify-between items-center mb-4">
-        <button onClick={() => {
-          const prev = new Date(current.getFullYear(), current.getMonth() - 1, 1);
-          onSelect(prev.toISOString().split("T")[0]);
-        }} className="text-text-muted hover:text-text-primary p-1"><ArrowLeft size={14}/></button>
-        <span className="text-sm font-bold text-text-primary">{format(current, "MMMM yyyy")}</span>
-        <button onClick={() => {
-          const next = new Date(current.getFullYear(), current.getMonth() + 1, 1);
-          onSelect(next.toISOString().split("T")[0]);
-        }} className="text-text-muted hover:text-text-primary p-1"><ArrowRight size={14}/></button>
-      </div>
-      
-      <div className="grid grid-cols-7 gap-1 mb-2">
-        {weekDays.map(d => <div key={d} className="text-[10px] font-black text-text-muted text-center uppercase">{d}</div>)}
-      </div>
-      <div className="grid grid-cols-7 gap-1">
-        {days.map((day, i) => {
-          if (!day) return <div key={i} className="aspect-square"></div>;
-          const isSelected = day.date === selectedDate;
-          const hasNote = !!notes[day.date] && Object.values(notes[day.date]).some(v => v !== "" && v !== 3 && v !== false);
-          return (
-              <button
-              key={i}
-              onClick={() => {
-                onSelect(day.date);
-              }}
-              className={cn(
-                "aspect-square flex items-center justify-center rounded-lg text-xs font-medium transition-all relative group",
-                isSelected ? "bg-accent-violet text-white shadow-md shadow-accent-violet/20" : "hover:bg-bg-secondary text-text-secondary hover:text-text-primary",
-                isToday(new Date(day.date)) && !isSelected && "text-accent-blue font-bold border border-accent-blue/30"
-              )}
-            >
-              {day.dayNumber}
-              {hasNote && !isSelected && <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-accent-green"></span>}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
+  // Derive filtered entries
+  const filteredEntries = useMemo(() => {
+    let list = Object.values(entries);
+    if (activeCategory === "Favorites") {
+      list = list.filter(e => e.isFavorite);
+    } else if (activeCategory !== "All Notes") {
+      list = list.filter(e => e.category === activeCategory);
+    }
+    // Sort descending by created/updated
+    return list.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  }, [entries, activeCategory]);
 
-// ----------------------------------------------------------------------
-// Sub-component: The Daily Log View
-// ----------------------------------------------------------------------
-function DailyLogView() {
-  const { notes, saveNote } = useNotebookStore();
-  const { trades } = useTradeStore();
+  // Set first entry as active if none selected
+  useEffect(() => {
+    if (!activeEntryId && filteredEntries.length > 0) {
+      setActiveEntryId(filteredEntries[0].id);
+    }
+  }, [activeCategory, activeEntryId, filteredEntries]);
 
-  const [selectedDate, setSelectedDate] = useState<string>(
-    new Date().toISOString().split("T")[0]
-  );
+  const activeEntry = activeEntryId ? entries[activeEntryId] : null;
 
-  const [preMarketPlan, setPreMarketPlan] = useState("");
-  const [bias, setBias] = useState<any>("");
-  const [sleepScore, setSleepScore] = useState<number>(3);
-  const [focusScore, setFocusScore] = useState<number>(3);
-  const [postMarketReview, setPostMarketReview] = useState("");
-  const [intradayNotes, setIntradayNotes] = useState("");
-  const [sessionGrade, setSessionGrade] = useState<any>("");
-  
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saved">("idle");
-
-  const preTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const intraTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const postTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  const [isGeneratingBriefing, setIsGeneratingBriefing] = useState(false);
-
-  const activeNote = useMemo(() => {
-    return notes[selectedDate] || {
-      date: selectedDate, preMarketPlan: "", bias: "", sleepScore: 3, focusScore: 3,
-      postMarketReview: "", intradayNotes: "", checklistComplete: false, sessionGrade: ""
+  const handleCreateNew = () => {
+    const isDaily = activeCategory === "Daily Journal";
+    const tmpl = templates.find(t => t.id === "tmpl-daily");
+    const newEntry: NotebookEntry = {
+      id: `doc-${Date.now()}`,
+      title: isDaily ? format(new Date(), "MMM d, yyyy - Daily Journal") : "Untitled Note",
+      content: isDaily && tmpl ? tmpl.content : "",
+      category: activeCategory === "Favorites" || activeCategory === "All Notes" ? "Trade Notes" : activeCategory,
+      isFavorite: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
-  }, [notes, selectedDate]);
+    saveEntry(newEntry);
+    setActiveEntryId(newEntry.id);
+  };
 
-  useEffect(() => {
-    setPreMarketPlan(activeNote.preMarketPlan); setBias(activeNote.bias);
-    setSleepScore(activeNote.sleepScore); setFocusScore(activeNote.focusScore);
-    setPostMarketReview(activeNote.postMarketReview); setIntradayNotes(activeNote.intradayNotes);
-    setSessionGrade(activeNote.sessionGrade);
-  }, [activeNote]);
-
-  const handleResize = (ref: React.RefObject<HTMLTextAreaElement | null>) => {
-    if (ref.current) {
-      ref.current.style.height = 'auto';
-      ref.current.style.height = `${ref.current.scrollHeight}px`;
+  const handleUpdateActive = (updates: Partial<NotebookEntry>) => {
+    if (activeEntry) {
+      saveEntry({ ...activeEntry, ...updates });
     }
   };
 
-  useEffect(() => { handleResize(preTextareaRef); }, [preMarketPlan]);
-  useEffect(() => { handleResize(intraTextareaRef); }, [intradayNotes]);
-  useEffect(() => { handleResize(postTextareaRef); }, [postMarketReview]);
-
-  // Auto-save mechanism
-  useEffect(() => {
-    const hasChanges = 
-      preMarketPlan !== activeNote.preMarketPlan ||
-      bias !== activeNote.bias ||
-      sleepScore !== activeNote.sleepScore ||
-      focusScore !== activeNote.focusScore ||
-      postMarketReview !== activeNote.postMarketReview ||
-      intradayNotes !== activeNote.intradayNotes ||
-      sessionGrade !== activeNote.sessionGrade;
-
-    if (hasChanges) {
-      const timeoutId = setTimeout(() => {
-        saveNote(selectedDate, { preMarketPlan, bias, sleepScore, focusScore, postMarketReview, intradayNotes, sessionGrade });
-      }, 1500);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [preMarketPlan, bias, sleepScore, focusScore, postMarketReview, intradayNotes, sessionGrade, selectedDate, activeNote, saveNote]);
-
-  const handleSave = () => {
-    setIsSaving(true);
-    setTimeout(() => {
-      saveNote(selectedDate, { preMarketPlan, bias, sleepScore, focusScore, postMarketReview, intradayNotes, sessionGrade });
-      setIsSaving(false); setSaveStatus("saved");
-      setTimeout(() => setSaveStatus("idle"), 2000);
-    }, 400);
-  };
-
-  const handleExport = async () => {
-    if (!containerRef.current) return;
-    try {
-      const canvas = await html2canvas(containerRef.current, { backgroundColor: "#0a0a0a", scale: 2 });
-      const image = canvas.toDataURL("image/png");
-      const link = document.createElement('a');
-      link.href = image;
-      link.download = `edgevault-daily-${selectedDate}.png`;
-      link.click();
-    } catch (e) {
-      console.error("Export failed", e);
-    }
-  };
-
-  const dailyTrades = useMemo(() => trades.filter((t) => t.entryDate?.startsWith(selectedDate)), [trades, selectedDate]);
-  const dailyPnL = useMemo(() => dailyTrades.reduce((sum, t) => sum + t.netPnl, 0), [dailyTrades]);
-
-  const changeDate = (days: number) => {
-    // Force immediate save of current state before switching
-    saveNote(selectedDate, { preMarketPlan, bias, sleepScore, focusScore, postMarketReview, intradayNotes, sessionGrade });
-    const parsed = new Date(selectedDate);
-    parsed.setDate(parsed.getDate() + days);
-    setSelectedDate(parsed.toISOString().split("T")[0]);
-  };
-
-  const handleGenerateBriefing = async () => {
-    setIsGeneratingBriefing(true);
-    try {
-      const recentTrades = trades.slice(-5);
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "daily-briefing", recentTrades, date: selectedDate })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const updatedPlan = preMarketPlan + (preMarketPlan ? "<br><br>" : "") + "<h3>Zella AI Briefing</h3><p>" + data.text.replace(/\n/g, "<br>") + "</p>";
-        setPreMarketPlan(updatedPlan);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsGeneratingBriefing(false);
+  const handleDeleteActive = () => {
+    if (activeEntryId) {
+      deleteEntry(activeEntryId);
+      setActiveEntryId(null);
     }
   };
 
   return (
-    <div className="w-full relative" ref={containerRef}>
-      {/* Date Navigation */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 border-b border-border-subtle/50 pb-6">
-        <div className="space-y-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-accent-violet/20 to-accent-blue/10 flex items-center justify-center border border-accent-violet/20">
-            <BookOpen size={28} className="text-accent-violet" />
-          </div>
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <h1 className="font-bold text-3xl md:text-4xl text-text-primary tracking-tight">
-                {format(new Date(selectedDate), "EEEE, MMMM d")}
-              </h1>
-              {isToday(new Date(selectedDate)) && (
-                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-accent-green/15 text-accent-green border border-accent-green/20 uppercase tracking-widest mt-1">Today</span>
-              )}
-            </div>
-            <p className="text-sm text-text-muted font-medium">Daily Trading Log & Reflections</p>
-          </div>
-        </div>
-        <div className="flex gap-3 items-center">
-          <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-bg-card border border-border-subtle text-xs font-bold text-text-secondary hover:text-text-primary hover:border-accent-violet/30 transition-all">
-            <Camera size={14} /> Snapshot
-          </button>
-          <div className="flex items-center gap-2 bg-bg-card/50 p-1 rounded-xl border border-border-subtle/50">
-            <button onClick={() => changeDate(-1)} className="w-8 h-8 rounded-lg flex items-center justify-center text-text-secondary hover:text-text-primary transition-all active:scale-95"><ArrowLeft size={16} /></button>
-            <div className="flex items-center gap-2 px-3 text-xs font-bold text-text-secondary select-none">
-              <Calendar size={13} className="text-accent-violet opacity-70" />
-              <span>{format(new Date(selectedDate), "MMM d, yyyy")}</span>
-            </div>
-            <button onClick={() => changeDate(1)} className="w-8 h-8 rounded-lg flex items-center justify-center text-text-secondary hover:text-text-primary transition-all active:scale-95"><ArrowRight size={16} /></button>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex flex-col lg:flex-row gap-8">
-        {/* Left Sidebar (Calendar & AI) */}
-        <div className="w-full lg:w-72 flex-shrink-0 space-y-6">
-          <MiniCalendar selectedDate={selectedDate} onSelect={(date) => {
-            // Force immediate save of current state before switching
-            saveNote(selectedDate, { preMarketPlan, bias, sleepScore, focusScore, postMarketReview, intradayNotes, sessionGrade });
-            setSelectedDate(date);
-          }} />
-          
-          <div className="bg-bg-card border border-border-subtle rounded-2xl p-5 shadow-sm space-y-4">
-            <div className="flex items-center gap-2 text-accent-blue">
-              <Brain size={18} />
-              <h3 className="font-bold text-sm tracking-wide">Zella AI</h3>
-            </div>
-            <p className="text-xs text-text-muted leading-relaxed">
-              Generate a "Start My Day" briefing based on your recent trades and current market conditions.
-            </p>
-            <button 
-              onClick={handleGenerateBriefing}
-              disabled={isGeneratingBriefing}
-              className="w-full py-2.5 rounded-xl bg-accent-blue/10 text-accent-blue border border-accent-blue/20 hover:bg-accent-blue/20 transition-all font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {isGeneratingBriefing ? <span className="animate-pulse">Analyzing...</span> : "Generate Briefing"}
-            </button>
-          </div>
-        </div>
-
-        {/* Main Canvas Area */}
-        <div className="flex-1 min-w-0 space-y-16">
-          <section className="space-y-6">
-          <div className="flex items-center gap-3 text-text-primary border-b border-border-subtle/30 pb-2">
-            <CloudSun size={20} className="text-accent-violet" />
-            <h2 className="text-xl font-bold tracking-tight">Morning Context</h2>
-          </div>
-          <div className="flex flex-wrap gap-6 items-center">
-            <div className="flex items-center gap-3 bg-bg-card/30 px-4 py-2.5 rounded-xl border border-border-subtle/50">
-              <span className="text-xs font-bold text-text-muted">Bias:</span>
-              <div className="flex gap-1.5">
-                {[
-                  { id: "bullish", label: "Bullish", color: "text-accent-green bg-accent-green/10 ring-accent-green/30" },
-                  { id: "bearish", label: "Bearish", color: "text-accent-coral bg-accent-coral/10 ring-accent-coral/30" },
-                  { id: "neutral", label: "Neutral", color: "text-accent-violet bg-accent-violet/10 ring-accent-violet/30" }
-                ].map((b) => (
-                  <button key={b.id} onClick={() => setBias(b.id as any)} className={cn("px-3 py-1 rounded-md text-xs font-bold transition-all", bias === b.id ? `${b.color} ring-1 shadow-sm` : "text-text-muted hover:bg-bg-secondary/30")}>
-                    {b.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="flex items-center gap-3 bg-bg-card/30 px-4 py-2.5 rounded-xl border border-border-subtle/50">
-              <span className="text-xs font-bold text-text-muted flex items-center gap-1.5"><Moon size={14}/> Sleep:</span>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((num) => (
-                  <button key={num} onClick={() => setSleepScore(num)} className={cn("w-6 h-6 rounded flex items-center justify-center text-xs font-bold transition-all", sleepScore >= num ? "bg-accent-blue/15 text-accent-blue" : "text-text-muted hover:bg-bg-secondary/40")}>{num}</button>
-                ))}
-              </div>
-            </div>
-            <div className="flex items-center gap-3 bg-bg-card/30 px-4 py-2.5 rounded-xl border border-border-subtle/50">
-              <span className="text-xs font-bold text-text-muted flex items-center gap-1.5"><Brain size={14}/> Focus:</span>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((num) => (
-                  <button key={num} onClick={() => setFocusScore(num)} className={cn("w-6 h-6 rounded flex items-center justify-center text-xs font-bold transition-all", focusScore >= num ? "bg-accent-green/15 text-accent-green" : "text-text-muted hover:bg-bg-secondary/40")}>{num}</button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="space-y-4 group">
-          <div className="flex items-center gap-3 text-text-primary border-b border-border-subtle/30 pb-2 opacity-80 group-hover:opacity-100 transition-opacity">
-            <Target size={20} className="text-accent-blue" />
-            <h2 className="text-xl font-bold tracking-tight">Pre-Market Gameplan</h2>
-          </div>
-          <RichCanvas value={preMarketPlan} onChange={setPreMarketPlan} placeholder="What is the roadmap for today?" minHeight="120px" />
-        </section>
-
-        <section className="space-y-4 group">
-          <div className="flex items-center gap-3 text-text-primary border-b border-border-subtle/30 pb-2 opacity-80 group-hover:opacity-100 transition-opacity">
-            <Sun size={20} className="text-accent-coral" />
-            <h2 className="text-xl font-bold tracking-tight">Intraday Observations</h2>
-          </div>
-          <RichCanvas value={intradayNotes} onChange={setIntradayNotes} placeholder="Live thoughts, emotional state changes..." minHeight="120px" />
-        </section>
-
-        <section className="space-y-6 group">
-          <div className="flex items-center gap-3 text-text-primary border-b border-border-subtle/30 pb-2 opacity-80 group-hover:opacity-100 transition-opacity">
-            <Sunset size={20} className="text-accent-green" />
-            <h2 className="text-xl font-bold tracking-tight">Post-Session Review</h2>
-          </div>
-          <div className="flex items-center gap-4 bg-bg-card/30 px-5 py-3 rounded-xl border border-border-subtle/50 w-fit mb-4">
-            <span className="text-xs font-bold text-text-muted">Execution Grade:</span>
-            <div className="flex gap-2">
-              {["A", "B", "C", "D", "F"].map((grade) => {
-                const isActive = sessionGrade === grade;
-                const style = grade === "A" || grade === "B" ? "text-accent-green bg-accent-green/10 ring-accent-green/30" : grade === "C" ? "text-accent-violet bg-accent-violet/10 ring-accent-violet/30" : "text-accent-coral bg-accent-coral/10 ring-accent-coral/30";
-                return (
-                  <button key={grade} onClick={() => setSessionGrade(grade as any)} className={cn("w-8 h-8 rounded-lg text-sm font-black transition-all", isActive ? `${style} ring-1 shadow-sm scale-110` : "text-text-muted hover:bg-bg-secondary/40 bg-bg-card")}>
-                    {grade}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          <RichCanvas value={postMarketReview} onChange={setPostMarketReview} placeholder="How did the execution align with the gameplan? What did you learn?" minHeight="120px" />
-        </section>
-
-        <section className="space-y-6 pt-8 border-t border-border-subtle/30">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 text-text-primary">
-              <TrendingUp size={20} className="text-text-secondary" />
-              <h2 className="text-xl font-bold tracking-tight">Session Executions</h2>
-            </div>
-            {dailyTrades.length > 0 && <span className={cn("text-lg font-black font-[family-name:var(--font-space-mono)]", dailyPnL >= 0 ? "text-accent-green" : "text-accent-coral")}>{dailyPnL >= 0 ? "+" : ""}{formatCurrency(dailyPnL)}</span>}
-          </div>
-          {dailyTrades.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {dailyTrades.map((trade) => {
-                const isWin = trade.netPnl >= 0;
-                return (
-                  <div key={trade.id} className="p-4 rounded-xl bg-bg-card border border-border-subtle flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center font-[family-name:var(--font-space-mono)] font-bold text-sm uppercase", trade.direction === "long" ? "bg-accent-green/10 text-accent-green" : "bg-accent-coral/10 text-accent-coral")}>
-                        {trade.direction === "long" ? "L" : "S"}
-                      </div>
-                      <div>
-                        <span className="font-bold text-sm text-text-primary">{trade.symbol}</span>
-                        <span className="text-[10px] text-text-muted block font-medium">{trade.setupTags[0] || "Custom"}</span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <span className={cn("text-sm font-black font-[family-name:var(--font-space-mono)] block", isWin ? "text-accent-green" : "text-accent-coral")}>{isWin ? "+" : ""}{formatCurrency(trade.netPnl)}</span>
-                      <span className="text-[10px] text-text-muted block font-bold mt-0.5">{trade.rMultiple >= 0 ? "+" : ""}{trade.rMultiple.toFixed(2)}R</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-             <div className="text-center py-10 bg-bg-card/20 rounded-2xl border border-dashed border-border-subtle/50"><Flame size={24} className="mx-auto opacity-20 mb-3" /><p className="text-sm font-semibold text-text-muted">No trades logged.</p></div>
-          )}
-        </section>
-        </div>
-      </div>
-
-      <div className="fixed bottom-8 right-8 z-50">
-        <button onClick={handleSave} disabled={isSaving} className={cn("flex items-center gap-2.5 px-6 py-3 rounded-full text-sm font-bold shadow-xl transition-all duration-300", saveStatus === "saved" ? "bg-accent-green text-bg-base scale-105" : "bg-bg-card border border-border-subtle text-text-primary hover:scale-105 hover:border-accent-violet/50 hover:shadow-[0_10px_40px_rgba(123,97,255,0.15)]")}>
-          {isSaving ? <div className="w-4 h-4 rounded-full border-2 border-accent-violet/30 border-t-accent-violet animate-spin" /> : saveStatus === "saved" ? <CheckSquare size={18} /> : <Save size={18} className="text-text-muted" />}
-          {saveStatus === "saved" ? "Saved" : "Auto-Saving..."}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ----------------------------------------------------------------------
-// Sub-component: The Documents View (Templates & Loss Recaps)
-// ----------------------------------------------------------------------
-function CustomDocumentsView() {
-  const { customNotes, templates, saveCustomNote, deleteCustomNote } = useNotebookStore();
-  const { trades } = useTradeStore();
-  const [activeDoc, setActiveDoc] = useState<string | null>(null);
-  
-  // Modal State
-  const [showModal, setShowModal] = useState(false);
-  const [newTitle, setNewTitle] = useState("");
-  const [selectedTemplate, setSelectedTemplate] = useState("blank");
-
-  const handleCreateDoc = () => {
-    let content = "";
-    if (selectedTemplate !== "blank") {
-      const tmpl = templates.find((t) => t.id === selectedTemplate);
-      if (tmpl) content = tmpl.content;
+    <div className="flex h-[calc(100vh-8rem)] bg-bg-base border border-border-subtle rounded-2xl overflow-hidden shadow-lg relative">
       
-      // Auto-pull bad trades if it's the loss recap template
-      if (selectedTemplate === "tmpl-loss-recap") {
-        const recentLosses = trades.filter(t => t.netPnl < 0).sort((a, b) => a.netPnl - b.netPnl).slice(0, 3);
-        if (recentLosses.length > 0) {
-          content += "\n\n### Auto-Imported Losses to Review:\n";
-          recentLosses.forEach(t => {
-            content += `- **${t.symbol}** (${t.entryDate}): ${formatCurrency(t.netPnl)} (${t.rMultiple}R)\n`;
-          });
-        }
-      }
-    }
+      {/* Mobile Sidebar Toggle */}
+      <button 
+        className="md:hidden absolute top-4 left-4 z-50 p-2 bg-bg-card rounded-lg border border-border-subtle text-text-primary"
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+      >
+        {isSidebarOpen ? <X size={18} /> : <Menu size={18} />}
+      </button>
 
-    const id = `doc-${Date.now()}`;
-    saveCustomNote({
-      id, title: newTitle || "Untitled Document", content, date: new Date().toISOString(), type: "custom"
-    });
-    setActiveDoc(id);
-    setShowModal(false);
-    setNewTitle(""); setSelectedTemplate("blank");
-  };
-
-  const docList = Object.values(customNotes).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-  if (activeDoc && customNotes[activeDoc]) {
-    const doc = customNotes[activeDoc];
-    return (
-      <div className="w-full space-y-6 animate-in fade-in duration-300">
-        <div className="flex items-center justify-between border-b border-border-subtle/50 pb-4">
-          <button onClick={() => setActiveDoc(null)} className="flex items-center gap-1.5 text-xs font-bold text-text-muted hover:text-text-primary transition-colors">
-            <ArrowLeft size={14} /> Back to Library
-          </button>
-          <div className="flex gap-2">
-            <button onClick={() => { deleteCustomNote(doc.id); setActiveDoc(null); }} className="p-2 rounded-lg text-text-muted hover:text-accent-coral hover:bg-accent-coral/10 transition-colors">
-              <Trash2 size={16} />
-            </button>
+      {/* Left Sidebar - Categories & List */}
+      <div className={cn(
+        "w-72 flex-shrink-0 bg-bg-card border-r border-border-subtle flex flex-col transition-all duration-300 absolute md:relative z-40 h-full",
+        !isSidebarOpen && "-translate-x-full md:translate-x-0 md:w-0 md:border-r-0 md:overflow-hidden"
+      )}>
+        {/* Header & Categories */}
+        <div className="p-4 border-b border-border-subtle">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="font-black text-text-primary tracking-wide">Notebook</h2>
+          </div>
+          <div className="space-y-1">
+            {CATEGORIES.map((cat) => {
+              const Icon = cat.icon;
+              const isActive = activeCategory === cat.id;
+              const count = Object.values(entries).filter(e => cat.id === "All Notes" ? true : cat.id === "Favorites" ? e.isFavorite : e.category === cat.id).length;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => { setActiveCategory(cat.id); setActiveEntryId(null); }}
+                  className={cn(
+                    "w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-bold transition-all",
+                    isActive ? "bg-accent-violet/10 text-accent-violet" : "text-text-secondary hover:bg-bg-secondary/50 hover:text-text-primary"
+                  )}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Icon size={16} className={isActive ? "text-accent-violet" : "opacity-70"} />
+                    {cat.label}
+                  </div>
+                  {count > 0 && (
+                    <span className="text-[10px] font-black bg-bg-secondary px-2 py-0.5 rounded-full text-text-muted">{count}</span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
-        
-        <input 
-          value={doc.title} 
-          onChange={(e) => saveCustomNote({ ...doc, title: e.target.value })} 
-          className="w-full bg-transparent border-none p-0 text-3xl md:text-4xl font-bold text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:ring-0 leading-tight"
-          placeholder="Document Title"
-        />
-        
-        <textarea 
-          value={doc.content} 
-          onChange={(e) => {
-            saveCustomNote({ ...doc, content: e.target.value });
-            e.target.style.height = 'auto';
-            e.target.style.height = e.target.scrollHeight + 'px';
-          }} 
-          className="w-full min-h-[400px] bg-transparent border-none p-0 text-sm md:text-base text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:ring-0 resize-none leading-relaxed font-[family-name:var(--font-inter)]"
-          placeholder="Start writing..."
-          ref={node => { if (node) { node.style.height = 'auto'; node.style.height = node.scrollHeight + 'px'; } }}
-        />
-      </div>
-    );
-  }
 
-  return (
-    <div className="w-full space-y-6 animate-in fade-in duration-300">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="font-bold text-2xl text-text-primary tracking-tight">Trading Wiki Library</h1>
-          <p className="text-sm text-text-muted font-medium mt-1">Manage recaps, plans, and custom documents</p>
+        {/* Note List */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-1">
+          <div className="flex items-center justify-between px-2 mb-2">
+            <span className="text-[10px] uppercase tracking-widest font-black text-text-muted">{activeCategory}</span>
+            <button onClick={handleCreateNew} className="text-accent-blue hover:scale-110 transition-transform">
+              <Plus size={16} />
+            </button>
+          </div>
+          {filteredEntries.length === 0 ? (
+            <div className="text-center p-4 text-text-muted text-xs font-semibold">No notes found.</div>
+          ) : (
+            filteredEntries.map(entry => (
+              <button
+                key={entry.id}
+                onClick={() => setActiveEntryId(entry.id)}
+                className={cn(
+                  "w-full text-left p-3 rounded-xl transition-all border",
+                  activeEntryId === entry.id 
+                    ? "bg-bg-secondary/40 border-border-subtle shadow-sm" 
+                    : "border-transparent hover:bg-bg-secondary/20 hover:border-border-subtle/50"
+                )}
+              >
+                <h4 className="text-sm font-bold text-text-primary truncate">{entry.title || "Untitled"}</h4>
+                <div className="flex items-center gap-2 mt-1.5 text-[10px] font-semibold text-text-muted">
+                  <span>{format(new Date(entry.createdAt), "MMM d")}</span>
+                  <span className="w-1 h-1 rounded-full bg-border-subtle"></span>
+                  <span className="truncate">{entry.content.replace(/<[^>]*>?/gm, '').substring(0, 20)}...</span>
+                </div>
+              </button>
+            ))
+          )}
         </div>
-        <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-text-primary text-bg-base px-4 py-2 rounded-xl text-sm font-bold hover:scale-105 transition-all">
-          <Plus size={16} /> New Document
-        </button>
       </div>
 
-      {docList.length === 0 ? (
-        <div className="text-center py-20 bg-bg-card/20 rounded-2xl border border-dashed border-border-subtle/50">
-          <FileText size={32} className="mx-auto text-text-muted opacity-30 mb-4" />
-          <p className="text-sm font-semibold text-text-secondary">Your library is empty.</p>
-          <p className="text-xs text-text-muted mt-1">Create a weekly recap or a loss review to get started.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {docList.map(doc => (
-            <div key={doc.id} onClick={() => setActiveDoc(doc.id)} className="bg-bg-card border border-border-subtle p-5 rounded-2xl cursor-pointer hover:border-accent-violet/40 hover:shadow-[0_4px_20px_rgba(123,97,255,0.05)] transition-all group">
-              <div className="flex items-start justify-between mb-3">
-                <div className="w-10 h-10 rounded-xl bg-accent-violet/10 flex items-center justify-center text-accent-violet">
-                  <FileText size={20} />
+      {/* Main Editor Area */}
+      <div className="flex-1 flex flex-col min-w-0 bg-[#0B0F19] dark:bg-[#0B0F19]">
+        {activeEntry ? (
+          <>
+            {/* Editor Header */}
+            <div className="flex items-center justify-between p-6 border-b border-border-subtle/30 bg-bg-card/20 md:pl-6 pl-16">
+              <div className="flex-1 min-w-0 pr-4">
+                <input
+                  type="text"
+                  value={activeEntry.title}
+                  onChange={(e) => handleUpdateActive({ title: e.target.value })}
+                  placeholder="Note Title"
+                  className="w-full bg-transparent border-none text-3xl font-black text-text-primary placeholder:text-text-muted/30 focus:outline-none focus:ring-0 truncate"
+                />
+                <div className="flex items-center gap-3 mt-2 text-xs font-semibold text-text-muted">
+                  <span className="flex items-center gap-1"><Calendar size={12} /> {format(new Date(activeEntry.createdAt), "MMMM d, yyyy h:mm a")}</span>
+                  <span className="px-2 py-0.5 rounded border border-border-subtle bg-bg-secondary/50 uppercase tracking-widest text-[9px]">{activeEntry.category}</span>
                 </div>
               </div>
-              <h3 className="font-bold text-text-primary truncate">{doc.title || "Untitled"}</h3>
-              <p className="text-xs text-text-muted mt-1">{format(new Date(doc.date), "MMM d, yyyy")}</p>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button 
+                  onClick={() => toggleFavorite(activeEntry.id)}
+                  className={cn("p-2.5 rounded-xl border transition-all", activeEntry.isFavorite ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-500" : "bg-bg-card border-border-subtle text-text-muted hover:text-text-primary hover:bg-bg-secondary")}
+                >
+                  <Star size={16} fill={activeEntry.isFavorite ? "currentColor" : "none"} />
+                </button>
+                <button 
+                  onClick={handleDeleteActive}
+                  className="p-2.5 rounded-xl border border-border-subtle bg-bg-card text-text-muted hover:text-accent-coral hover:bg-accent-coral/10 hover:border-accent-coral/30 transition-all"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
             </div>
-          ))}
-        </div>
-      )}
 
-      {/* Modal */}
-      <AnimatePresence>
-        {showModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowModal(false)}>
-            <motion.div className="bg-bg-card w-full max-w-lg m-4 p-6 rounded-2xl border border-border-subtle shadow-2xl" onClick={(e) => e.stopPropagation()} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}>
-              <h2 className="font-bold text-xl mb-6 text-text-primary">Create Document</h2>
-              <div className="space-y-5">
-                <div>
-                  <label className="text-xs font-bold text-text-muted uppercase tracking-wider block mb-2">Title</label>
-                  <input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="e.g., September Week 2 Review" className="w-full bg-bg-base border border-border-subtle rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-accent-violet/40 transition-colors text-text-primary" />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-text-muted uppercase tracking-wider block mb-2">Template</label>
-                  <div className="grid gap-2">
-                    <button onClick={() => setSelectedTemplate("blank")} className={cn("p-3 rounded-xl border text-left flex items-center gap-3 transition-all", selectedTemplate === "blank" ? "border-accent-violet bg-accent-violet/5" : "border-border-subtle hover:border-text-muted")}>
-                      <LayoutTemplate size={18} className="text-text-muted" />
-                      <div><p className="text-sm font-bold text-text-primary">Blank Page</p><p className="text-[10px] text-text-muted mt-0.5">Start from scratch</p></div>
-                    </button>
-                    {templates.map(tmpl => (
-                      <button key={tmpl.id} onClick={() => setSelectedTemplate(tmpl.id)} className={cn("p-3 rounded-xl border text-left flex items-center gap-3 transition-all", selectedTemplate === tmpl.id ? "border-accent-violet bg-accent-violet/5" : "border-border-subtle hover:border-text-muted")}>
-                        <FileText size={18} className="text-accent-blue" />
-                        <div><p className="text-sm font-bold text-text-primary">{tmpl.name}</p><p className="text-[10px] text-text-muted mt-0.5">Structured analysis framework</p></div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="pt-2 flex justify-end gap-3">
-                  <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors font-bold">Cancel</button>
-                  <button onClick={handleCreateDoc} className="bg-text-primary text-bg-base px-6 py-2 rounded-xl text-sm font-bold hover:scale-105 transition-all">Create</button>
-                </div>
-              </div>
-            </motion.div>
+            {/* Rich Editor */}
+            <div className="flex-1 min-h-0 relative p-4">
+               <RichEditor 
+                  value={activeEntry.content} 
+                  onChange={(val) => handleUpdateActive({ content: val })} 
+                  placeholder="Press '/' for commands or start typing..."
+               />
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center text-text-muted">
+            <BookOpen size={48} className="opacity-20 mb-4" />
+            <h3 className="text-lg font-bold text-text-primary">No Note Selected</h3>
+            <p className="text-sm">Select a note from the sidebar or create a new one.</p>
+            <button 
+              onClick={handleCreateNew}
+              className="mt-6 px-6 py-2 rounded-xl bg-accent-violet text-white font-bold text-sm shadow-lg shadow-accent-violet/20 hover:scale-105 transition-all"
+            >
+              Create New Note
+            </button>
           </div>
         )}
-      </AnimatePresence>
-
-    </div>
-  );
-}
-
-
-// ----------------------------------------------------------------------
-// Main Page Shell (Sidebar + Content)
-// ----------------------------------------------------------------------
-export default function NotebookLayout() {
-  const [activeTab, setActiveTab] = useState<"daily" | "wiki">("daily");
-
-  return (
-    <div className="w-full flex flex-col md:flex-row gap-8 max-w-6xl mx-auto pb-12">
-      {/* Sidebar */}
-      <div className="w-full md:w-56 flex-shrink-0 space-y-1">
-        <h3 className="text-[10px] font-black text-text-muted uppercase tracking-widest px-3 mb-3">Notebook</h3>
-        
-        <button 
-          onClick={() => setActiveTab("daily")}
-          className={cn("w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-bold transition-all", activeTab === "daily" ? "bg-accent-violet/10 text-accent-violet" : "text-text-secondary hover:bg-bg-card hover:text-text-primary")}
-        >
-          <Calendar size={16} /> Daily Logs
-        </button>
-        <button 
-          onClick={() => setActiveTab("wiki")}
-          className={cn("w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-bold transition-all", activeTab === "wiki" ? "bg-accent-blue/10 text-accent-blue" : "text-text-secondary hover:bg-bg-card hover:text-text-primary")}
-        >
-          <BookOpen size={16} /> Wiki & Recaps
-        </button>
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 min-w-0">
-        {activeTab === "daily" ? <DailyLogView /> : <CustomDocumentsView />}
-      </div>
     </div>
   );
 }
