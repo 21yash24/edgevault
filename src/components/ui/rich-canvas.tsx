@@ -131,7 +131,7 @@ export const RichCanvas = forwardRef<any, RichCanvasProps>(
     }, []);
 
     return (
-      <div className={cn("relative w-full group/editor", className)}>
+      <div className={cn("relative w-full group/editor flex flex-col", className)}>
         {/* Toolbar */}
         <div className={cn(
           "flex flex-wrap items-center gap-0.5 p-1.5 rounded-t-xl border border-b-0 transition-all duration-300",
@@ -197,7 +197,7 @@ export const RichCanvas = forwardRef<any, RichCanvasProps>(
         </div>
 
         {/* Editor */}
-        <div className="relative">
+        <div className="relative flex-1 min-h-0 flex flex-col">
           <div
             ref={editorRef}
             contentEditable
@@ -219,7 +219,7 @@ export const RichCanvas = forwardRef<any, RichCanvasProps>(
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
             className={cn(
-              "w-full outline-none px-4 py-3 rounded-b-xl border transition-all duration-300",
+              "w-full outline-none px-4 py-3 rounded-b-xl border transition-all duration-300 overflow-y-auto flex-1",
               "bg-bg-card/30 border-border-subtle text-text-primary text-sm leading-relaxed",
               "selection:bg-accent-violet/20 selection:text-text-primary",
               // Rich text element styles via Tailwind arbitrary selectors
