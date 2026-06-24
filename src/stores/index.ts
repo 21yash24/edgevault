@@ -164,18 +164,41 @@ export const useTradeStore = create<TradeStore>()(
         const q = query(collection(db, `users/${userId}/trades`));
         const unsubscribe = onSnapshot(q, (snapshot) => {
           const cloudTrades: Trade[] = [];
+          const cloudIds = new Set<string>();
           snapshot.forEach((doc) => {
             cloudTrades.push(doc.data() as Trade);
+            cloudIds.add(doc.id);
           });
           
+          // Get current local trades
           const localTrades = get().trades;
-          set({ trades: recalculate(cloudTrades) });
+
+          // Push any local-only trades up to Firebase (they were created offline or in another session before sync)
+          const missingInCloud = localTrades.filter(t => t.id && !cloudIds.has(t.id));
+          if (missingInCloud.length > 0 && db) {
+            missingInCloud.forEach(trade => {
+              if (db) {
+                const cleanTrade = sanitizeForFirestore(trade);
+                setDoc(doc(db, `users/${userId}/trades`, trade.id), cleanTrade, { merge: true })
+                  .catch(console.error);
+              }
+            });
+          }
+
+          // Merge: cloud is source of truth, but keep local-only trades visible until they upload
+          const merged = [...cloudTrades];
+          missingInCloud.forEach(t => {
+            if (!merged.find(c => c.id === t.id)) merged.push(t);
+          });
+
+          set({ trades: recalculate(merged) });
         }, (error) => {
-          // Silently ignore permission errors until rules are updated
+          console.error("listenToTrades error:", error.message);
         });
 
         return unsubscribe;
       },
+
     }),
     { 
       name: "edgevault-trades",
