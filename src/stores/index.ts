@@ -5,7 +5,7 @@ import { Trade, Playbook, TradingAccount, PropFirmChallenge, AIChatThread, AICha
 import { generateMockTrades } from "@/lib/mock-data";
 import { generateId } from "@/lib/utils";
 import { db, auth } from "@/lib/firebase";
-import { collection, onSnapshot, query, doc, setDoc, deleteDoc, writeBatch, deleteField } from "firebase/firestore";
+import { collection, onSnapshot, query, doc, setDoc, deleteDoc, writeBatch, deleteField, getDocs } from "firebase/firestore";
 
 const sanitizeForFirestore = (obj: any): any => {
   if (obj === undefined) return null;
@@ -637,6 +637,42 @@ export const useNotebookStore = create<NotebookStore>()(
       },
       listenToNotebook: (userId: string) => {
         if (!userId || !db) return () => {};
+        
+        // One-time migration of legacy Firebase collections to the new notebookEntries format
+        const migrateLegacyFirebaseNotes = async () => {
+          try {
+            const dailySnap = await getDocs(collection(db, `users/${userId}/dailyNotes`));
+            dailySnap.forEach(async (documentSnap) => {
+              const n = documentSnap.data();
+              const content = `<h3>Pre-Market Plan</h3><p>${n.preMarketPlan || ""}</p>
+                               <h3>Intraday Notes</h3><p>${n.intradayNotes || ""}</p>
+                               <h3>Post-Market Review</h3><p>${n.postMarketReview || ""}</p>
+                               <p>Bias: ${n.bias} | Sleep: ${n.sleepScore}/5 | Focus: ${n.focusScore}/5 | Grade: ${n.sessionGrade}</p>`;
+              const id = `daily-${n.date}`;
+              const entry: NotebookEntry = {
+                 id, title: `Daily Journal: ${n.date}`, content, category: "Daily Journal",
+                 isFavorite: false, createdAt: n.date + "T00:00:00Z", updatedAt: n.date + "T00:00:00Z"
+              };
+              await setDoc(doc(db, `users/${userId}/notebookEntries`, id), entry, { merge: true });
+              await deleteDoc(documentSnap.ref);
+            });
+
+            const customSnap = await getDocs(collection(db, `users/${userId}/customNotes`));
+            customSnap.forEach(async (documentSnap) => {
+              const cn = documentSnap.data();
+              const entry: NotebookEntry = {
+                  id: cn.id, title: cn.title, content: cn.content, category: cn.type === "loss-recap" ? "Trade Notes" : "All Notes",
+                  isFavorite: false, createdAt: cn.date + "T00:00:00Z", updatedAt: cn.date + "T00:00:00Z"
+              };
+              await setDoc(doc(db, `users/${userId}/notebookEntries`, entry.id), entry, { merge: true });
+              await deleteDoc(documentSnap.ref);
+            });
+          } catch (e) {
+            console.error("Migration failed", e);
+          }
+        };
+        migrateLegacyFirebaseNotes();
+
         const unsubEntries = onSnapshot(query(collection(db, `users/${userId}/notebookEntries`)), (snapshot) => {
           const cloudEntries: Record<string, NotebookEntry> = {};
           snapshot.forEach(doc => { cloudEntries[doc.id] = doc.data() as NotebookEntry; });
@@ -647,7 +683,7 @@ export const useNotebookStore = create<NotebookStore>()(
           snapshot.forEach(doc => { cloudTemplates.push(doc.data() as NotebookTemplate); });
           if (cloudTemplates.length > 0) set({ templates: cloudTemplates });
         });
-        return () => { unsubDaily(); unsubCustom(); unsubTemplates(); };
+        return () => { unsubEntries(); unsubTemplates(); };
       }
     }),
     { 
