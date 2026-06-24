@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/stores";
+import { useAuth } from "@/components/providers/auth-provider";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, BookOpen, BarChart3, Target,
@@ -27,6 +28,7 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { user } = useAuth();
   const { sidebarCollapsed, toggleSidebar, mobileMenuOpen, setMobileMenuOpen } = useUIStore();
 
   return (
@@ -205,7 +207,12 @@ export function Sidebar() {
       </nav>
 
       {/* Bottom collapse button */}
-      <div style={{ borderTop: "1px solid var(--sidebar-border)" }}>
+      <div style={{ borderTop: "1px solid var(--sidebar-border)" }} className="flex flex-col">
+        {!sidebarCollapsed && (
+           <div className="px-4 py-2 text-[8px] font-mono text-text-muted/40 uppercase tracking-widest truncate">
+             UID: {user?.uid || 'offline'}
+           </div>
+        )}
         <button
           onClick={toggleSidebar}
           className="w-full h-11 flex items-center justify-center gap-2 transition-all duration-150 group"
