@@ -134,7 +134,7 @@ export default function NotebookPage() {
                       const { doc, setDoc } = await import("firebase/firestore");
                       const { db } = await import("@/lib/firebase");
                       if (!db) return;
-                      await setDoc(doc(db, `users/${user.uid}/notebookEntries`, entry.id), entry, { merge: true });
+                      await setDoc(doc(db, `users/${user.uid}/dailyNotes`, entry.id), entry, { merge: true });
                       pushedCount++;
                    });
                    await Promise.all(batch);
