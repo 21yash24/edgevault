@@ -676,7 +676,26 @@ export const useNotebookStore = create<NotebookStore>()(
         const unsubEntries = onSnapshot(query(collection(db, `users/${userId}/notebookEntries`)), (snapshot) => {
           const cloudEntries: Record<string, NotebookEntry> = {};
           snapshot.forEach(doc => { cloudEntries[doc.id] = doc.data() as NotebookEntry; });
-          set({ entries: cloudEntries });
+          
+          set((state) => {
+            const nextEntries = { ...state.entries };
+            
+            // 1. Update local state with cloud state
+            for (const [id, entry] of Object.entries(cloudEntries)) {
+              nextEntries[id] = entry;
+            }
+            
+            // 2. Identify local-only entries that failed to upload, and upload them
+            for (const [id, entry] of Object.entries(state.entries || {})) {
+              if (!cloudEntries[id]) {
+                // This entry exists locally but not in the cloud database. Push it!
+                setDoc(doc(db, `users/${userId}/notebookEntries`, id), entry, { merge: true }).catch(console.error);
+                nextEntries[id] = entry; // Keep it in UI while it uploads
+              }
+            }
+            
+            return { entries: nextEntries };
+          });
         });
         const unsubTemplates = onSnapshot(query(collection(db, `users/${userId}/notebookTemplates`)), (snapshot) => {
           const cloudTemplates: NotebookTemplate[] = [];
