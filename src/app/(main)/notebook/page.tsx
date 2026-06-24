@@ -1,6 +1,7 @@
 "use client";
 
 import { useNotebookStore, NotebookCategory, NotebookEntry } from "@/stores";
+import { useAuth } from "@/components/providers/auth-provider";
 import { RichCanvas } from "@/components/ui/rich-canvas";
 import { 
   BookOpen, Calendar, FileText, Star, Plus, Trash2, Menu, X, Share
@@ -19,6 +20,7 @@ const CATEGORIES: { id: NotebookCategory; label: string; icon: any }[] = [
 ];
 
 export default function NotebookPage() {
+  const { user } = useAuth();
   const { entries = {}, saveEntry, deleteEntry, toggleFavorite, templates } = useNotebookStore();
   const [activeCategory, setActiveCategory] = useState<NotebookCategory>("All Notes");
   const [activeEntryId, setActiveEntryId] = useState<string | null>(null);
@@ -120,6 +122,31 @@ export default function NotebookPage() {
               );
             })}
           </div>
+          <div className="mt-auto pt-4 px-4 pb-2 border-t border-border-subtle/50 text-[9px] font-mono text-text-muted/30 uppercase tracking-widest break-all">
+            UID: {user?.uid || 'offline'}
+          </div>
+          <button 
+             onClick={async () => {
+                if (!user?.uid) return;
+                try {
+                   let pushedCount = 0;
+                   const batch = Object.values(entries || {}).map(async (entry) => {
+                      const { doc, setDoc } = await import("firebase/firestore");
+                      const { db } = await import("@/lib/firebase");
+                      if (!db) return;
+                      await setDoc(doc(db, `users/${user.uid}/notebookEntries`, entry.id), entry, { merge: true });
+                      pushedCount++;
+                   });
+                   await Promise.all(batch);
+                   alert(`Success! Force synced ${pushedCount} notes to the cloud.`);
+                } catch (e: any) {
+                   alert(`Sync failed: ${e.message}`);
+                }
+             }}
+             className="mx-4 mb-4 mt-2 py-1.5 rounded bg-bg-secondary text-text-muted hover:text-accent-violet hover:bg-accent-violet/10 text-[10px] font-bold uppercase tracking-wider transition-all"
+          >
+             Force Sync Cloud
+          </button>
         </div>
 
         {/* Note List */}
