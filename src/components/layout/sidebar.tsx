@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { useUIStore, useGamificationStore } from "@/stores";
 import { useAuth } from "@/components/providers/auth-provider";
 import { motion, AnimatePresence } from "framer-motion";
+import { Logo } from "@/components/ui/logo";
 import {
   LayoutDashboard, BookOpen, BarChart3, Target,
   Shield, Bell, Settings, ChevronRight, Zap,
@@ -66,43 +67,9 @@ export function Sidebar() {
         className="h-16 flex items-center px-3.5 gap-3 flex-shrink-0"
         style={{ borderBottom: "1px solid var(--sidebar-border)" }}
       >
-        <motion.div
-          className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 relative"
-          style={{
-            background: "linear-gradient(135deg, rgba(0,255,178,0.15) 0%, rgba(91,63,232,0.15) 100%)",
-            border: "1px solid rgba(0,255,178,0.2)",
-          }}
-          whileHover={{ scale: 1.06 }}
-          whileTap={{ scale: 0.94 }}
-        >
-          <Zap size={16} className="text-accent-green" />
-        </motion.div>
-
-        <AnimatePresence>
-          {!sidebarCollapsed && (
-            <motion.div
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -8 }}
-              transition={{ duration: 0.15 }}
-              className="overflow-hidden whitespace-nowrap"
-            >
-              <div
-                className="font-[family-name:var(--font-inter)] font-black text-[15px] tracking-widest"
-                style={{
-                  background: "linear-gradient(90deg, var(--accent-green), var(--accent-violet))",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                }}
-              >
-                EDGEVAULT
-              </div>
-              <div className="text-[8px] text-text-muted font-bold uppercase tracking-[0.2em] -mt-0.5">
-                Pro Trading OS
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <Link href="/dashboard" className="flex items-center">
+          <Logo collapsed={sidebarCollapsed} />
+        </Link>
       </div>
 
       {/* Nav */}
