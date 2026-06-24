@@ -129,17 +129,14 @@ export default function NotebookPage() {
              onClick={async () => {
                 if (!user?.uid) return;
                 try {
-                   const { auth } = await import("@/lib/firebase");
-                   const authUser = auth?.currentUser;
-                   if (!authUser) throw new Error("Not authenticated");
-                   const token = await authUser.getIdToken();
-                   const res = await fetch("/api/notebook/sync", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-                      body: JSON.stringify({ action: "batchUpdate", entries: Object.values(entries || {}) })
-                   });
-                   if (!res.ok) throw new Error(await res.text());
-                   alert(`Success! Force synced ${Object.values(entries || {}).length} notes to the cloud.`);
+                   const { doc, setDoc } = await import("firebase/firestore");
+                   const { db } = await import("@/lib/firebase");
+                   if (!db) throw new Error("Firestore not initialized");
+                   const allEntries = Object.values(entries || {});
+                   await Promise.all(allEntries.map(entry =>
+                      setDoc(doc(db, `users/${user.uid}/dailyNotes`, entry.id), entry, { merge: true })
+                   ));
+                   alert(`✅ Success! Synced ${allEntries.length} notes to the cloud. Refresh the other browser!`);
                 } catch (e: any) {
                    alert(`Sync failed: ${e.message}`);
                 }
