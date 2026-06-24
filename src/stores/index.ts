@@ -608,7 +608,15 @@ export const useNotebookStore = create<NotebookStore>()(
         const nextEntry = { ...entry, updatedAt: new Date().toISOString() };
         set((state) => ({ entries: { ...state.entries, [nextEntry.id]: nextEntry } }));
         const user = auth?.currentUser;
-        if (user && db) setDoc(doc(db, `users/${user.uid}/dailyNotes`, nextEntry.id), nextEntry, { merge: true }).catch(console.error);
+        if (user) {
+           user.getIdToken().then(token => {
+              fetch("/api/notebook/sync", {
+                 method: "POST",
+                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                 body: JSON.stringify({ action: "save", entry: nextEntry })
+              }).catch(console.error);
+           });
+        }
       },
       deleteEntry: (id) => {
         set((state) => {
@@ -617,7 +625,15 @@ export const useNotebookStore = create<NotebookStore>()(
           return { entries: next };
         });
         const user = auth?.currentUser;
-        if (user && db) deleteDoc(doc(db, `users/${user.uid}/dailyNotes`, id)).catch(console.error);
+        if (user) {
+           user.getIdToken().then(token => {
+              fetch("/api/notebook/sync", {
+                 method: "POST",
+                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                 body: JSON.stringify({ action: "delete", id })
+              }).catch(console.error);
+           });
+        }
       },
       toggleFavorite: (id) => {
         const entry = get().entries[id];
@@ -665,11 +681,24 @@ export const useNotebookStore = create<NotebookStore>()(
             for (const [id, entry] of Object.entries(cloudEntries)) {
               nextEntries[id] = entry;
             }
+            const missingEntries: NotebookEntry[] = [];
             for (const [id, entry] of Object.entries(state.entries || {})) {
               if (!cloudEntries[id]) {
-                setDoc(doc(db, `users/${userId}/dailyNotes`, id), entry, { merge: true }).catch(console.error);
+                missingEntries.push(entry);
                 nextEntries[id] = entry; 
               }
+            }
+            if (missingEntries.length > 0) {
+               const user = auth?.currentUser;
+               if (user) {
+                  user.getIdToken().then(token => {
+                     fetch("/api/notebook/sync", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                        body: JSON.stringify({ action: "batchUpdate", entries: missingEntries })
+                     }).catch(console.error);
+                  });
+               }
             }
             return { entries: nextEntries };
           });
