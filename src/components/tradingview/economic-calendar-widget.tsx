@@ -31,8 +31,12 @@ function EconomicCalendarWidget() {
     container.current.appendChild(script);
   }, [resolvedTheme]);
 
+  if (!resolvedTheme) {
+    return <div className="w-full h-full bg-bg-card/20 animate-pulse" />;
+  }
+
   return (
-    <div className="tradingview-widget-container" ref={container} style={{ height: "100%", width: "100%" }}>
+    <div key={resolvedTheme} className="tradingview-widget-container" ref={container} style={{ height: "100%", width: "100%" }}>
       <div className="tradingview-widget-container__widget" style={{ height: "100%", width: "100%" }}></div>
     </div>
   );
