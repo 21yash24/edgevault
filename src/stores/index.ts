@@ -956,3 +956,132 @@ export const useMissedTradeStore = create<MissedTradeStore>()(
     }
   )
 );
+
+// ═══════════════════════════════
+// Gamification Store
+// ═══════════════════════════════
+
+export interface Badge {
+  id: string;
+  name: string;
+  description: string;
+  icon: string; // emoji
+  earnedAt?: string;
+  tier: 'bronze' | 'silver' | 'gold' | 'platinum';
+}
+
+const ALL_BADGES: Badge[] = [
+  { id: 'first-trade', name: 'First Step', description: 'Log your first trade', icon: '🎯', tier: 'bronze' },
+  { id: 'streak-3', name: 'Consistent', description: '3-day journaling streak', icon: '🔥', tier: 'bronze' },
+  { id: 'streak-7', name: 'Iron Will', description: '7-day journaling streak', icon: '⚡', tier: 'silver' },
+  { id: 'streak-30', name: 'Unstoppable', description: '30-day journaling streak', icon: '💎', tier: 'gold' },
+  { id: 'reviewer', name: 'Deep Reviewer', description: 'Added post-trade review to 20 trades', icon: '🔬', tier: 'silver' },
+  { id: 'winner-10', name: 'On Fire', description: '10 winning trades logged', icon: '🏆', tier: 'bronze' },
+  { id: 'clean-week', name: 'Clean Sheet', description: 'A full week with 0 mistake tags', icon: '✨', tier: 'gold' },
+  { id: 'playbook-follower', name: 'Rule Keeper', description: 'Used a playbook on 10 trades', icon: '📋', tier: 'silver' },
+  { id: 'centurion', name: 'Centurion', description: '100 trades logged', icon: '💯', tier: 'platinum' },
+  { id: 'profit-streak-5', name: 'Hot Hand', description: '5 profitable days in a row', icon: '🌶️', tier: 'gold' },
+];
+
+export const ALL_BADGES_REF = ALL_BADGES;
+
+const LEVELS = [
+  { level: 1, name: 'Apprentice', minXp: 0 },
+  { level: 2, name: 'Trader', minXp: 100 },
+  { level: 3, name: 'Skilled', minXp: 300 },
+  { level: 4, name: 'Expert', minXp: 700 },
+  { level: 5, name: 'Pro', minXp: 1500 },
+  { level: 6, name: 'Elite', minXp: 3000 },
+  { level: 7, name: 'Legend', minXp: 6000 },
+];
+
+interface GamificationStore {
+  xp: number;
+  streak: number;
+  lastJournalDate: string | null;
+  earnedBadgeIds: string[];
+  newBadge: Badge | null;
+  addXp: (amount: number, reason?: string) => void;
+  checkAndUpdateStreak: (trades: Trade[]) => void;
+  checkBadges: (trades: Trade[]) => void;
+  dismissNewBadge: () => void;
+  getLevel: () => { level: number; name: string; progress: number; nextLevelXp: number };
+  getEarnedBadges: () => Badge[];
+}
+
+export const useGamificationStore = create<GamificationStore>()(
+  persist(
+    (set, get) => ({
+      xp: 0,
+      streak: 0,
+      lastJournalDate: null,
+      earnedBadgeIds: [],
+      newBadge: null,
+
+      addXp: (amount, _reason) => {
+        set(state => ({ xp: state.xp + amount }));
+      },
+
+      getLevel: () => {
+        const { xp } = get();
+        let currentLevel = LEVELS[0];
+        let nextLevel = LEVELS[1];
+        for (let i = LEVELS.length - 1; i >= 0; i--) {
+          if (xp >= LEVELS[i].minXp) {
+            currentLevel = LEVELS[i];
+            nextLevel = LEVELS[Math.min(i + 1, LEVELS.length - 1)];
+            break;
+          }
+        }
+        const progress = nextLevel.minXp > currentLevel.minXp
+          ? Math.min(100, ((xp - currentLevel.minXp) / (nextLevel.minXp - currentLevel.minXp)) * 100)
+          : 100;
+        return { level: currentLevel.level, name: currentLevel.name, progress, nextLevelXp: nextLevel.minXp };
+      },
+
+      getEarnedBadges: () => {
+        const { earnedBadgeIds } = get();
+        return ALL_BADGES.filter(b => earnedBadgeIds.includes(b.id));
+      },
+
+      checkAndUpdateStreak: (trades) => {
+        const today = new Date().toISOString().split('T')[0];
+        const { lastJournalDate, streak } = get();
+        const tradeDates = new Set(trades.map(t => t.entryDate?.split('T')[0]).filter(Boolean));
+        if (!tradeDates.has(today)) return;
+        if (lastJournalDate === today) return;
+        const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+        const newStreak = lastJournalDate === yesterday ? streak + 1 : 1;
+        set({ streak: newStreak, lastJournalDate: today });
+        get().addXp(10 * newStreak, 'streak bonus');
+      },
+
+      checkBadges: (trades) => {
+        const { earnedBadgeIds, streak } = get();
+        const toEarn: string[] = [];
+
+        if (trades.length >= 1 && !earnedBadgeIds.includes('first-trade')) toEarn.push('first-trade');
+        if (streak >= 3 && !earnedBadgeIds.includes('streak-3')) toEarn.push('streak-3');
+        if (streak >= 7 && !earnedBadgeIds.includes('streak-7')) toEarn.push('streak-7');
+        if (streak >= 30 && !earnedBadgeIds.includes('streak-30')) toEarn.push('streak-30');
+        if (trades.filter(t => t.result === 'win').length >= 10 && !earnedBadgeIds.includes('winner-10')) toEarn.push('winner-10');
+        if (trades.filter(t => (t as any).postTradeReview && (t as any).postTradeReview.trim().length > 10).length >= 20 && !earnedBadgeIds.includes('reviewer')) toEarn.push('reviewer');
+        if (trades.length >= 100 && !earnedBadgeIds.includes('centurion')) toEarn.push('centurion');
+        if (trades.filter(t => (t as any).playbook).length >= 10 && !earnedBadgeIds.includes('playbook-follower')) toEarn.push('playbook-follower');
+
+        if (toEarn.length > 0) {
+          const newBadge = ALL_BADGES.find(b => b.id === toEarn[0]) || null;
+          const badgeWithDate = newBadge ? { ...newBadge, earnedAt: new Date().toISOString() } : null;
+          set(state => ({
+            earnedBadgeIds: [...new Set([...state.earnedBadgeIds, ...toEarn])],
+            newBadge: badgeWithDate,
+            xp: state.xp + toEarn.length * 50,
+          }));
+        }
+      },
+
+      dismissNewBadge: () => set({ newBadge: null }),
+    }),
+    { name: 'edgevault-gamification' }
+  )
+);

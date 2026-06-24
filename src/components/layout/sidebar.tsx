@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useUIStore } from "@/stores";
+import { useUIStore, useGamificationStore } from "@/stores";
 import { useAuth } from "@/components/providers/auth-provider";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -30,6 +30,8 @@ export function Sidebar() {
   const pathname = usePathname();
   const { user } = useAuth();
   const { sidebarCollapsed, toggleSidebar, mobileMenuOpen, setMobileMenuOpen } = useUIStore();
+  const { xp, streak, getLevel } = useGamificationStore();
+  const levelInfo = getLevel();
 
   return (
     <>
@@ -208,8 +210,56 @@ export function Sidebar() {
 
       {/* Bottom collapse button */}
       <div style={{ borderTop: "1px solid var(--sidebar-border)" }} className="flex flex-col">
+
+        {/* Level Badge */}
+        <AnimatePresence>
+          {!sidebarCollapsed && (
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 6 }}
+              transition={{ duration: 0.15 }}
+              className="px-3 pt-3 pb-1"
+            >
+              <div
+                className="rounded-xl p-2.5"
+                style={{ background: 'var(--sidebar-item-hover)', border: '1px solid var(--border-subtle)' }}
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm">⚡</span>
+                    <span className="text-[11px] font-black" style={{ color: 'var(--text-primary)' }}>{levelInfo.name}</span>
+                    <span
+                      className="text-[9px] font-bold px-1 py-0.5 rounded"
+                      style={{ background: 'rgba(0,255,178,0.1)', color: 'var(--accent-green)', border: '1px solid rgba(0,255,178,0.2)' }}
+                    >
+                      Lv.{levelInfo.level}
+                    </span>
+                  </div>
+                  {streak > 0 && (
+                    <span className="text-[10px] font-black text-orange-400">🔥 {streak}d</span>
+                  )}
+                </div>
+                <div
+                  className="w-full h-1.5 rounded-full overflow-hidden"
+                  style={{ background: 'var(--border-subtle)' }}
+                >
+                  <motion.div
+                    className="h-full rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${levelInfo.progress}%` }}
+                    transition={{ duration: 0.6, ease: 'easeOut' }}
+                    style={{ background: 'linear-gradient(90deg, var(--accent-green), var(--accent-violet))' }}
+                  />
+                </div>
+                <div className="text-[8px] mt-1 font-mono" style={{ color: 'var(--text-muted)' }}>{xp} XP · {levelInfo.progress.toFixed(0)}% to Lv.{levelInfo.level + 1}</div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {!sidebarCollapsed && (
-           <div className="px-4 py-2 text-[8px] font-mono text-text-muted/40 uppercase tracking-widest truncate">
+           <div className="px-4 py-1 text-[8px] font-mono text-text-muted/40 uppercase tracking-widest truncate">
              UID: {user?.uid || 'offline'}
            </div>
         )}

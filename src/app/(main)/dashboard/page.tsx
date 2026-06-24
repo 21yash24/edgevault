@@ -1,5 +1,5 @@
 "use client";
-import { useTradeStore, usePropFirmStore, useRiskStore, useSettingsStore, useAccountStore } from "@/stores";
+import { useTradeStore, usePropFirmStore, useRiskStore, useSettingsStore, useAccountStore, useGamificationStore, ALL_BADGES_REF } from "@/stores";
 import { StatCard } from "@/components/ui/stat-card";
 import { GlassCard } from "@/components/ui/glass-card";
 import { NumberTicker } from "@/components/ui/number-ticker";
@@ -613,10 +613,135 @@ const MINDSET_QUOTES = [
   { text: "Confidence is not 'I will win this trade.' Confidence is 'I will be okay if this trade is a loss.'", author: "Unknown", book: "Zen in the Markets" }
 ];
 
+const TIER_COLORS: Record<string, { bg: string; border: string; text: string }> = {
+  bronze: { bg: 'rgba(205,127,50,0.12)', border: 'rgba(205,127,50,0.3)', text: '#cd7f32' },
+  silver: { bg: 'rgba(192,192,192,0.12)', border: 'rgba(192,192,192,0.3)', text: '#c0c0c0' },
+  gold:   { bg: 'rgba(255,215,0,0.12)',   border: 'rgba(255,215,0,0.3)',   text: '#ffd700' },
+  platinum: { bg: 'rgba(0,255,178,0.12)', border: 'rgba(0,255,178,0.3)', text: 'var(--accent-green)' },
+};
+
+function GamificationWidget() {
+  const { xp, streak, getLevel, getEarnedBadges, earnedBadgeIds } = useGamificationStore();
+  const levelInfo = getLevel();
+  const earnedBadges = getEarnedBadges();
+  const recentBadges = earnedBadges.slice(-3);
+  const nextBadge = ALL_BADGES_REF.find(b => !earnedBadgeIds.includes(b.id));
+
+  return (
+    <GlassCard className="relative overflow-hidden flex flex-col gap-4 border border-border-subtle group">
+      {/* Ambient glow */}
+      <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full blur-3xl opacity-10 group-hover:opacity-20 transition-opacity duration-700 pointer-events-none" style={{ background: 'linear-gradient(135deg, var(--accent-green), var(--accent-violet))' }} />
+
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h3 className="font-[family-name:var(--font-inter)] font-bold text-sm flex items-center gap-2">
+          <Trophy size={14} className="text-accent-green" />
+          Trader Progress
+        </h3>
+        {streak > 0 && (
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black"
+            style={{ background: 'rgba(251,146,60,0.15)', border: '1px solid rgba(251,146,60,0.3)', color: '#fb923c' }}
+          >
+            🔥 {streak}-Day Streak
+          </motion.div>
+        )}
+      </div>
+
+      {/* Level & XP Bar */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-base">⚡</span>
+            <span className="font-[family-name:var(--font-inter)] font-black text-sm" style={{ background: 'linear-gradient(90deg, var(--accent-green), var(--accent-violet))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              {levelInfo.name}
+            </span>
+            <span
+              className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+              style={{ background: 'rgba(0,255,178,0.1)', color: 'var(--accent-green)', border: '1px solid rgba(0,255,178,0.2)' }}
+            >
+              Lv.{levelInfo.level}
+            </span>
+          </div>
+          <span className="text-[10px] font-bold font-mono" style={{ color: 'var(--text-muted)' }}>
+            {xp} / {levelInfo.nextLevelXp} XP
+          </span>
+        </div>
+        <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--border-subtle)' }}>
+          <motion.div
+            className="h-full rounded-full"
+            initial={{ width: 0 }}
+            animate={{ width: `${levelInfo.progress}%` }}
+            transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
+            style={{ background: 'linear-gradient(90deg, var(--accent-green), var(--accent-violet))' }}
+          />
+        </div>
+        <div className="text-[8px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+          {levelInfo.progress.toFixed(0)}% to next level
+        </div>
+      </div>
+
+      {/* Earned Badges */}
+      <div>
+        <div className="text-[9px] font-black uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Recent Achievements</div>
+        {recentBadges.length > 0 ? (
+          <div className="flex gap-2 flex-wrap">
+            {recentBadges.map((badge) => {
+              const colors = TIER_COLORS[badge.tier] || TIER_COLORS.bronze;
+              return (
+                <motion.div
+                  key={badge.id}
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  whileHover={{ scale: 1.05, y: -1 }}
+                  className="flex items-center gap-1.5 px-2 py-1 rounded-lg"
+                  style={{ background: colors.bg, border: `1px solid ${colors.border}` }}
+                  title={badge.description}
+                >
+                  <span className="text-base leading-none">{badge.icon}</span>
+                  <div>
+                    <div className="text-[9px] font-black leading-none" style={{ color: colors.text }}>{badge.name}</div>
+                    <div className="text-[8px] capitalize font-bold" style={{ color: 'var(--text-muted)' }}>{badge.tier}</div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Log trades to unlock badges!</div>
+        )}
+      </div>
+
+      {/* Next Badge to Earn */}
+      {nextBadge && (
+        <div
+          className="flex items-center gap-2.5 p-2.5 rounded-xl"
+          style={{ background: 'var(--sidebar-item-hover)', border: '1px dashed var(--border-subtle)' }}
+        >
+          <span className="text-xl opacity-40">{nextBadge.icon}</span>
+          <div className="flex-1 min-w-0">
+            <div className="text-[10px] font-black" style={{ color: 'var(--text-secondary)' }}>Next: {nextBadge.name}</div>
+            <div className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{nextBadge.description}</div>
+          </div>
+          <span
+            className="text-[8px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 capitalize"
+            style={{ background: TIER_COLORS[nextBadge.tier]?.bg, color: TIER_COLORS[nextBadge.tier]?.text, border: `1px solid ${TIER_COLORS[nextBadge.tier]?.border}` }}
+          >
+            {nextBadge.tier}
+          </span>
+        </div>
+      )}
+    </GlassCard>
+  );
+}
+
 export default function DashboardPage() {
   const { trades } = useTradeStore();
   const { challenges } = usePropFirmStore();
   const { accounts } = useAccountStore();
+  const { earnedBadgeIds: gameBadgeIds } = useGamificationStore();
   const [timeRange, setTimeRange] = useState("1M");
   const [selectedAccountId, setSelectedAccountId] = useState("ALL");
   const [quoteIndex, setQuoteIndex] = useState(0);
@@ -801,6 +926,59 @@ export default function DashboardPage() {
             <Sparkles size={14} className="group-hover:rotate-12 transition-transform duration-300" />
           </button>
         </GlassCard>
+      </motion.div>
+
+      {/* Gamification: Streaks, Level & Badges */}
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-1">
+          <GamificationWidget />
+        </div>
+        <div className="lg:col-span-2 flex flex-col gap-3">
+          {/* Quick XP Tip Banner */}
+          <div
+            className="rounded-xl p-3 flex items-center gap-3"
+            style={{ background: 'linear-gradient(135deg, rgba(0,255,178,0.05), rgba(91,63,232,0.05))', border: '1px solid rgba(0,255,178,0.1)' }}
+          >
+            <span className="text-2xl flex-shrink-0">🎮</span>
+            <div>
+              <div className="text-xs font-black" style={{ color: 'var(--text-primary)' }}>Earn XP &amp; Unlock Badges</div>
+              <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Log trades daily to maintain your streak • Each badge awards +50 XP • Streak bonuses compound with every consecutive day</div>
+            </div>
+          </div>
+
+          {/* All badges grid */}
+          <div className="flex flex-wrap gap-2">
+            {ALL_BADGES_REF.map((badge) => {
+              const isEarned = gameBadgeIds.includes(badge.id);
+              const tierColors: Record<string, { bg: string; border: string; text: string }> = {
+                bronze:   { bg: 'rgba(205,127,50,0.12)',  border: 'rgba(205,127,50,0.3)',  text: '#cd7f32' },
+                silver:   { bg: 'rgba(192,192,192,0.12)', border: 'rgba(192,192,192,0.3)', text: '#c0c0c0' },
+                gold:     { bg: 'rgba(255,215,0,0.12)',   border: 'rgba(255,215,0,0.3)',   text: '#ffd700' },
+                platinum: { bg: 'rgba(0,255,178,0.12)',   border: 'rgba(0,255,178,0.3)',   text: 'var(--accent-green)' },
+              };
+              const colors = tierColors[badge.tier] || tierColors.bronze;
+              return (
+                <motion.div
+                  key={badge.id}
+                  whileHover={{ scale: 1.05, y: -1 }}
+                  className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg transition-all"
+                  style={{
+                    background: isEarned ? colors.bg : 'rgba(255,255,255,0.02)',
+                    border: isEarned ? `1px solid ${colors.border}` : '1px solid rgba(255,255,255,0.06)',
+                    opacity: isEarned ? 1 : 0.45,
+                  }}
+                  title={badge.description}
+                >
+                  <span className="text-sm leading-none" style={{ filter: isEarned ? 'none' : 'grayscale(1)' }}>{badge.icon}</span>
+                  <div>
+                    <div className="text-[9px] font-black leading-none" style={{ color: isEarned ? colors.text : 'var(--text-muted)' }}>{badge.name}</div>
+                    <div className="text-[8px] capitalize" style={{ color: 'var(--text-muted)' }}>{badge.tier}</div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
       </motion.div>
 
       {/* HUD Stats Grid & Widgets */}

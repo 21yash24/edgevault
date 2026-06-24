@@ -11,6 +11,277 @@ import Link from "next/link";
 import { SETUP_TAGS, MISTAKE_TAGS, MINDSET_TAGS, MistakeTag, Trade } from "@/lib/types";
 import html2canvas from "html2canvas";
 
+// ─── Trade Efficiency Card ───────────────────────────────────────────────────
+function TradeEfficiencyCard({ trade }: { trade: Trade }) {
+  const hasMaeMfe = trade.mae !== undefined || trade.mfe !== undefined;
+
+  if (!hasMaeMfe) {
+    return (
+      <GlassCard className="border border-border-subtle p-5">
+        <h3 className="font-[family-name:var(--font-inter)] font-black text-sm flex items-center gap-2 mb-4 select-none">
+          <Target size={16} className="text-accent-green" /> Trade Quality Score
+        </h3>
+        <div className="flex flex-col items-center justify-center py-10 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-bg-secondary/40 border border-border-subtle flex items-center justify-center mb-4">
+            <TrendingUp size={28} className="text-text-muted opacity-30" />
+          </div>
+          <p className="text-xs font-bold text-text-muted uppercase tracking-wider">No Efficiency Data</p>
+          <p className="text-[10px] text-text-muted/70 mt-1.5 max-w-[220px] leading-relaxed">
+            Add MAE &amp; MFE data to unlock entry &amp; exit efficiency scoring for this trade.
+          </p>
+        </div>
+      </GlassCard>
+    );
+  }
+
+  // ── Calculations ────────────────────────────────────────────────────────────
+  const entryEfficiency =
+    trade.mae != null && trade.mfe != null && trade.mfe !== 0
+      ? Math.max(0, Math.min(100, (1 - trade.mae / trade.mfe) * 100))
+      : null;
+
+  const moveSize = trade.mfe != null ? Math.abs(trade.mfe) : null;
+  const actualMove = Math.abs(trade.netPnl + (trade.commission || 0));
+  const exitEfficiency =
+    moveSize != null && moveSize > 0
+      ? Math.max(0, Math.min(100, (actualMove / moveSize) * 100))
+      : null;
+
+  const tradeQuality =
+    entryEfficiency !== null && exitEfficiency !== null
+      ? entryEfficiency * 0.4 + exitEfficiency * 0.6
+      : entryEfficiency !== null
+      ? entryEfficiency
+      : exitEfficiency;
+
+  const grade =
+    tradeQuality === null
+      ? null
+      : tradeQuality >= 80
+      ? "A"
+      : tradeQuality >= 65
+      ? "B"
+      : tradeQuality >= 45
+      ? "C"
+      : tradeQuality >= 25
+      ? "D"
+      : "F";
+
+  const gradeColor =
+    grade === "A"
+      ? "text-accent-green"
+      : grade === "B"
+      ? "text-accent-blue"
+      : grade === "C"
+      ? "text-yellow-400"
+      : grade === "D"
+      ? "text-orange-400"
+      : "text-accent-coral";
+
+  const gradeBg =
+    grade === "A"
+      ? "bg-accent-green/10 border-accent-green/30 shadow-[0_0_30px_rgba(0,255,178,0.08)]"
+      : grade === "B"
+      ? "bg-accent-blue/10 border-accent-blue/30 shadow-[0_0_30px_rgba(0,186,255,0.08)]"
+      : grade === "C"
+      ? "bg-yellow-400/10 border-yellow-400/30"
+      : grade === "D"
+      ? "bg-orange-400/10 border-orange-400/30"
+      : "bg-accent-coral/10 border-accent-coral/30";
+
+  const getBarColor = (val: number) =>
+    val >= 75
+      ? "#00FFB2"
+      : val >= 50
+      ? "#00BAFF"
+      : val >= 25
+      ? "#facc15"
+      : "#FF2D55";
+
+  // Insight text
+  const leftOnTable =
+    moveSize != null && moveSize > 0
+      ? Math.max(0, moveSize - actualMove)
+      : null;
+
+  const insight =
+    leftOnTable != null && leftOnTable > 0.01 && exitEfficiency !== null
+      ? `You captured ${exitEfficiency.toFixed(0)}% of the move. MFE reached $${moveSize?.toFixed(2)}, you took $${actualMove.toFixed(2)} — leaving $${leftOnTable.toFixed(2)} on the table.`
+      : exitEfficiency !== null && exitEfficiency >= 90
+      ? `Excellent exit! You captured ${exitEfficiency.toFixed(0)}% of the available move — near-perfect execution.`
+      : null;
+
+  return (
+    <GlassCard className="border border-border-subtle p-5 space-y-5 relative overflow-hidden">
+      {/* Ambient glow */}
+      <div
+        className={cn(
+          "absolute -top-12 -right-12 w-40 h-40 rounded-full blur-3xl pointer-events-none opacity-30",
+          grade === "A" || grade === "B" ? "bg-accent-green/20" : "bg-accent-coral/20"
+        )}
+      />
+
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-border-subtle/50 pb-3">
+        <h3 className="font-[family-name:var(--font-inter)] font-black text-sm flex items-center gap-2 select-none">
+          <Target size={16} className="text-accent-green" /> Trade Quality Score
+        </h3>
+        {tradeQuality !== null && (
+          <span className={cn("text-[10px] font-black px-2 py-0.5 rounded-full border", gradeBg, gradeColor)}>
+            {tradeQuality.toFixed(0)}% Quality
+          </span>
+        )}
+      </div>
+
+      {/* Grade + Score Row */}
+      {grade !== null && tradeQuality !== null && (
+        <div className="flex items-center gap-6">
+          {/* Grade Letter Circle */}
+          <motion.div
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.05 }}
+            className={cn(
+              "w-20 h-20 flex-shrink-0 rounded-2xl border-2 flex items-center justify-center",
+              gradeBg
+            )}
+          >
+            <span
+              className={cn("font-[family-name:var(--font-inter)] font-black leading-none select-none", gradeColor)}
+              style={{ fontSize: "3rem" }}
+            >
+              {grade}
+            </span>
+          </motion.div>
+
+          {/* Score sub-label */}
+          <div className="flex-1">
+            <p className="text-xs text-text-muted font-bold uppercase tracking-wider mb-1 select-none">Overall Grade</p>
+            <p className={cn("font-[family-name:var(--font-space-mono)] text-2xl font-black", gradeColor)}>
+              {tradeQuality.toFixed(1)}%
+            </p>
+            <p className="text-[10px] text-text-muted mt-0.5 leading-relaxed">
+              {grade === "A"
+                ? "Exceptional execution — elite-tier trade."
+                : grade === "B"
+                ? "Solid execution with minor room to improve."
+                : grade === "C"
+                ? "Average execution — review entry/exit timing."
+                : grade === "D"
+                ? "Below-average — significant inefficiencies detected."
+                : "Poor efficiency — major improvements needed."}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Efficiency Bars */}
+      <div className="space-y-4">
+        {/* Entry Efficiency */}
+        {entryEfficiency !== null && (
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <TrendingUp size={12} className="text-text-muted" />
+                <span className="text-[11px] font-black text-text-secondary uppercase tracking-wider select-none">Entry Efficiency</span>
+              </div>
+              <span
+                className="text-[11px] font-black font-[family-name:var(--font-space-mono)]"
+                style={{ color: getBarColor(entryEfficiency) }}
+              >
+                {entryEfficiency.toFixed(0)}%
+              </span>
+            </div>
+            <div className="h-2 w-full bg-bg-secondary/50 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full rounded-full"
+                style={{ backgroundColor: getBarColor(entryEfficiency) }}
+                initial={{ width: "0%" }}
+                animate={{ width: `${entryEfficiency}%` }}
+                transition={{ duration: 0.9, ease: "easeOut", delay: 0.1 }}
+              />
+            </div>
+            <p className="text-[9px] text-text-muted leading-relaxed">
+              How well your entry avoided adverse movement before the trade moved in your favor.
+            </p>
+          </div>
+        )}
+
+        {/* Exit Efficiency */}
+        {exitEfficiency !== null && (
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <TrendingDown size={12} className="text-text-muted" />
+                <span className="text-[11px] font-black text-text-secondary uppercase tracking-wider select-none">Exit Efficiency</span>
+              </div>
+              <span
+                className="text-[11px] font-black font-[family-name:var(--font-space-mono)]"
+                style={{ color: getBarColor(exitEfficiency) }}
+              >
+                {exitEfficiency.toFixed(0)}%
+              </span>
+            </div>
+            <div className="h-2 w-full bg-bg-secondary/50 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full rounded-full"
+                style={{ backgroundColor: getBarColor(exitEfficiency) }}
+                initial={{ width: "0%" }}
+                animate={{ width: `${exitEfficiency}%` }}
+                transition={{ duration: 0.9, ease: "easeOut", delay: 0.25 }}
+              />
+            </div>
+            <p className="text-[9px] text-text-muted leading-relaxed">
+              Percentage of the maximum favorable excursion (MFE) that you actually captured.
+            </p>
+          </div>
+        )}
+
+        {/* Segment divider + bar for Overall if both exist */}
+        {entryEfficiency !== null && exitEfficiency !== null && tradeQuality !== null && (
+          <div className="space-y-1.5 pt-1 border-t border-border-subtle/40">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Zap size={12} className="text-text-muted" />
+                <span className="text-[11px] font-black text-text-secondary uppercase tracking-wider select-none">Overall Quality</span>
+              </div>
+              <span
+                className="text-[11px] font-black font-[family-name:var(--font-space-mono)]"
+                style={{ color: getBarColor(tradeQuality) }}
+              >
+                {tradeQuality.toFixed(0)}%
+              </span>
+            </div>
+            <div className="h-2.5 w-full bg-bg-secondary/50 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full rounded-full"
+                style={{ backgroundColor: getBarColor(tradeQuality) }}
+                initial={{ width: "0%" }}
+                animate={{ width: `${tradeQuality}%` }}
+                transition={{ duration: 1.1, ease: "easeOut", delay: 0.4 }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Insight text */}
+      {insight && (
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.55 }}
+          className="flex items-start gap-2.5 p-3 rounded-xl bg-bg-secondary/30 border border-border-subtle/60"
+        >
+          <span className="text-base leading-none select-none flex-shrink-0">💡</span>
+          <p className="text-[11px] text-text-secondary leading-relaxed">{insight}</p>
+        </motion.div>
+      )}
+    </GlassCard>
+  );
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 const emotionLabels: Record<number, { label: string; emoji: string }> = {
   [-5]: { label: "Terrified", emoji: "😰" }, [-4]: { label: "Very Fearful", emoji: "😨" }, [-3]: { label: "Fearful", emoji: "😟" },
   [-2]: { label: "Anxious", emoji: "😕" }, [-1]: { label: "Uneasy", emoji: "😐" }, [0]: { label: "Neutral", emoji: "😶" },
@@ -437,6 +708,9 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
               <p className="text-[10px] text-text-muted mt-8 text-center italic">Visual representation of how far the trade went into profit vs drawdown relative to your exit.</p>
             </GlassCard>
           )}
+
+          {/* Trade Grader — Entry & Exit Efficiency */}
+          <TradeEfficiencyCard trade={trade} />
 
           {/* Plan vs Execution Review Panels */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

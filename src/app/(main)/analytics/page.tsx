@@ -12,7 +12,7 @@ import {
   ScatterChart, Scatter, ZAxis, ReferenceLine,
 } from "recharts";
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, Target, DollarSign, Clock, Activity, Zap, BarChart3, Award, AlertTriangle, Brain, Crosshair, Calendar, Download, Grid3X3, Timer } from "lucide-react";
+import { TrendingUp, TrendingDown, Target, DollarSign, Clock, Activity, Zap, BarChart3, Award, AlertTriangle, Brain, Crosshair, Calendar, Download, Grid3X3, Timer, CheckCircle, Shield } from "lucide-react";
 import { MaeMfeChart } from "@/components/ui/mae-mfe-chart";
 import { AiCoach } from "@/components/ui/ai-coach";
 import { DayHourHeatmap } from "@/components/ui/day-hour-heatmap";
@@ -844,6 +844,342 @@ function CrossAnalysisHeatmap({ trades }: { trades: ReturnType<typeof useTradeSt
   );
 }
 
+/* ═══════════════════════════════════════════════════════════ */
+/*  Psychology Intelligence Component                        */
+/* ═══════════════════════════════════════════════════════════ */
+
+function usePsychologyData(trades: ReturnType<typeof useTradeStore.getState>["trades"]) {
+  return useMemo(() => {
+    if (trades.length === 0) {
+      return { revengeCount: 0, revengeTotal: 0, overtradingDays: 0, overtradingTotal: 0, fomoCount: 0, fomoTotal: 0, slMovedCount: 0, slMovedTotal: 0, afterHoursTotal: 0, psychScore: 100 };
+    }
+
+    // Sort trades chronologically
+    const sorted = [...trades].sort((a, b) => new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime());
+
+    // 1. Revenge Trading — trades taken within 30min after a losing trade
+    let revengeCount = 0;
+    let revengeTotal = 0;
+    for (let i = 0; i < sorted.length; i++) {
+      if (sorted[i].result === "loss") {
+        const lossTime = new Date(sorted[i].entryDate).getTime();
+        const tradesAfter = sorted.slice(i + 1).filter(t => {
+          const tTime = new Date(t.entryDate).getTime();
+          return tTime - lossTime <= 30 * 60 * 1000 && tTime > lossTime;
+        });
+        if (tradesAfter.length >= 2) {
+          revengeCount++;
+          revengeTotal += tradesAfter.reduce((s, t) => s + (t.netPnl < 0 ? t.netPnl : 0), 0);
+        }
+      }
+    }
+
+    // 2. Overtrading Days — days with 2x+ the average daily trades
+    const dayMap = new Map<string, { pnl: number; count: number }>();
+    sorted.forEach(t => {
+      try {
+        const d = new Date(t.entryDate).toISOString().split("T")[0];
+        const existing = dayMap.get(d) ?? { pnl: 0, count: 0 };
+        existing.pnl += t.netPnl;
+        existing.count++;
+        dayMap.set(d, existing);
+      } catch { /* skip */ }
+    });
+    const dayValues = Array.from(dayMap.values());
+    const avgTradesPerDay = dayValues.length > 0 ? dayValues.reduce((s, d) => s + d.count, 0) / dayValues.length : 0;
+    const overtradingDays = dayValues.filter(d => d.count >= avgTradesPerDay * 2).length;
+    const overtradingTotal = dayValues.filter(d => d.count >= avgTradesPerDay * 2).reduce((s, d) => s + (d.pnl < 0 ? d.pnl : 0), 0);
+
+    // 3. FOMO Entries — emotion >= 3 AND loss
+    const fomoTrades = sorted.filter(t => (t.emotion ?? 0) >= 3 && t.result === "loss");
+    const fomoCount = fomoTrades.length;
+    const fomoTotal = fomoTrades.reduce((s, t) => s + t.netPnl, 0);
+
+    // 4. SL Moving / Rule Breaking
+    const slMovedTrades = sorted.filter(t => t.mistakeTags?.some(tag => tag === "Moved SL" || tag === "Broke rules"));
+    const slMovedCount = slMovedTrades.length;
+    const slMovedTotal = slMovedTrades.reduce((s, t) => s + (t.netPnl < 0 ? t.netPnl : 0), 0);
+
+    // 5. After-hours Overtrading — NY PM session with negative P&L
+    const afterHoursTrades = sorted.filter(t => t.sessionTag === "NY PM" && t.netPnl < 0);
+    const afterHoursTotal = afterHoursTrades.reduce((s, t) => s + t.netPnl, 0);
+
+    // 6. Psychology Score
+    const rawScore = 100 - (revengeCount * 8) - (overtradingDays * 5) - (fomoCount * 6) - (slMovedCount * 7);
+    const psychScore = Math.max(0, Math.min(100, rawScore));
+
+    return { revengeCount, revengeTotal, overtradingDays, overtradingTotal, fomoCount, fomoTotal, slMovedCount, slMovedTotal, afterHoursTotal, psychScore };
+  }, [trades]);
+}
+
+function ScoreRing({ score }: { score: number }) {
+  const radius = 36;
+  const circumference = 2 * Math.PI * radius;
+  const progress = (score / 100) * circumference;
+  const color = score >= 80 ? "#00FFB2" : score >= 60 ? "#F59E0B" : "#FF2D55";
+  const textColor = score >= 80 ? "text-accent-green" : score >= 60 ? "text-amber-400" : "text-accent-coral";
+  const glowColor = score >= 80 ? "rgba(0,255,178,0.4)" : score >= 60 ? "rgba(245,158,11,0.4)" : "rgba(255,45,85,0.4)";
+
+  return (
+    <div className="relative flex items-center justify-center" style={{ width: 96, height: 96 }}>
+      <svg width="96" height="96" viewBox="0 0 96 96" style={{ transform: "rotate(-90deg)" }}>
+        <circle cx="48" cy="48" r={radius} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="7" />
+        <circle
+          cx="48" cy="48" r={radius} fill="none"
+          stroke={color} strokeWidth="7"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference - progress}
+          style={{ filter: `drop-shadow(0 0 6px ${glowColor})`, transition: "stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1)" }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className={cn("font-[family-name:var(--font-space-mono)] font-black text-2xl leading-none", textColor)}>{score}</span>
+        <span className="text-[9px] text-text-muted font-bold uppercase tracking-wider mt-0.5">/ 100</span>
+      </div>
+    </div>
+  );
+}
+
+function PatternRow({
+  label, sublabel, count, pnl, hasIssue, delay
+}: {
+  label: string; sublabel: string; count: number | null; pnl: number | null; hasIssue: boolean; delay: number;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -16 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay, duration: 0.4, ease: "easeOut" }}
+      className={cn(
+        "flex items-center justify-between px-4 py-3 rounded-xl border transition-all",
+        hasIssue
+          ? "bg-accent-coral/[0.04] border-accent-coral/15 hover:bg-accent-coral/[0.07]"
+          : "bg-accent-green/[0.03] border-accent-green/12 hover:bg-accent-green/[0.06]"
+      )}
+    >
+      <div className="flex items-center gap-3">
+        <div className={cn(
+          "w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0",
+          hasIssue ? "bg-accent-coral/10" : "bg-accent-green/10"
+        )}>
+          {hasIssue
+            ? <AlertTriangle size={14} className="text-accent-coral stroke-[2.5]" />
+            : <CheckCircle size={14} className="text-accent-green stroke-[2.5]" />}
+        </div>
+        <div>
+          <div className="text-sm font-bold text-text-primary">{label}</div>
+          <div className="text-[10px] text-text-muted">{sublabel}</div>
+        </div>
+      </div>
+      <div className="flex items-center gap-4 text-right">
+        {count !== null && (
+          <div>
+            <div className={cn(
+              "font-[family-name:var(--font-space-mono)] font-bold text-sm",
+              hasIssue ? "text-accent-coral" : "text-text-muted"
+            )}>
+              {count === 0 ? "None" : count}
+            </div>
+            {count > 0 && <div className="text-[9px] text-text-muted font-bold">{count === 1 ? "incident" : "incidents"}</div>}
+          </div>
+        )}
+        {pnl !== null && pnl < 0 && (
+          <div className="min-w-[72px]">
+            <div className="font-[family-name:var(--font-space-mono)] font-black text-sm text-accent-coral">
+              {formatCurrency(pnl)}
+            </div>
+            <div className="text-[9px] text-text-muted font-bold">impact</div>
+          </div>
+        )}
+        {(!pnl || pnl === 0) && !hasIssue && (
+          <span className="text-[10px] font-bold text-accent-green uppercase tracking-wider px-2 py-1 rounded-lg bg-accent-green/10 border border-accent-green/15">Healthy</span>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+function PsychologyIntelligence({ trades }: { trades: ReturnType<typeof useTradeStore.getState>["trades"] }) {
+  const [timeWindow, setTimeWindow] = useState<"week" | "all">("all");
+
+  const filteredTrades = useMemo(() => {
+    if (timeWindow === "all") return trades;
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 7);
+    return trades.filter(t => {
+      try { return new Date(t.entryDate) >= cutoff; } catch { return false; }
+    });
+  }, [trades, timeWindow]);
+
+  const { revengeCount, revengeTotal, overtradingDays, overtradingTotal, fomoCount, fomoTotal, slMovedCount, slMovedTotal, afterHoursTotal, psychScore } = usePsychologyData(filteredTrades);
+
+  const scoreLabel = psychScore >= 80 ? "Elite Discipline" : psychScore >= 60 ? "Needs Work" : "Danger Zone";
+  const scoreDesc = psychScore >= 80
+    ? "Your psychological discipline is strong. Keep consistent."
+    : psychScore >= 60
+    ? "Some behavioral patterns detected. Review flagged areas."
+    : "Critical psychological risks detected. Take a trading break.";
+
+  const totalIssues = (revengeCount > 0 ? 1 : 0) + (overtradingDays > 0 ? 1 : 0) + (fomoCount > 0 ? 1 : 0) + (slMovedCount > 0 ? 1 : 0) + (afterHoursTotal < 0 ? 1 : 0);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] overflow-hidden"
+    >
+      {/* Header */}
+      <div className="relative px-6 pt-5 pb-4 border-b border-[var(--border-subtle)] overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-accent-violet/[0.04] via-transparent to-transparent pointer-events-none" />
+        <div className="absolute top-0 right-0 w-64 h-32 bg-accent-violet/[0.06] rounded-full blur-3xl pointer-events-none" />
+        <div className="flex items-start justify-between relative">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-accent-violet/10 border border-accent-violet/20 flex items-center justify-center">
+              <Brain size={20} className="text-accent-violet" />
+            </div>
+            <div>
+              <h3 className="font-[family-name:var(--font-inter)] font-black text-base text-text-primary">Psychology Intelligence</h3>
+              <p className="text-[11px] text-text-muted mt-0.5">Behavioral pattern analysis from your trade history</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            {/* Time Window Toggle */}
+            <div className="flex gap-1 bg-bg-secondary/50 p-1 rounded-lg border border-border-subtle">
+              {(["week", "all"] as const).map(w => (
+                <button
+                  key={w}
+                  onClick={() => setTimeWindow(w)}
+                  className={cn(
+                    "px-3 py-1 text-[11px] rounded-md transition-all font-bold",
+                    timeWindow === w
+                      ? "bg-accent-violet/15 text-accent-violet border border-accent-violet/25"
+                      : "text-text-muted hover:text-text-secondary"
+                  )}
+                >
+                  {w === "week" ? "This Week" : "All Time"}
+                </button>
+              ))}
+            </div>
+            {/* Issue count badge */}
+            {totalIssues > 0 && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-accent-coral/10 border border-accent-coral/20">
+                <AlertTriangle size={11} className="text-accent-coral" />
+                <span className="text-[11px] font-black text-accent-coral">{totalIssues} pattern{totalIssues > 1 ? "s" : ""} flagged</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="p-6">
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Score Panel */}
+          <div className="flex-shrink-0 flex flex-col items-center gap-3 lg:w-48 lg:border-r lg:border-border-subtle lg:pr-6">
+            <ScoreRing score={psychScore} />
+            <div className="text-center">
+              <div className={cn(
+                "font-[family-name:var(--font-inter)] font-black text-sm",
+                psychScore >= 80 ? "text-accent-green" : psychScore >= 60 ? "text-amber-400" : "text-accent-coral"
+              )}>{scoreLabel}</div>
+              <div className="text-[10px] text-text-muted mt-1 leading-relaxed max-w-[140px] mx-auto">{scoreDesc}</div>
+            </div>
+            {/* Score Breakdown */}
+            <div className="w-full space-y-1.5 mt-1">
+              <div className="text-[9px] font-black uppercase tracking-widest text-text-muted mb-2">Score Breakdown</div>
+              {[
+                { label: "Revenge", deduction: revengeCount * 8 },
+                { label: "Overtrade", deduction: overtradingDays * 5 },
+                { label: "FOMO", deduction: fomoCount * 6 },
+                { label: "SL Moved", deduction: slMovedCount * 7 },
+              ].map(({ label, deduction }) => (
+                <div key={label} className="flex items-center justify-between text-[10px]">
+                  <span className="text-text-muted">{label}</span>
+                  <span className={cn(
+                    "font-[family-name:var(--font-space-mono)] font-bold",
+                    deduction > 0 ? "text-accent-coral" : "text-accent-green"
+                  )}>
+                    {deduction > 0 ? `-${deduction}` : "0"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Pattern Rows */}
+          <div className="flex-1 space-y-2.5">
+            <PatternRow
+              label="Revenge Trading"
+              sublabel="Trades taken within 30 min of a losing trade (2+ in sequence)"
+              count={revengeCount}
+              pnl={revengeTotal}
+              hasIssue={revengeCount > 0}
+              delay={0.1}
+            />
+            <PatternRow
+              label="Overtrading Days"
+              sublabel={`Days with 2× the daily average trade count`}
+              count={overtradingDays}
+              pnl={overtradingTotal}
+              hasIssue={overtradingDays > 0}
+              delay={0.15}
+            />
+            <PatternRow
+              label="FOMO Entries"
+              sublabel="Trades entered in overconfident/euphoric state (emotion ≥ 3) that lost"
+              count={fomoCount}
+              pnl={fomoTotal}
+              hasIssue={fomoCount > 0}
+              delay={0.2}
+            />
+            <PatternRow
+              label="SL Violations"
+              sublabel="Trades tagged with 'Moved SL' or 'Broke rules'"
+              count={slMovedCount}
+              pnl={slMovedTotal}
+              hasIssue={slMovedCount > 0}
+              delay={0.25}
+            />
+            <PatternRow
+              label="After-hours Overtrading"
+              sublabel="NY PM session trades with net negative P&L"
+              count={null}
+              pnl={afterHoursTotal}
+              hasIssue={afterHoursTotal < 0}
+              delay={0.3}
+            />
+          </div>
+        </div>
+
+        {/* Footer insight */}
+        {filteredTrades.length === 0 && (
+          <div className="mt-6 text-center text-sm text-text-muted">
+            <Shield size={24} className="mx-auto mb-2 opacity-30" />
+            <p>No trades in this period to analyze.</p>
+          </div>
+        )}
+        {filteredTrades.length > 0 && (
+          <div className="mt-5 pt-4 border-t border-border-subtle flex items-center justify-between">
+            <div className="text-[10px] text-text-muted">
+              Analyzed <span className="text-text-secondary font-bold">{filteredTrades.length} trades</span> · Score penalizes dangerous patterns cumulatively
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-accent-green" />
+              <span className="text-[9px] text-text-muted">Clean</span>
+              <div className="w-2 h-2 rounded-full bg-amber-400 ml-2" />
+              <span className="text-[9px] text-text-muted">Warning</span>
+              <div className="w-2 h-2 rounded-full bg-accent-coral ml-2" />
+              <span className="text-[9px] text-text-muted">Critical</span>
+            </div>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 function CapitalLeaksView({ trades, viewMode }: { trades: ReturnType<typeof useTradeStore.getState>["trades"]; viewMode: ViewMode }) {
   const data = useMemo(() => getMistakesPnL(trades), [trades]);
 
@@ -1323,6 +1659,9 @@ export default function AnalyticsPage() {
         <DurationScatterChart trades={filteredTrades} />
         <CrossAnalysisHeatmap trades={filteredTrades} />
       </div>
+
+      {/* Psychology Intelligence */}
+      <PsychologyIntelligence trades={filteredTrades} />
       </>
       )}
     </div>
