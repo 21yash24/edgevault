@@ -49,6 +49,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ text });
     }
 
+    if (type === "coach-chat") {
+      const { prompt, tradesContext } = await req.json();
+      const aiPrompt = `
+        You are EdgeVault AI Coach, an elite quantitative and behavioral trading psychologist.
+        Here is the trader's performance summary and recent trades:
+        ${tradesContext}
+        
+        Trader's Query: "${prompt}"
+        
+        Respond directly to the trader. Use clean markdown formatting (bolding, bullet points, short paragraphs). Be insightful, direct, and actionable.
+      `;
+      const result = await model.generateContent(aiPrompt);
+      const text = result.response.text();
+      return NextResponse.json({ text });
+    }
+
     // Default: Trade Analysis
     const tradePrompt = `
       Analyze this trade as a professional trading coach.

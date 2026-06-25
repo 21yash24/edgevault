@@ -567,26 +567,43 @@ function TradeListView({ trades }: { trades: Trade[] }) {
         )}
       </AnimatePresence>
 
-      {/* Trade Cards */}
+      {/* Trade Cards — wrapped in AnimatePresence for filter/sort transitions */}
       <div className="space-y-2">
         {filtered.length === 0 ? (
-          <div className="py-20 flex flex-col items-center justify-center text-center">
+          <motion.div
+            key="empty-state"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.25 }}
+            className="py-20 flex flex-col items-center justify-center text-center"
+          >
             <BarChart2 size={40} className="text-text-muted/20 mb-4" />
             <p className="text-sm font-bold text-text-muted">{search || filterDir !== "all" || filterResult !== "all" || activeFilterCount > 0 ? "No trades match your filters" : "No trades recorded yet"}</p>
             <p className="text-xs text-text-muted/60 mt-1">
               {search || filterDir !== "all" || filterResult !== "all" || activeFilterCount > 0 ? "Try adjusting your search or filters" : 'Hit "New Trade" to log your first execution'}
             </p>
-          </div>
+          </motion.div>
         ) : (
-          filtered.map((trade, i) => (
-            <TradeCard
-              key={trade.id}
-              trade={trade}
-              index={i}
-              isSelected={selectedIds.includes(trade.id)}
-              onSelect={(e) => toggleSelect(e, trade.id)}
-            />
-          ))
+          <AnimatePresence mode="popLayout">
+            {filtered.map((trade, i) => (
+              <motion.div
+                key={trade.id}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 8 }}
+                transition={{ delay: Math.min(i * 0.04, 0.3), duration: 0.25, ease: "easeOut" }}
+                layout
+              >
+                <TradeCard
+                  trade={trade}
+                  index={i}
+                  isSelected={selectedIds.includes(trade.id)}
+                  onSelect={(e) => toggleSelect(e, trade.id)}
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
         )}
       </div>
     </div>

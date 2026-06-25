@@ -785,6 +785,30 @@ export default function DashboardPage() {
   const todayStr = format(new Date(), "yyyy-MM-dd");
   const todayTrades = useMemo(() => trades.filter((t) => t.entryDate?.startsWith(todayStr)), [trades, todayStr]);
   const todayPnl = todayTrades.reduce((s, t) => s + t.netPnl, 0);
+  const hasTodayTrades = todayTrades.length > 0;
+
+  // Today's win rate for the banner
+  const todayWinRate = useMemo(() => {
+    if (todayTrades.length === 0) return 0;
+    const wins = todayTrades.filter(t => t.result === "win").length;
+    return (wins / todayTrades.length) * 100;
+  }, [todayTrades]);
+
+  // Last 7 days cumulative P&L sparkline
+  const pnlSparkline = useMemo(() => {
+    const days = Array.from({ length: 7 }, (_, i) => {
+      const d = subDays(new Date(), 6 - i);
+      return format(d, "yyyy-MM-dd");
+    });
+    let running = 0;
+    return days.map(day => {
+      const dayPnl = trades
+        .filter(t => t.entryDate?.startsWith(day))
+        .reduce((s, t) => s + t.netPnl, 0);
+      running += dayPnl;
+      return running;
+    });
+  }, [trades]);
 
   const computedChallenges = useMemo(() => {
     return challenges.map(c => {
@@ -900,6 +924,93 @@ export default function DashboardPage() {
         </motion.div>
       )}
 
+      {/* ── Today's P&L Live Banner ─────────────────────────────────────── */}
+      <AnimatePresence>
+        {hasTodayTrades && (
+          <motion.div
+            key="today-pnl-banner"
+            initial={{ opacity: 0, scale: 0.97, y: -8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.97, y: -8 }}
+            transition={{ type: "spring", stiffness: 350, damping: 28 }}
+          >
+            <div
+              className={cn(
+                "relative overflow-hidden rounded-2xl px-5 py-3.5 flex items-center justify-between gap-4 border",
+                todayPnl >= 0
+                  ? "border-accent-green/25 bg-accent-green/[0.04]"
+                  : "border-accent-coral/25 bg-accent-coral/[0.04]"
+              )}
+              style={{
+                borderLeft: `3px solid ${todayPnl >= 0 ? "#00FFB2" : "#FF2D55"}`,
+                boxShadow: todayPnl >= 0
+                  ? "0 0 40px rgba(0,255,178,0.06) inset"
+                  : "0 0 40px rgba(255,45,85,0.06) inset",
+              }}
+            >
+              {/* Ambient glow */}
+              <div
+                className={cn(
+                  "absolute -right-10 -top-10 w-32 h-32 rounded-full blur-3xl opacity-15 pointer-events-none",
+                  todayPnl >= 0 ? "bg-accent-green" : "bg-accent-coral"
+                )}
+              />
+
+              {/* Left: pulsing dot + label */}
+              <div className="flex items-center gap-3 relative z-10">
+                <div className="relative flex items-center justify-center flex-shrink-0">
+                  <span
+                    className={cn(
+                      "absolute inline-flex h-3 w-3 rounded-full opacity-75 animate-ping",
+                      todayPnl >= 0 ? "bg-accent-green" : "bg-accent-coral"
+                    )}
+                  />
+                  <span
+                    className={cn(
+                      "relative inline-flex rounded-full h-2 w-2",
+                      todayPnl >= 0 ? "bg-accent-green" : "bg-accent-coral"
+                    )}
+                  />
+                </div>
+                <div>
+                  <div className="text-[9px] font-black uppercase tracking-widest text-text-muted">Today's Session</div>
+                  <div className={cn(
+                    "font-[family-name:var(--font-space-mono)] font-black text-lg leading-none tracking-tight mt-0.5",
+                    todayPnl >= 0 ? "text-accent-green" : "text-accent-coral"
+                  )}>
+                    {todayPnl >= 0 ? "+" : ""}{formatCurrency(todayPnl)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right: stats chips */}
+              <div className="flex items-center gap-2 flex-wrap relative z-10">
+                <span className="text-[10px] font-bold text-text-secondary flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-text-muted/40 inline-block" />
+                  {todayTrades.length} trade{todayTrades.length !== 1 ? "s" : ""}
+                </span>
+                <span className={cn(
+                  "text-[10px] font-bold flex items-center gap-1",
+                  todayWinRate >= 50 ? "text-accent-green" : "text-accent-coral"
+                )}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-text-muted/40 inline-block" />
+                  {todayWinRate.toFixed(0)}% WR
+                </span>
+                <span className="text-[9px] px-2 py-0.5 rounded-full border font-black uppercase tracking-wider"
+                  style={{
+                    background: todayPnl >= 0 ? "rgba(0,255,178,0.08)" : "rgba(255,45,85,0.08)",
+                    borderColor: todayPnl >= 0 ? "rgba(0,255,178,0.25)" : "rgba(255,45,85,0.25)",
+                    color: todayPnl >= 0 ? "#00FFB2" : "#FF2D55",
+                  }}
+                >
+                  {todayPnl >= 0 ? "📈 Live" : "📉 Live"}
+                </span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Mindset Quote of the Day Panel */}
       <motion.div variants={itemVariants}>
         <GlassCard className="border border-border-subtle p-4 relative overflow-hidden flex items-center justify-between gap-6 hover:shadow-[0_8px_32px_rgba(123,97,255,0.04)] bg-bg-card/20 group">
@@ -985,76 +1096,100 @@ export default function DashboardPage() {
       <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Left Column: Stats & Tactical HUD */}
         <div className="lg:col-span-3 flex flex-col gap-6">
-          {/* Row 1: Stats */}
+          {/* Row 1: Stats — staggered entrance */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <StatCard
-              title="Today's P&L"
-              value={todayPnl}
-              format={(v) => formatCurrency(v)}
-              icon={DollarSign}
-              trend={todayPnl >= 0 ? "up" : "down"}
-              subtitle={`${todayTrades.length} trades today`}
-              delay={0}
+            {/* Stat 0: Today's P&L with sparkline */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0, duration: 0.4, ease: "easeOut" }}
             >
-              <svg viewBox="0 0 32 32" className="w-8 h-8 select-none">
-                <circle cx="16" cy="16" r="12" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="3" />
-                <circle 
-                  cx="16" cy="16" r="12" 
-                  fill="none" 
-                  stroke={todayPnl >= 0 ? "#00FFB2" : "#FF2D55"} 
-                  strokeWidth="3" 
-                  strokeDasharray="75.4" 
-                  strokeDashoffset={75.4 - (75.4 * todayPnlRatio) / 100} 
-                  strokeLinecap="round" 
-                  className="transform -rotate-90 origin-center transition-all duration-1000 ease-out" 
-                  style={{ filter: `drop-shadow(0 0 3px ${todayPnl >= 0 ? "rgba(0,255,178,0.4)" : "rgba(255,45,85,0.4)"})` }}
-                />
-              </svg>
-            </StatCard>
-            <StatCard
-              title="Win Rate"
-              value={metrics.winRate}
-              format={(v) => `${v.toFixed(1)}%`}
-              icon={Target}
-              trend={metrics.winRate >= 50 ? "up" : "down"}
-              subtitle={`${metrics.totalTrades} total trades`}
-              delay={0.03}
+              <StatCard
+                title="Today's P&L"
+                value={todayPnl}
+                format={(v) => formatCurrency(v)}
+                icon={DollarSign}
+                trend={todayPnl >= 0 ? "up" : "down"}
+                subtitle={`${todayTrades.length} trades today`}
+                sparkline={pnlSparkline}
+                delay={0}
+              >
+                <svg viewBox="0 0 32 32" className="w-8 h-8 select-none">
+                  <circle cx="16" cy="16" r="12" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="3" />
+                  <circle 
+                    cx="16" cy="16" r="12" 
+                    fill="none" 
+                    stroke={todayPnl >= 0 ? "#00FFB2" : "#FF2D55"} 
+                    strokeWidth="3" 
+                    strokeDasharray="75.4" 
+                    strokeDashoffset={75.4 - (75.4 * todayPnlRatio) / 100} 
+                    strokeLinecap="round" 
+                    className="transform -rotate-90 origin-center transition-all duration-1000 ease-out" 
+                    style={{ filter: `drop-shadow(0 0 3px ${todayPnl >= 0 ? "rgba(0,255,178,0.4)" : "rgba(255,45,85,0.4)"})` }}
+                  />
+                </svg>
+              </StatCard>
+            </motion.div>
+
+            {/* Stat 1: Win Rate */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.08, duration: 0.4, ease: "easeOut" }}
             >
-              <svg viewBox="0 0 70 35" className="w-16 h-8 select-none">
-                <path d="M 10 30 A 25 25 0 0 1 60 30" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="4.5" strokeLinecap="round" />
-                <path 
-                  d="M 10 30 A 25 25 0 0 1 60 30" 
-                  fill="none" 
-                  stroke="#00FFB2" 
-                  strokeWidth="4.5" 
-                  strokeLinecap="round" 
-                  strokeDasharray="78.5" 
-                  strokeDashoffset={78.5 - (78.5 * metrics.winRate) / 100} 
-                  className="transition-all duration-1000 ease-out"
-                  style={{ filter: "drop-shadow(0 0 3px rgba(0,255,178,0.4))" }} 
-                />
-              </svg>
-            </StatCard>
-            <StatCard
-              title="Profit Factor"
-              value={metrics.profitFactor}
-              format={(v) => v.toFixed(2)}
-              icon={TrendingUp}
-              trend={metrics.profitFactor >= 1.5 ? "up" : metrics.profitFactor >= 1 ? "neutral" : "down"}
-              subtitle={`${metrics.maxWinStreak} max win streak`}
-              delay={0.06}
+              <StatCard
+                title="Win Rate"
+                value={metrics.winRate}
+                format={(v) => `${v.toFixed(1)}%`}
+                icon={Target}
+                trend={metrics.winRate >= 50 ? "up" : "down"}
+                subtitle={`${metrics.totalTrades} total trades`}
+                delay={0}
+              >
+                <svg viewBox="0 0 70 35" className="w-16 h-8 select-none">
+                  <path d="M 10 30 A 25 25 0 0 1 60 30" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="4.5" strokeLinecap="round" />
+                  <path 
+                    d="M 10 30 A 25 25 0 0 1 60 30" 
+                    fill="none" 
+                    stroke="#00FFB2" 
+                    strokeWidth="4.5" 
+                    strokeLinecap="round" 
+                    strokeDasharray="78.5" 
+                    strokeDashoffset={78.5 - (78.5 * metrics.winRate) / 100} 
+                    className="transition-all duration-1000 ease-out"
+                    style={{ filter: "drop-shadow(0 0 3px rgba(0,255,178,0.4))" }} 
+                  />
+                </svg>
+              </StatCard>
+            </motion.div>
+
+            {/* Stat 2: Profit Factor */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.16, duration: 0.4, ease: "easeOut" }}
             >
-              <div className="flex flex-col gap-1 w-20 select-none">
-                <div className="flex justify-between text-[7px] font-black text-text-muted">
-                  <span className="text-accent-green">W:{formatCurrency(metrics.avgWin, false)}</span>
-                  <span className="text-accent-coral">L:{formatCurrency(metrics.avgLoss, false)}</span>
+              <StatCard
+                title="Profit Factor"
+                value={metrics.profitFactor}
+                format={(v) => v.toFixed(2)}
+                icon={TrendingUp}
+                trend={metrics.profitFactor >= 1.5 ? "up" : metrics.profitFactor >= 1 ? "neutral" : "down"}
+                subtitle={`${metrics.maxWinStreak} max win streak`}
+                delay={0}
+              >
+                <div className="flex flex-col gap-1 w-20 select-none">
+                  <div className="flex justify-between text-[7px] font-black text-text-muted">
+                    <span className="text-accent-green">W:{formatCurrency(metrics.avgWin, false)}</span>
+                    <span className="text-accent-coral">L:{formatCurrency(metrics.avgLoss, false)}</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-bg-secondary/40 dark:bg-white/[0.02] rounded-full overflow-hidden flex border border-border-subtle/50 dark:border-white/[0.04]">
+                    <div className="h-full bg-accent-green" style={{ width: `${winRatio}%` }} />
+                    <div className="h-full bg-accent-coral flex-1" />
+                  </div>
                 </div>
-                <div className="h-1.5 w-full bg-bg-secondary/40 dark:bg-white/[0.02] rounded-full overflow-hidden flex border border-border-subtle/50 dark:border-white/[0.04]">
-                  <div className="h-full bg-accent-green" style={{ width: `${winRatio}%` }} />
-                  <div className="h-full bg-accent-coral flex-1" />
-                </div>
-              </div>
-            </StatCard>
+              </StatCard>
+            </motion.div>
           </div>
 
           {/* Row 2: Tactical HUD (Win/Loss, Pre-Flight) */}

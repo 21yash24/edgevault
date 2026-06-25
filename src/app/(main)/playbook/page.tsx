@@ -214,7 +214,7 @@ export default function PlaybookPage() {
                     <td className="p-4 text-sm font-bold text-text-primary">{p.name}</td>
                     <td className="p-4 text-sm font-[family-name:var(--font-space-mono)] text-text-secondary">{p.tradeCount}</td>
                     <td className="p-4 text-sm font-[family-name:var(--font-space-mono)] text-text-secondary">{p.winRate.toFixed(1)}%</td>
-                    <td className="p-4 text-sm font-[family-name:var(--font-space-mono)] text-text-secondary">{p.profitFactor.toFixed(2)}</td>
+                    <td className="p-4 text-sm font-[family-name:var(--font-space-mono)] text-text-secondary">{p.profitFactor === Infinity ? "∞" : p.profitFactor.toFixed(2)}</td>
                     <td className={cn("p-4 text-sm font-[family-name:var(--font-space-mono)] font-bold", p.pnl >= 0 ? "text-accent-green" : "text-accent-coral")}>{formatCurrency(p.pnl)}</td>
                   </tr>
                 ))}

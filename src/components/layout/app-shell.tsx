@@ -2,7 +2,10 @@
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { useUIStore, useTradeStore, usePlaybookStore, useAccountStore, usePropFirmStore, useSettingsStore, useNotebookStore, useGamificationStore } from "@/stores";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { CommandPalette } from "@/components/ui/command-palette";
+import { QuickLogFAB } from "@/components/ui/quick-log-modal";
+import { AccentColorApplier } from "@/components/ui/accent-color-applier";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useRouter } from "next/navigation";
@@ -116,6 +119,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { checkAndUpdateStreak, checkBadges } = useGamificationStore();
   const { user, loading, isDemoMode } = useAuth();
   const router = useRouter();
+  const [cmdOpen, setCmdOpen] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setCmdOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   // Suppress harmless Recharts ResponsiveContainer warnings in dev mode
   useEffect(() => {
@@ -196,6 +211,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
       {/* Global Badge Toast Notification */}
       <BadgeToast />
+      <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
+      <QuickLogFAB />
+      <AccentColorApplier />
     </div>
   );
 }

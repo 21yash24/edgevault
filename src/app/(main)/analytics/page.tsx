@@ -12,7 +12,7 @@ import {
   ScatterChart, Scatter, ZAxis, ReferenceLine,
 } from "recharts";
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, Target, DollarSign, Clock, Activity, Zap, BarChart3, Award, AlertTriangle, Brain, Crosshair, Calendar, Download, Grid3X3, Timer, CheckCircle, Shield } from "lucide-react";
+import { TrendingUp, TrendingDown, Target, DollarSign, Clock, Activity, Zap, BarChart3, Award, AlertTriangle, Brain, Crosshair, Calendar, Download, Grid3X3, Timer, CheckCircle, Shield, Trophy, Lightbulb, Flame, TrendingUpIcon } from "lucide-react";
 import { MaeMfeChart } from "@/components/ui/mae-mfe-chart";
 import { AiCoach } from "@/components/ui/ai-coach";
 import { DayHourHeatmap } from "@/components/ui/day-hour-heatmap";
@@ -1281,6 +1281,454 @@ function CapitalLeaksView({ trades, viewMode }: { trades: ReturnType<typeof useT
   );
 }
 
+/* ═══════════════════════════════════════════════════════════ */
+/*  Time-of-Day Profitability Heatmap                        */
+/* ═══════════════════════════════════════════════════════════ */
+function TimeOfDayHeatmap({ trades }: { trades: ReturnType<typeof useTradeStore.getState>["trades"] }) {
+  const HOURS = Array.from({ length: 15 }, (_, i) => i + 6); // 6..20
+  const DAYS = [
+    { idx: 1, label: "Mon" },
+    { idx: 2, label: "Tue" },
+    { idx: 3, label: "Wed" },
+    { idx: 4, label: "Thu" },
+    { idx: 5, label: "Fri" },
+  ];
+
+  const grid = useMemo(() => {
+    const g: Record<string, { total: number; count: number; wins: number }> = {};
+    trades.forEach(trade => {
+      if (!trade.entryDate) return;
+      try {
+        const date = new Date(trade.entryDate);
+        const hour = date.getHours();
+        const day = date.getDay();
+        if (day === 0 || day === 6) return;
+        if (hour < 6 || hour > 20) return;
+        const key = `${day}-${hour}`;
+        if (!g[key]) g[key] = { total: 0, count: 0, wins: 0 };
+        g[key].total += trade.netPnl;
+        g[key].count++;
+        if (trade.result === "win") g[key].wins++;
+      } catch { /* skip */ }
+    });
+    return g;
+  }, [trades]);
+
+  const allAvgs = Object.values(grid)
+    .filter(c => c.count > 0)
+    .map(c => c.total / c.count);
+  const maxAbs = allAvgs.length > 0 ? Math.max(...allAvgs.map(Math.abs), 1) : 1;
+
+  const getCellColor = (avg: number) => {
+    const intensity = Math.min(Math.abs(avg) / maxAbs, 1);
+    if (avg > 0) {
+      const a = 0.08 + intensity * 0.55;
+      return `rgba(0,255,178,${a.toFixed(2)})`;
+    } else if (avg < 0) {
+      const a = 0.08 + intensity * 0.55;
+      return `rgba(255,45,85,${a.toFixed(2)})`;
+    }
+    return "rgba(255,255,255,0.04)";
+  };
+
+  const formatHour = (h: number) => {
+    const ampm = h >= 12 ? "PM" : "AM";
+    const disp = h % 12 || 12;
+    return `${disp}${ampm}`;
+  };
+
+  if (trades.length === 0) {
+    return (
+      <GlassCard>
+        <div className="flex items-center gap-2 mb-4">
+          <Clock size={18} className="text-accent-violet" />
+          <h3 className="font-[family-name:var(--font-inter)] font-bold text-base">Peak Performance Hours</h3>
+        </div>
+        <div className="h-48 flex items-center justify-center text-sm text-text-muted">No trade data yet.</div>
+      </GlassCard>
+    );
+  }
+
+  return (
+    <GlassCard>
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-accent-violet/10 border border-accent-violet/20 flex items-center justify-center">
+            <Clock size={16} className="text-accent-violet" />
+          </div>
+          <div>
+            <h3 className="font-[family-name:var(--font-inter)] font-bold text-base">Peak Performance Hours</h3>
+            <p className="text-[10px] text-text-muted">Avg P&L per hour block, weekdays only</p>
+          </div>
+        </div>
+        {/* Legend */}
+        <div className="flex items-center gap-3 text-[10px] text-text-muted">
+          <div className="flex items-center gap-1.5">
+            <div className="w-10 h-3 rounded-sm" style={{ background: "linear-gradient(90deg,rgba(255,45,85,0.6),rgba(255,255,255,0.06),rgba(0,255,178,0.6))" }} />
+          </div>
+          <span>Losing → Neutral → Profitable</span>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto no-scrollbar">
+        {/* Hour axis */}
+        <div className="flex mb-1 ml-10">
+          {HOURS.map(h => (
+            <div key={h} className="flex-1 text-center text-[8px] text-text-muted font-[family-name:var(--font-space-mono)]">
+              {formatHour(h)}
+            </div>
+          ))}
+        </div>
+
+        {/* Grid rows */}
+        {DAYS.map(({ idx, label }) => (
+          <div key={label} className="flex items-center gap-0 mb-0.5">
+            <span className="text-[10px] text-text-muted w-10 flex-shrink-0 text-right pr-2 font-semibold">{label}</span>
+            {HOURS.map(hour => {
+              const cell = grid[`${idx}-${hour}`];
+              const avg = cell && cell.count > 0 ? cell.total / cell.count : 0;
+              const winRate = cell && cell.count > 0 ? (cell.wins / cell.count) * 100 : 0;
+              const bg = cell && cell.count > 0 ? getCellColor(avg) : "rgba(255,255,255,0.03)";
+              const tooltip = cell && cell.count > 0
+                ? `${label} ${formatHour(hour)}\nAvg P&L: ${avg >= 0 ? "+" : ""}$${avg.toFixed(0)}\nWin Rate: ${winRate.toFixed(0)}%\nTrades: ${cell.count}`
+                : `${label} ${formatHour(hour)} — No data`;
+              return (
+                <div
+                  key={hour}
+                  className="flex-1 mx-[1px] rounded-[3px] cursor-pointer hover:ring-1 hover:ring-white/25 hover:scale-110 transition-all duration-150"
+                  style={{ backgroundColor: bg, height: 28 }}
+                  title={tooltip}
+                />
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </GlassCard>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/*  Symbol Leaderboard                                       */
+/* ═══════════════════════════════════════════════════════════ */
+function SymbolLeaderboard({ trades }: { trades: ReturnType<typeof useTradeStore.getState>["trades"] }) {
+  const symbolStats = useMemo(() => {
+    const map: Record<string, { pnl: number; wins: number; losses: number; count: number }> = {};
+    trades.forEach(t => {
+      if (!map[t.symbol]) map[t.symbol] = { pnl: 0, wins: 0, losses: 0, count: 0 };
+      map[t.symbol].pnl += t.netPnl;
+      map[t.symbol].count++;
+      if (t.result === "win") map[t.symbol].wins++;
+      else map[t.symbol].losses++;
+    });
+    return Object.entries(map)
+      .map(([symbol, stats]) => ({
+        symbol,
+        ...stats,
+        winRate: stats.count > 0 ? (stats.wins / stats.count) * 100 : 0,
+      }))
+      .sort((a, b) => b.pnl - a.pnl)
+      .slice(0, 8);
+  }, [trades]);
+
+  const rankStyle = (i: number) => {
+    if (i === 0) return { color: "#FFD700", label: "#1", glow: "rgba(255,215,0,0.2)" };
+    if (i === 1) return { color: "#C0C0C0", label: "#2", glow: "rgba(192,192,192,0.15)" };
+    if (i === 2) return { color: "#CD7F32", label: "#3", glow: "rgba(205,127,50,0.15)" };
+    return { color: "#8B8FA3", label: `#${i + 1}`, glow: "transparent" };
+  };
+
+  if (symbolStats.length === 0) {
+    return (
+      <GlassCard>
+        <div className="flex items-center gap-2 mb-4">
+          <Trophy size={18} className="text-accent-violet" />
+          <h3 className="font-[family-name:var(--font-inter)] font-bold text-base">Symbol Leaderboard</h3>
+        </div>
+        <div className="h-48 flex items-center justify-center text-sm text-text-muted">No trade data yet.</div>
+      </GlassCard>
+    );
+  }
+
+  return (
+    <GlassCard>
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-accent-violet/10 border border-accent-violet/20 flex items-center justify-center">
+            <Trophy size={16} className="text-accent-violet" />
+          </div>
+          <div>
+            <h3 className="font-[family-name:var(--font-inter)] font-bold text-base">Symbol Leaderboard</h3>
+            <p className="text-[10px] text-text-muted">Top 8 symbols by net P&L</p>
+          </div>
+        </div>
+        <span className="text-[9px] font-bold uppercase tracking-wider text-text-muted px-2 py-1 rounded-lg bg-bg-secondary/40 border border-border-subtle">
+          {symbolStats.length} symbols
+        </span>
+      </div>
+
+      <div className="space-y-2">
+        {symbolStats.map((item, i) => {
+          const rs = rankStyle(i);
+          return (
+            <motion.div
+              key={item.symbol}
+              initial={{ opacity: 0, x: -12 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.05, duration: 0.35, ease: "easeOut" }}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-border-subtle/60 bg-white/[0.015] hover:bg-white/[0.03] transition-all group"
+              style={{ boxShadow: i < 3 ? `0 0 12px ${rs.glow}` : undefined }}
+            >
+              {/* Rank */}
+              <span
+                className="font-[family-name:var(--font-space-mono)] font-black text-sm w-6 text-center flex-shrink-0"
+                style={{ color: rs.color }}
+              >
+                {rs.label}
+              </span>
+
+              {/* Symbol */}
+              <div className="flex-shrink-0 w-16">
+                <span className="font-[family-name:var(--font-space-mono)] font-bold text-sm text-text-primary">
+                  {item.symbol}
+                </span>
+                <div className="text-[9px] text-text-muted">{item.count} trades</div>
+              </div>
+
+              {/* Win rate bar */}
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between text-[9px] text-text-muted mb-1">
+                  <span>Win Rate</span>
+                  <span className="font-bold" style={{ color: item.winRate >= 50 ? "#00FFB2" : "#FF2D55" }}>
+                    {item.winRate.toFixed(0)}%
+                  </span>
+                </div>
+                <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full rounded-full"
+                    style={{ backgroundColor: item.winRate >= 50 ? "#00FFB2" : "#FF2D55" }}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${item.winRate}%` }}
+                    transition={{ delay: i * 0.05 + 0.2, duration: 0.6, ease: "easeOut" }}
+                  />
+                </div>
+              </div>
+
+              {/* P&L */}
+              <div className="text-right flex-shrink-0 w-20">
+                <div
+                  className="font-[family-name:var(--font-space-mono)] font-black text-sm"
+                  style={{ color: item.pnl >= 0 ? "#00FFB2" : "#FF2D55" }}
+                >
+                  {item.pnl >= 0 ? "+" : ""}{formatCurrency(item.pnl)}
+                </div>
+                <div className="text-[9px] text-text-muted">
+                  {item.wins}W / {item.losses}L
+                </div>
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+    </GlassCard>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/*  Smart Insights Panel                                     */
+/* ═══════════════════════════════════════════════════════════ */
+function SmartInsightsPanel({ trades }: { trades: ReturnType<typeof useTradeStore.getState>["trades"] }) {
+  const insights = useMemo(() => {
+    const result: { icon: string; text: string; type: "good" | "bad" | "neutral" }[] = [];
+
+    if (trades.length === 0) return result;
+
+    // 1. Best session by avg P&L
+    const sessionMap: Record<string, { total: number; count: number }> = {};
+    trades.forEach(t => {
+      const s = t.sessionTag || "Unknown";
+      if (!sessionMap[s]) sessionMap[s] = { total: 0, count: 0 };
+      sessionMap[s].total += t.netPnl;
+      sessionMap[s].count++;
+    });
+    const sessions = Object.entries(sessionMap)
+      .map(([name, { total, count }]) => ({ name, avg: count > 0 ? total / count : 0, count }))
+      .filter(s => s.count >= 2)
+      .sort((a, b) => b.avg - a.avg);
+    if (sessions.length > 0 && sessions[0].avg > 0) {
+      result.push({
+        icon: "🌅",
+        text: `Your best session is ${sessions[0].name} with avg ${sessions[0].avg >= 0 ? "+" : ""}$${sessions[0].avg.toFixed(0)} P&L per trade`,
+        type: "good",
+      });
+    }
+
+    // 2. Worst day of week by win rate
+    const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const dayMap: Record<number, { wins: number; count: number }> = {};
+    trades.forEach(t => {
+      try {
+        const day = new Date(t.entryDate).getDay();
+        if (day === 0 || day === 6) return;
+        if (!dayMap[day]) dayMap[day] = { wins: 0, count: 0 };
+        dayMap[day].count++;
+        if (t.result === "win") dayMap[day].wins++;
+      } catch { /* skip */ }
+    });
+    const dayStats = Object.entries(dayMap)
+      .map(([d, { wins, count }]) => ({ day: parseInt(d), name: dayNames[parseInt(d)], winRate: count > 0 ? (wins / count) * 100 : 0, count }))
+      .filter(d => d.count >= 2);
+    if (dayStats.length > 0) {
+      const worstDay = dayStats.sort((a, b) => a.winRate - b.winRate)[0];
+      if (worstDay.winRate < 45) {
+        result.push({
+          icon: "📅",
+          text: `You lose most on ${worstDay.name}s (${worstDay.winRate.toFixed(0)}% win rate, ${worstDay.count} trades) — consider reducing size`,
+          type: "bad",
+        });
+      }
+    }
+
+    // 3. Current win streak
+    const sorted = [...trades].sort((a, b) => new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime());
+    let streak = 0;
+    for (let i = sorted.length - 1; i >= 0; i--) {
+      if (sorted[i].result === "win") streak++;
+      else break;
+    }
+    if (streak >= 3) {
+      result.push({
+        icon: "🔥",
+        text: `You're on a ${streak}-trade winning streak! Stay disciplined and don't over-leverage`,
+        type: "good",
+      });
+    }
+
+    // 4. Revenge trading signal (last 30 days)
+    const recent = sorted.filter(t => {
+      try { return Date.now() - new Date(t.entryDate).getTime() < 30 * 86400000; } catch { return false; }
+    });
+    let revengeCount = 0;
+    for (let i = 0; i < recent.length - 1; i++) {
+      if (recent[i].result === "loss") {
+        const lossTime = new Date(recent[i].entryDate).getTime();
+        const nextTime = new Date(recent[i + 1]?.entryDate || 0).getTime();
+        if (nextTime - lossTime <= 20 * 60 * 1000 && nextTime > lossTime) revengeCount++;
+      }
+    }
+    if (revengeCount >= 2) {
+      result.push({
+        icon: "⚠️",
+        text: `Detected ${revengeCount} potential revenge trades in the last 30 days — wait at least 20 minutes after a loss`,
+        type: "bad",
+      });
+    }
+
+    // 5. Best performing symbol insight
+    const symbolMap: Record<string, { pnl: number; count: number }> = {};
+    trades.forEach(t => {
+      if (!symbolMap[t.symbol]) symbolMap[t.symbol] = { pnl: 0, count: 0 };
+      symbolMap[t.symbol].pnl += t.netPnl;
+      symbolMap[t.symbol].count++;
+    });
+    const symbolList = Object.entries(symbolMap)
+      .map(([sym, { pnl, count }]) => ({ sym, pnl, count }))
+      .filter(s => s.count >= 3)
+      .sort((a, b) => b.pnl - a.pnl);
+    if (symbolList.length > 0 && symbolList[0].pnl > 0) {
+      result.push({
+        icon: "🎯",
+        text: `${symbolList[0].sym} is your most profitable symbol with $${symbolList[0].pnl.toFixed(0)} net P&L across ${symbolList[0].count} trades`,
+        type: "good",
+      });
+    }
+
+    // 6. Profitability trend (last 10 vs previous 10)
+    if (sorted.length >= 20) {
+      const last10 = sorted.slice(-10).reduce((s, t) => s + t.netPnl, 0);
+      const prev10 = sorted.slice(-20, -10).reduce((s, t) => s + t.netPnl, 0);
+      if (last10 > 0 && last10 > prev10) {
+        result.push({
+          icon: "📈",
+          text: `You're trending upward — last 10 trades earned $${last10.toFixed(0)}, vs $${prev10.toFixed(0)} in the 10 before`,
+          type: "good",
+        });
+      } else if (last10 < 0 && last10 < prev10) {
+        result.push({
+          icon: "📉",
+          text: `Your last 10 trades lost $${Math.abs(last10).toFixed(0)} vs $${Math.abs(prev10).toFixed(0)} previously — review your setups`,
+          type: "bad",
+        });
+      }
+    }
+
+    return result.slice(0, 5);
+  }, [trades]);
+
+  const borderColor = (type: "good" | "bad" | "neutral") => {
+    if (type === "good") return "border-l-accent-green bg-accent-green/[0.03]";
+    if (type === "bad") return "border-l-accent-coral bg-accent-coral/[0.03]";
+    return "border-l-accent-violet bg-accent-violet/[0.03]";
+  };
+
+  const tagColor = (type: "good" | "bad" | "neutral") => {
+    if (type === "good") return "text-accent-green bg-accent-green/10 border-accent-green/20";
+    if (type === "bad") return "text-accent-coral bg-accent-coral/10 border-accent-coral/20";
+    return "text-accent-violet bg-accent-violet/10 border-accent-violet/20";
+  };
+
+  return (
+    <GlassCard>
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-accent-violet/10 border border-accent-violet/20 flex items-center justify-center">
+            <Lightbulb size={16} className="text-accent-violet" />
+          </div>
+          <div>
+            <h3 className="font-[family-name:var(--font-inter)] font-bold text-base">Smart Insights</h3>
+            <p className="text-[10px] text-text-muted">Auto-generated from your trading patterns</p>
+          </div>
+        </div>
+        <span className="text-[9px] font-bold uppercase tracking-wider text-accent-violet px-2 py-1 rounded-lg bg-accent-violet/10 border border-accent-violet/20">
+          {insights.length} insight{insights.length !== 1 ? "s" : ""}
+        </span>
+      </div>
+
+      {insights.length === 0 ? (
+        <div className="py-10 flex flex-col items-center justify-center text-sm text-text-muted">
+          <Lightbulb size={28} className="mb-3 opacity-25" />
+          <p className="font-semibold text-xs">Not enough data yet</p>
+          <p className="text-[10px] mt-0.5">Log more trades to receive personalized insights</p>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {insights.map((insight, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.07, duration: 0.35, ease: "easeOut" }}
+              className={cn(
+                "flex items-start gap-3 px-4 py-3 rounded-xl border border-l-4 transition-all hover:brightness-110",
+                borderColor(insight.type)
+              )}
+            >
+              <span className="text-base flex-shrink-0 mt-0.5">{insight.icon}</span>
+              <p className="text-sm text-text-primary leading-relaxed flex-1">{insight.text}</p>
+              <span className={cn(
+                "flex-shrink-0 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg border self-start mt-0.5",
+                tagColor(insight.type)
+              )}>
+                {insight.type === "good" ? "Edge" : insight.type === "bad" ? "Risk" : "Note"}
+              </span>
+            </motion.div>
+          ))}
+        </div>
+      )}
+    </GlassCard>
+  );
+}
+
 export default function AnalyticsPage() {
   const { trades } = useTradeStore();
   const { settings } = useSettingsStore();
@@ -1473,8 +1921,12 @@ export default function AnalyticsPage() {
       ) : (
         <>
           {/* Metrics Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-
+          <motion.div
+            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0, duration: 0.4 }}
+          >
         <MetricCard label="Net P&L" value={metrics.totalNetPnl} format={(v) => formatCurrency(v)} icon={DollarSign} color={metrics.totalNetPnl >= 0 ? "text-accent-green" : "text-accent-coral"} delay={0} />
         <MetricCard label="Win Rate" value={metrics.winRate} format={(v) => `${v.toFixed(1)}%`} icon={Target} color={metrics.winRate >= 50 ? "text-accent-green" : "text-accent-coral"} delay={0.03} />
         <MetricCard label="Profit Factor" value={metrics.profitFactor} format={(v) => v.toFixed(2)} icon={TrendingUp} color="text-accent-violet" delay={0.06} />
@@ -1485,10 +1937,15 @@ export default function AnalyticsPage() {
         <MetricCard label="Expectancy" value={metrics.expectancy} format={(v) => formatCurrency(v)} icon={Zap} color={metrics.expectancy >= 0 ? "text-accent-green" : "text-accent-coral"} delay={0.21} />
         <MetricCard label="Avg Hold Time" value={metrics.avgHoldTime} format={(v) => formatDuration(Math.round(v))} icon={Clock} color="text-text-primary" delay={0.24} />
         <MetricCard label="Total Commissions" value={metrics.totalCommissions} format={(v) => `$${v.toFixed(2)}`} icon={BarChart3} color="text-accent-coral" delay={0.27} />
-      </div>
+      </motion.div>
 
       {/* Charts Row 1 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <motion.div
+        className="grid grid-cols-1 lg:grid-cols-2 gap-4"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1, duration: 0.4 }}
+      >
         <GlassCard>
           <h3 className="font-[family-name:var(--font-inter)] font-bold text-base mb-4">Equity Curve</h3>
           <div className="h-64">
@@ -1502,10 +1959,15 @@ export default function AnalyticsPage() {
             <DailyPnlChart trades={filteredTrades} viewMode={viewMode} />
           </div>
         </GlassCard>
-      </div>
+      </motion.div>
 
       {/* Charts Row 2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <motion.div
+        className="grid grid-cols-1 lg:grid-cols-2 gap-4"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2, duration: 0.4 }}
+      >
         <GlassCard>
           <h3 className="font-[family-name:var(--font-inter)] font-bold text-base mb-4">Win Rate by Session</h3>
           <div className="h-64">
@@ -1519,11 +1981,16 @@ export default function AnalyticsPage() {
             <PnlBySymbolChart trades={filteredTrades} />
           </div>
         </GlassCard>
-      </div>
+      </motion.div>
 
 
         {/* Charts Row 3: R-Distribution + Day×Hour Heatmap */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <motion.div
+          className="grid grid-cols-1 lg:grid-cols-2 gap-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.4 }}
+        >
           <GlassCard>
             <h3 className="font-[family-name:var(--font-inter)] font-bold text-base mb-4">R-Multiple Distribution</h3>
             <div className="h-64">
@@ -1538,24 +2005,35 @@ export default function AnalyticsPage() {
             </div>
             <DayHourHeatmap trades={filteredTrades} />
           </GlassCard>
-        </div>
+        </motion.div>
 
       {/* Row: Mindset Performance */}
-      <GlassCard>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Brain size={18} className="text-accent-violet" />
-            <h3 className="font-[family-name:var(--font-inter)] font-bold text-base">Psychological Performance (P&L by Mindset)</h3>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4, duration: 0.4 }}
+      >
+        <GlassCard>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Brain size={18} className="text-accent-violet" />
+              <h3 className="font-[family-name:var(--font-inter)] font-bold text-base">Psychological Performance (P&L by Mindset)</h3>
+            </div>
+            <span className="text-xs text-text-muted">Impact of emotional state on profitability</span>
           </div>
-          <span className="text-xs text-text-muted">Impact of emotional state on profitability</span>
-        </div>
-        <div className="h-64">
-          <MindsetPerformanceChart trades={filteredTrades} />
-        </div>
-      </GlassCard>
+          <div className="h-64">
+            <MindsetPerformanceChart trades={filteredTrades} />
+          </div>
+        </GlassCard>
+      </motion.div>
 
       {/* TradeZella Capital Leaks & Days Performance Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <motion.div
+        className="grid grid-cols-1 lg:grid-cols-2 gap-4"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5, duration: 0.4 }}
+      >
         <GlassCard>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -1581,87 +2059,150 @@ export default function AnalyticsPage() {
             <DayOfWeekPerformanceChart trades={filteredTrades} />
           </div>
         </GlassCard>
-      </div>
+      </motion.div>
 
       {/* Charts Row 4: MAE / MFE */}
-      <GlassCard>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Crosshair size={18} className="text-accent-violet" />
-            <h3 className="font-[family-name:var(--font-inter)] font-bold text-base">Trade Execution (MAE / MFE)</h3>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6, duration: 0.4 }}
+      >
+        <GlassCard>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Crosshair size={18} className="text-accent-violet" />
+              <h3 className="font-[family-name:var(--font-inter)] font-bold text-base">Trade Execution (MAE / MFE)</h3>
+            </div>
+            <span className="text-xs text-text-muted">Analyze your stop-losses and take-profits</span>
           </div>
-          <span className="text-xs text-text-muted">Analyze your stop-losses and take-profits</span>
-        </div>
-        <div className="h-64 mt-4">
-          <MaeMfeChart trades={filteredTrades} />
-        </div>
-      </GlassCard>
-
-      {/* Day × Hour Heatmap */}
-      <GlassCard>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="font-[family-name:var(--font-inter)] font-bold text-base">Day × Hour Performance Heatmap</h3>
-            <p className="text-xs text-text-muted mt-0.5">Best and worst time windows across your trading week</p>
-          </div>
-          <span className="text-[9px] font-bold uppercase tracking-wider text-text-muted px-2 py-1 rounded-lg bg-bg-secondary/40 border border-border-subtle">30d data</span>
-        </div>
-        <DayHourHeatmap trades={filteredTrades} />
-      </GlassCard>
-
-      {/* Monte Carlo */}
-      <GlassCard>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-[family-name:var(--font-inter)] font-bold text-base">Monte Carlo Simulation</h3>
-          <span className="text-xs text-text-muted">50 simulations, 50 trades forward</span>
-        </div>
-        <div className="h-64">
-          <MonteCarloChart trades={filteredTrades} />
-        </div>
-      </GlassCard>
-
-      {/* Streaks & Records */}
-      <GlassCard>
-        <h3 className="font-[family-name:var(--font-inter)] font-bold text-base mb-4">Records & Streaks</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="text-center">
-            <Award size={20} className="mx-auto text-accent-green mb-2" />
-            <div className="text-xs text-text-muted mb-0.5">Max Win Streak</div>
-            <div className="font-[family-name:var(--font-space-mono)] font-bold text-xl text-accent-green">{metrics.maxWinStreak}</div>
-          </div>
-          <div className="text-center">
-            <AlertTriangle size={20} className="mx-auto text-accent-coral mb-2" />
-            <div className="text-xs text-text-muted mb-0.5">Max Loss Streak</div>
-            <div className="font-[family-name:var(--font-space-mono)] font-bold text-xl text-accent-coral">{metrics.maxLossStreak}</div>
-          </div>
-          <div className="text-center">
-            <TrendingUp size={20} className="mx-auto text-accent-green mb-2" />
-            <div className="text-xs text-text-muted mb-0.5">Best Day</div>
-            <div className="font-[family-name:var(--font-space-mono)] font-bold text-lg text-accent-green">{formatCurrency(metrics.bestDay.pnl)}</div>
-          </div>
-          <div className="text-center">
-            <TrendingDown size={20} className="mx-auto text-accent-coral mb-2" />
-            <div className="text-xs text-text-muted mb-0.5">Worst Day</div>
-            <div className="font-[family-name:var(--font-space-mono)] font-bold text-lg text-accent-coral">{formatCurrency(metrics.worstDay.pnl)}</div>
-          </div>
+          <div className="h-64 mt-4">
+            <MaeMfeChart trades={filteredTrades} />
           </div>
         </GlassCard>
+      </motion.div>
 
-      {/* ═══════════════════════════════════════════════════ */}
-      {/*  NEW SECTIONS: Monthly P&L, Duration Scatter, Cross-Analysis */}
-      {/* ═══════════════════════════════════════════════════ */}
+      {/* Day × Hour Heatmap */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.7, duration: 0.4 }}
+      >
+        <GlassCard>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="font-[family-name:var(--font-inter)] font-bold text-base">Day × Hour Performance Heatmap</h3>
+              <p className="text-xs text-text-muted mt-0.5">Best and worst time windows across your trading week</p>
+            </div>
+            <span className="text-[9px] font-bold uppercase tracking-wider text-text-muted px-2 py-1 rounded-lg bg-bg-secondary/40 border border-border-subtle">30d data</span>
+          </div>
+          <DayHourHeatmap trades={filteredTrades} />
+        </GlassCard>
+      </motion.div>
+
+      {/* Monte Carlo */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.75, duration: 0.4 }}
+      >
+        <GlassCard>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-[family-name:var(--font-inter)] font-bold text-base">Monte Carlo Simulation</h3>
+            <span className="text-xs text-text-muted">50 simulations, 50 trades forward</span>
+          </div>
+          <div className="h-64">
+            <MonteCarloChart trades={filteredTrades} />
+          </div>
+        </GlassCard>
+      </motion.div>
+
+      {/* Streaks & Records */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.8, duration: 0.4 }}
+      >
+        <GlassCard>
+          <h3 className="font-[family-name:var(--font-inter)] font-bold text-base mb-4">Records & Streaks</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="text-center">
+              <Award size={20} className="mx-auto text-accent-green mb-2" />
+              <div className="text-xs text-text-muted mb-0.5">Max Win Streak</div>
+              <div className="font-[family-name:var(--font-space-mono)] font-bold text-xl text-accent-green">{metrics.maxWinStreak}</div>
+            </div>
+            <div className="text-center">
+              <AlertTriangle size={20} className="mx-auto text-accent-coral mb-2" />
+              <div className="text-xs text-text-muted mb-0.5">Max Loss Streak</div>
+              <div className="font-[family-name:var(--font-space-mono)] font-bold text-xl text-accent-coral">{metrics.maxLossStreak}</div>
+            </div>
+            <div className="text-center">
+              <TrendingUp size={20} className="mx-auto text-accent-green mb-2" />
+              <div className="text-xs text-text-muted mb-0.5">Best Day</div>
+              <div className="font-[family-name:var(--font-space-mono)] font-bold text-lg text-accent-green">{formatCurrency(metrics.bestDay.pnl)}</div>
+            </div>
+            <div className="text-center">
+              <TrendingDown size={20} className="mx-auto text-accent-coral mb-2" />
+              <div className="text-xs text-text-muted mb-0.5">Worst Day</div>
+              <div className="font-[family-name:var(--font-space-mono)] font-bold text-lg text-accent-coral">{formatCurrency(metrics.worstDay.pnl)}</div>
+            </div>
+          </div>
+        </GlassCard>
+      </motion.div>
+
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {/*  NEW SECTIONS: Monthly P&L, Duration Scatter, Cross-Analysis  */}
+      {/* ══════════════════════════════════════════════════════════════ */}
 
       {/* Monthly P&L Summary Table */}
-      <MonthlyPnlTable trades={filteredTrades} />
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.85, duration: 0.4 }}
+      >
+        <MonthlyPnlTable trades={filteredTrades} />
+      </motion.div>
 
       {/* Trade Duration Scatter + Cross-Analysis Heatmap */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <motion.div
+        className="grid grid-cols-1 lg:grid-cols-2 gap-4"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.9, duration: 0.4 }}
+      >
         <DurationScatterChart trades={filteredTrades} />
         <CrossAnalysisHeatmap trades={filteredTrades} />
-      </div>
+      </motion.div>
 
       {/* Psychology Intelligence */}
-      <PsychologyIntelligence trades={filteredTrades} />
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.95, duration: 0.4 }}
+      >
+        <PsychologyIntelligence trades={filteredTrades} />
+      </motion.div>
+
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {/*  NEW: Time-of-Day Heatmap + Symbol Leaderboard (side by side) */}
+      {/* ══════════════════════════════════════════════════════════════ */}
+      <motion.div
+        className="grid grid-cols-1 lg:grid-cols-2 gap-4"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.0, duration: 0.4 }}
+      >
+        <TimeOfDayHeatmap trades={filteredTrades} />
+        <SymbolLeaderboard trades={filteredTrades} />
+      </motion.div>
+
+      {/* Smart Insights Panel */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.05, duration: 0.4 }}
+      >
+        <SmartInsightsPanel trades={filteredTrades} />
+      </motion.div>
       </>
       )}
     </div>

@@ -52,6 +52,49 @@ export default function AlertsPage() {
         triggered = true;
         title = "Overtrading Alert";
         description = `You have taken ${todaysTrades.length} trades today. Limit is ${rule.threshold}.`;
+      } else if (rule.metric === "dailyProfit" && dailyPnl >= rule.threshold) {
+        triggered = true;
+        title = "Daily Profit Target Reached!";
+        description = `Great job! You reached +${formatCurrency(dailyPnl)} today (Target: ${formatCurrency(rule.threshold)}). Consider locking in gains.`;
+      } else if (rule.metric === "lossStreak") {
+        let streak = 0;
+        const sorted = [...trades].sort((a,b) => new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime());
+        for (const t of sorted) {
+          if (t.result === "loss") streak++;
+          else break;
+        }
+        if (streak >= rule.threshold) {
+          triggered = true;
+          title = "Consecutive Loss Streak Alert";
+          description = `You have suffered ${streak} consecutive losses. Threshold is ${rule.threshold}. Take a 15 minute break.`;
+        }
+      } else if (rule.metric === "winRate7d") {
+        const nowMs = Date.now();
+        const trades7d = trades.filter(t => nowMs - new Date(t.entryDate).getTime() <= 7 * 24 * 3600 * 1000);
+        if (trades7d.length >= 5) {
+          const wr = (trades7d.filter(t => t.result === "win").length / trades7d.length) * 100;
+          if (wr < rule.threshold) {
+            triggered = true;
+            title = "7-Day Win Rate Dip";
+            description = `Your 7-day win rate dropped to ${wr.toFixed(0)}% (Threshold: ${rule.threshold}%). Review playbook alignment.`;
+          }
+        }
+      } else if (rule.metric === "drawdown") {
+        let maxPeak = 0;
+        let cum = 0;
+        let currentDD = 0;
+        const chronological = [...trades].sort((a,b) => new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime());
+        for (const t of chronological) {
+          cum += t.netPnl;
+          if (cum > maxPeak) maxPeak = cum;
+          const dd = maxPeak > 0 ? ((maxPeak - cum) / maxPeak) * 100 : 0;
+          if (dd > currentDD) currentDD = dd;
+        }
+        if (currentDD >= rule.threshold) {
+          triggered = true;
+          title = "Account Drawdown Warning";
+          description = `Peak-to-valley drawdown reached ${currentDD.toFixed(1)}% (Threshold: ${rule.threshold}%). Reduce position sizing.`;
+        }
       }
 
       if (triggered) {

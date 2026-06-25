@@ -44,13 +44,6 @@ export interface Trade {
   backtested?: boolean;
 }
 
-export interface TradingAccount {
-  id: string;
-  name: string;
-  type: "personal" | "prop" | "ira" | "margin";
-  balance: number;
-  currency: string;
-}
 
 export interface DailyStats {
   date: string;
@@ -208,7 +201,7 @@ export interface AlertRule {
   createdAt: string;
 }
 
-export type AccountType = "manual" | "mt5-csv" | "mt5-ea";
+export type AccountType = "personal" | "prop" | "ira" | "margin" | "manual" | "mt5-csv" | "mt5-ea";
 
 export interface TradingAccount {
   id: string;
@@ -216,9 +209,10 @@ export interface TradingAccount {
   type: AccountType;
   broker?: string;
   balance: number;
-  startingBalance: number;
-  linkedTradeIds: string[];
-  apiKey?: string; // For EA bridge
+  startingBalance?: number;
+  currency?: string;
+  linkedTradeIds?: string[];
+  apiKey?: string;
   mt5AccountId?: string;
   createdAt: string;
 }

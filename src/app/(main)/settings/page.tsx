@@ -129,7 +129,7 @@ function AccountsSection() {
 
   const handleAdd = () => {
     if (!name || !balance) return;
-    addAccount({ name, type, balance: Number(balance), currency });
+    addAccount({ name, type, balance: Number(balance), startingBalance: Number(balance), currency, linkedTradeIds: [] });
     setName("");
     setBalance("");
   };
