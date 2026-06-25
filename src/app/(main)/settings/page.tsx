@@ -515,6 +515,22 @@ function DataSection() {
     }
   };
 
+  const handlePurgeDummyOnly = async () => {
+    const dummyTrades = trades.filter(t => t.entryDate && t.entryDate.startsWith("2025-04-"));
+    if (dummyTrades.length === 0) {
+      alert("No contaminated April 2025 dummy trades found!");
+      return;
+    }
+    if (confirm(`Found ${dummyTrades.length} contaminated dummy demo trades from April 2025. Delete ONLY these while keeping your real logged trades?`)) {
+      try {
+        await deleteTrades(dummyTrades.map(t => t.id));
+        alert(`Successfully purged ${dummyTrades.length} dummy demo trades. Your real executions are intact!`);
+      } catch (err: any) {
+        alert("Failed to purge dummy trades: " + err.message);
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -551,6 +567,17 @@ function DataSection() {
           ) : (
             <ChevronRight size={16} className="text-text-muted group-hover:text-text-primary transition-colors" />
           )}
+        </button>
+
+        <button onClick={handlePurgeDummyOnly} className="w-full flex items-center justify-between p-4 rounded-xl bg-bg-card border border-border-subtle hover:border-accent-orange/20 transition-all text-left group">
+          <div className="flex items-center gap-3">
+            <Trash2 size={18} className="text-accent-orange" />
+            <div>
+              <div className="text-sm font-medium text-accent-orange">Purge Contaminated Dummy Trades Only</div>
+              <div className="text-xs text-text-muted">Safely delete April 2025 sample demo data while preserving your real executions</div>
+            </div>
+          </div>
+          <ChevronRight size={16} className="text-text-muted group-hover:text-text-primary transition-colors" />
         </button>
 
         <button onClick={handleReset} className="w-full flex items-center justify-between p-4 rounded-xl bg-bg-card border border-border-subtle hover:border-accent-coral/20 transition-all text-left group">
