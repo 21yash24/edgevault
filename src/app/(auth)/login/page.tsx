@@ -8,10 +8,10 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { ArrowRight, Mail, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LogoIcon } from "@/components/ui/logo";
+import { resetAllStores } from "@/stores";
 
 export default function LoginPage() {
   const router = useRouter();
-  
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,6 +23,7 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     try {
+      resetAllStores();
       if (isLogin) {
         await signInWithEmailAndPassword(auth!, email, password);
       } else {

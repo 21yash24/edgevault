@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { User, onAuthStateChanged, signOut } from "firebase/auth";
 import { auth, isFirebaseConfigured } from "@/lib/firebase";
+import { resetAllStores } from "@/stores";
 
 interface AuthContextType {
   user: User | null;
@@ -30,26 +31,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const unsubscribe = onAuthStateChanged(auth!, (u) => {
+      // If switching accounts or logging out, wipe local store memory
+      if (user && u?.uid !== user.uid) {
+        resetAllStores();
+      }
       setUser(u);
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [isDemoMode]);
+  }, [isDemoMode, user]);
 
   const logout = async () => {
     if (!isDemoMode && auth) {
       await signOut(auth);
-      const keysToRemove = [
-        "edgevault-trades",
-        "edgevault-playbooks",
-        "edgevault-accounts",
-        "edgevault-propfirm",
-        "edgevault-settings",
-        "edgevault-risk",
-        "edgevault-notebook"
-      ];
-      keysToRemove.forEach(key => localStorage.removeItem(key));
+      resetAllStores();
       window.location.href = "/login";
     }
   };

@@ -59,7 +59,7 @@ export const useTradeStore = create<TradeStore>()(
       initialized: false,
       initializeTrades: () => {
         if (!get().initialized) {
-          set({ trades: recalculate(generateMockTrades()), initialized: true });
+          set({ trades: [], initialized: true });
         }
       },
       addTrade: async (trade) => {
@@ -164,34 +164,10 @@ export const useTradeStore = create<TradeStore>()(
         const q = query(collection(db, `users/${userId}/trades`));
         const unsubscribe = onSnapshot(q, (snapshot) => {
           const cloudTrades: Trade[] = [];
-          const cloudIds = new Set<string>();
           snapshot.forEach((doc) => {
             cloudTrades.push(doc.data() as Trade);
-            cloudIds.add(doc.id);
           });
-          
-          // Get current local trades
-          const localTrades = get().trades;
-
-          // Push any local-only trades up to Firebase (they were created offline or in another session before sync)
-          const missingInCloud = localTrades.filter(t => t.id && !cloudIds.has(t.id));
-          if (missingInCloud.length > 0 && db) {
-            missingInCloud.forEach(trade => {
-              if (db) {
-                const cleanTrade = sanitizeForFirestore(trade);
-                setDoc(doc(db, `users/${userId}/trades`, trade.id), cleanTrade, { merge: true })
-                  .catch(console.error);
-              }
-            });
-          }
-
-          // Merge: cloud is source of truth, but keep local-only trades visible until they upload
-          const merged = [...cloudTrades];
-          missingInCloud.forEach(t => {
-            if (!merged.find(c => c.id === t.id)) merged.push(t);
-          });
-
-          set({ trades: recalculate(merged) });
+          set({ trades: recalculate(cloudTrades) });
         }, (error) => {
           console.error("listenToTrades error:", error.message);
         });
@@ -1085,3 +1061,27 @@ export const useGamificationStore = create<GamificationStore>()(
     { name: 'edgevault-gamification' }
   )
 );
+
+export const resetAllStores = () => {
+  if (typeof window !== "undefined") {
+    const keysToRemove = [
+      "edgevault-trades",
+      "edgevault-playbooks",
+      "edgevault-accounts",
+      "edgevault-propfirm",
+      "edgevault-settings",
+      "edgevault-risk",
+      "edgevault-notebook"
+    ];
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+  }
+  useTradeStore.setState({ trades: [], initialized: true });
+  usePlaybookStore.setState({ playbooks: [] });
+  useAccountStore.setState({ accounts: [] });
+  usePropFirmStore.setState({ challenges: [] });
+  useNotificationStore.setState({ notifications: [] });
+  useAlertRuleStore.setState({ rules: [] });
+  useMissedTradeStore.setState({ missedTrades: [] });
+  useNotebookStore.setState({ entries: {} });
+  useRiskStore.setState({ checkedItems: [] });
+};
